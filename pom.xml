@@ -24,12 +24,13 @@ limitations under the License.
         <version>3.3.0</version>
     </parent>
     <artifactId>tinkergraph-gremlin</artifactId>
+    <version>3.3.0.shiftleft-SNAPSHOT</version>
     <name>Apache TinkerPop :: TinkerGraph Gremlin</name>
     <dependencies>
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-core</artifactId>
-            <version>${project.version}</version>
+            <version>3.3.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -43,7 +44,7 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-test</artifactId>
-            <version>${project.version}</version>
+            <version>3.3.0</version>
         </dependency>
     </dependencies>
     <build>
@@ -60,6 +61,19 @@ limitations under the License.
             </plugin>
         </plugins>
     </build>
+
+    <distributionManagement>
+        <repository>
+            <id>shiftleft-artifactory</id>
+            <name>shiftleft releases</name>
+            <url>https://shiftleft.jfrog.io/shiftleft/libs-release-local</url>
+        </repository>
+        <snapshotRepository>
+            <id>shiftleft-artifactory</id>
+            <name>shiftleft releases</name>
+            <url>https://shiftleft.jfrog.io/shiftleft/libs-snapshot-local</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <profiles>
         <profile>
