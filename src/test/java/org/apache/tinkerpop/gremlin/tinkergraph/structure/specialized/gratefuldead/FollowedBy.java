@@ -22,6 +22,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
 
+import javax.swing.text.html.Option;
 import java.util.*;
 
 public class FollowedBy extends SpecializedTinkerEdge {
@@ -38,12 +39,12 @@ public class FollowedBy extends SpecializedTinkerEdge {
     }
 
     @Override
-    protected <V> V specificProperty(String key) {
+    protected <V> Optional<V> specificProperty(String key) {
         // note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings
         if (key == WEIGHT) {
-            return (V) weight;
+            return Optional.of((V) weight);
         } else {
-            throw new NoSuchElementException(key);
+            return Optional.empty();
         }
     }
 

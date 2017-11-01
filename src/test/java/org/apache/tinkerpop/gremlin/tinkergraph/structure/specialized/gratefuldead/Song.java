@@ -57,15 +57,15 @@ public class Song extends SpecializedTinkerVertex {
 
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
-    protected <V> V specificProperty(String key) {
+    protected <V> Optional<V> specificProperty(String key) {
         if (key == NAME) {
-            return (V) name;
+            return Optional.of((V) name);
         } else if (key == SONG_TYPE) {
-            return (V) songType;
+            return Optional.of((V) songType);
         } else if (key == PERFORMANCES) {
-            return (V) performances;
+            return Optional.of((V) performances);
         } else {
-            throw new NoSuchElementException(key);
+            return Optional.empty();
         }
     }
 

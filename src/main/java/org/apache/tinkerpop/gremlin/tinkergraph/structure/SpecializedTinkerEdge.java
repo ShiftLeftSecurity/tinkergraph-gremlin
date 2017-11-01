@@ -24,10 +24,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerEdge;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerProperty;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 
 public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
@@ -46,10 +43,15 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
     @Override
     public <V> Property<V> property(String key) {
         // TODO cache instantiated Properties
-        return new TinkerProperty<V>(this, key, specificProperty(key));
+        Optional<V> value = specificProperty(key);
+        if (value.isPresent()) {
+            return new TinkerProperty<V>(this, key, value.get());
+        } else {
+            return Property.empty();
+        }
     }
 
-    protected abstract <V> V specificProperty(String key);
+    protected abstract <V> Optional<V> specificProperty(String key);
 
     @Override
     public <V> Iterator<Property<V>> properties(String... propertyKeys) {

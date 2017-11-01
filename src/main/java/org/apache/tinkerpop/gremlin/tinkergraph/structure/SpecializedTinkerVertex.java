@@ -42,11 +42,16 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     @Override
     public <V> VertexProperty<V> property(String key) {
         // TODO cache instantiated TinkerVertexProperties
-        return new TinkerVertexProperty<V>(this, key, specificProperty(key));
+        Optional<V> value = specificProperty(key);
+        if (value.isPresent()) {
+          return new TinkerVertexProperty<V>(this, key, value.get());
+        } else {
+            return VertexProperty.empty();
+        }
     }
 
     /* implement in concrete specialised instance to avoid using generic HashMaps */
-    protected abstract <V> V specificProperty(String key);
+    protected abstract <V> Optional<V> specificProperty(String key);
 
     @Override
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {

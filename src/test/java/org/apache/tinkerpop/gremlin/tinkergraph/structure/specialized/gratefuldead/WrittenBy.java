@@ -34,9 +34,8 @@ public class WrittenBy extends SpecializedTinkerEdge {
     }
 
     @Override
-    protected <V> V specificProperty(String key) {
-        // note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings
-        throw new NoSuchElementException(key);
+    protected <V> Optional<V> specificProperty(String key) {
+        return Optional.empty();
     }
 
     public static SpecializedElementFactory.ForEdge<WrittenBy> factory = new SpecializedElementFactory.ForEdge<WrittenBy>() {

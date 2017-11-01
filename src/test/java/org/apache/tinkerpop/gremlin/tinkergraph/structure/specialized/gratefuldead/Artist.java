@@ -49,11 +49,11 @@ public class Artist extends SpecializedTinkerVertex {
 
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
-    protected <V> V specificProperty(String key) {
+    protected <V> Optional<V> specificProperty(String key) {
         if (key == NAME) {
-            return (V) name;
+            return Optional.of((V) name);
         } else {
-            throw new NoSuchElementException(key);
+            return Optional.empty();
         }
     }
 
