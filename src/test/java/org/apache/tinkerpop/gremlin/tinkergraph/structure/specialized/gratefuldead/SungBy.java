@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
+import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
@@ -38,6 +39,11 @@ public class SungBy extends SpecializedTinkerEdge {
         return Optional.empty();
     }
 
+    @Override
+    protected <V> Property<V> updateSpecificProperty(String key, V value) {
+        throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
+    }
+
     public static SpecializedElementFactory.ForEdge<SungBy> factory = new SpecializedElementFactory.ForEdge<SungBy>() {
         @Override
         public String forLabel() {
@@ -49,4 +55,6 @@ public class SungBy extends SpecializedTinkerEdge {
             return new SungBy(id, outVertex, inVertex);
         }
     };
+
+
 }

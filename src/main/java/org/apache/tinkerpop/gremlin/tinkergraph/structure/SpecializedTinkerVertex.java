@@ -18,7 +18,6 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -66,8 +65,10 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     @Override
     public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality, String key, V value, Object... keyValues) {
-        throw new NotImplementedException("doesn't (yet) support mutation");
+        return updateSpecificProperty(key, value);
     }
+
+    protected abstract <V> VertexProperty<V> updateSpecificProperty(String key, V value);
 
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... keyValues) {

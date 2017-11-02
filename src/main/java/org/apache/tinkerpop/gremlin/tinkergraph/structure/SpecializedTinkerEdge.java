@@ -18,11 +18,8 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerEdge;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerProperty;
 
 import java.util.*;
 
@@ -66,7 +63,9 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     @Override
     public <V> Property<V> property(String key, V value) {
-        throw new NotImplementedException("doesn't (yet) support mutation");
+        return updateSpecificProperty(key, value);
     }
+
+    protected abstract <V> Property<V> updateSpecificProperty(String key, V value);
 
 }

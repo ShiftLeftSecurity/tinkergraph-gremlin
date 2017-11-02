@@ -20,6 +20,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuld
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
@@ -34,7 +35,7 @@ public class Artist extends SpecializedTinkerVertex {
     public static Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(NAME));
 
     // properties
-    private final String name;
+    private String name;
 
     // edges
     public static String[] ALL_EDGES = new String[] {WrittenBy.label, SungBy.label};
@@ -55,6 +56,16 @@ public class Artist extends SpecializedTinkerVertex {
         } else {
             return Optional.empty();
         }
+    }
+
+    @Override
+    protected <V> VertexProperty<V> updateSpecificProperty(String key, V value) {
+        if (key == NAME) {
+            this.name = (String) value;
+        } else {
+            throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
+        }
+        return property(key);
     }
 
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */

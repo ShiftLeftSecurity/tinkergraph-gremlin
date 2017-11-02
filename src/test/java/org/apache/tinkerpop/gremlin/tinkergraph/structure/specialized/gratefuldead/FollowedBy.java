@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
+import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
@@ -31,7 +32,7 @@ public class FollowedBy extends SpecializedTinkerEdge {
     public static String WEIGHT = "weight";
     public static Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(WEIGHT));
 
-    private final Integer weight;
+    private Integer weight;
 
     public FollowedBy(Object id, Vertex outVertex, Vertex inVertex, Integer weight) {
         super(id, outVertex, label, inVertex, SPECIFIC_KEYS);
@@ -46,6 +47,16 @@ public class FollowedBy extends SpecializedTinkerEdge {
         } else {
             return Optional.empty();
         }
+    }
+
+    @Override
+    protected <V> Property<V> updateSpecificProperty(String key, V value) {
+        if (key == WEIGHT) {
+            this.weight = (Integer) value;
+        } else {
+            throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
+        }
+        return property(key);
     }
 
     public static SpecializedElementFactory.ForEdge<FollowedBy> factory = new SpecializedElementFactory.ForEdge<FollowedBy>() {

@@ -18,8 +18,10 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
@@ -36,9 +38,9 @@ public class Song extends SpecializedTinkerVertex {
     public static Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(NAME, SONG_TYPE, PERFORMANCES));
 
     // properties
-    private final String name;
-    private final String songType;
-    private final Integer performances;
+    private String name;
+    private String songType;
+    private Integer performances;
 
     // edges
     public static String[] ALL_EDGES = new String[] {FollowedBy.label, WrittenBy.label, SungBy.label};
@@ -67,6 +69,20 @@ public class Song extends SpecializedTinkerVertex {
         } else {
             return Optional.empty();
         }
+    }
+
+    @Override
+    protected <V> VertexProperty<V> updateSpecificProperty(String key, V value) {
+        if (key == NAME) {
+            this.name = (String) value;
+        } else if (key == SONG_TYPE) {
+            this.songType = (String) value;
+        } else if (key == PERFORMANCES) {
+            this.performances = (Integer) value;
+        } else {
+            throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
+        }
+        return property(key);
     }
 
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
