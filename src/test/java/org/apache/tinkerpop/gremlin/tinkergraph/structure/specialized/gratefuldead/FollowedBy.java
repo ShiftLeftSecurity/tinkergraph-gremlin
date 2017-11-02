@@ -23,7 +23,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
 
-import javax.swing.text.html.Option;
 import java.util.*;
 
 public class FollowedBy extends SpecializedTinkerEdge {
