@@ -20,6 +20,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
 
@@ -42,10 +43,8 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
     @Override
     public <V> Property<V> property(String key) {
         if (cachedProperties.containsKey(key)) {
-            // System.out.println("cache hit");
             return cachedProperties.get(key);
         } else {
-            // System.out.println("no cache hit :(");
             Optional<V> value = specificProperty(key);
             Property<V> ret;
             if (value.isPresent()) {
@@ -63,11 +62,11 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
     @Override
     public <V> Iterator<Property<V>> properties(String... propertyKeys) {
         if (propertyKeys.length == 0) {
-            return (Iterator) specificKeys.stream().map(key -> property(key)).iterator();
+            return (Iterator) specificKeys.stream().map(key -> property(key)).filter(vp -> vp.isPresent()).iterator();
+        } else if (propertyKeys.length == 1) { // treating as special case for performance
+            return IteratorUtils.of(property(propertyKeys[0]));
         } else {
-            Set<String> keys = new HashSet<>(Arrays.asList(propertyKeys));
-            keys.retainAll(specificKeys);
-            return (Iterator) keys.stream().map(key -> property(key)).iterator();
+            return Arrays.stream(propertyKeys).map(key -> (Property<V>) property(key)).filter(vp -> vp.isPresent()).iterator();
         }
     }
 

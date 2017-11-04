@@ -43,10 +43,8 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     @Override
     public <V> VertexProperty<V> property(String key) {
         if (cachedProperties.containsKey(key)) {
-//            System.out.println("cache hit");
             return cachedProperties.get(key);
         } else {
-//            System.out.println("no cache hit :(");
             Optional<V> value = specificProperty(key);
             VertexProperty<V> ret;
             if (value.isPresent()) {
@@ -64,12 +62,17 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     @Override
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
-        if (propertyKeys.length == 0) {
-            return (Iterator) specificKeys.stream().map(key -> property(key)).iterator();
+        if (propertyKeys.length == 0) { // return all properties
+            return (Iterator) specificKeys.stream().map(key -> property(key)).filter(vp -> vp.isPresent()).iterator();
+        } else if (propertyKeys.length == 1) { // treating as special case for performance
+            VertexProperty<V> ret = property(propertyKeys[0]);
+            if (ret.isPresent()) {
+                return IteratorUtils.of(ret);
+            } else {
+                return Collections.emptyIterator();
+            }
         } else {
-            Set<String> keys = new HashSet<>(Arrays.asList(propertyKeys));
-            keys.retainAll(specificKeys);
-            return (Iterator) keys.stream().map(key -> property(key)).iterator();
+            return Arrays.stream(propertyKeys).map(key -> (VertexProperty<V>) property(key)).filter(vp -> vp.isPresent()).iterator();
         }
     }
 
