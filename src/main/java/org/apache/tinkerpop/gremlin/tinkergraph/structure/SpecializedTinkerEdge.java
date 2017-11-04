@@ -26,6 +26,8 @@ import java.util.*;
 public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     private final Set<String> specificKeys;
+    // TODO: replace with proper global cache
+    private final HashMap<String, Property> cachedProperties = new HashMap<>();
 
     protected SpecializedTinkerEdge(Object id, Vertex outVertex, String label, Vertex inVertex, Set<String> specificKeys) {
         super(id, outVertex, label, inVertex);
@@ -39,12 +41,20 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     @Override
     public <V> Property<V> property(String key) {
-        // TODO cache instantiated Properties
-        Optional<V> value = specificProperty(key);
-        if (value.isPresent()) {
-            return new TinkerProperty<V>(this, key, value.get());
+        if (cachedProperties.containsKey(key)) {
+            // System.out.println("cache hit");
+            return cachedProperties.get(key);
         } else {
-            return Property.empty();
+            // System.out.println("no cache hit :(");
+            Optional<V> value = specificProperty(key);
+            Property<V> ret;
+            if (value.isPresent()) {
+                ret = new TinkerProperty<V>(this, key, value.get());
+            } else {
+                ret = Property.empty();
+            }
+            cachedProperties.put(key, ret);
+            return ret;
         }
     }
 
@@ -63,6 +73,7 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     @Override
     public <V> Property<V> property(String key, V value) {
+        cachedProperties.remove(key);
         return updateSpecificProperty(key, value);
     }
 

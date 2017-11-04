@@ -27,6 +27,8 @@ import java.util.*;
 public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     private final Set<String> specificKeys;
+    // TODO: replace with proper global cache
+    private final HashMap<String, VertexProperty> cachedProperties = new HashMap<>();
 
     protected SpecializedTinkerVertex(Object id, String label, TinkerGraph graph, Set<String> specificKeys) {
         super(id, label, graph);
@@ -40,12 +42,20 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     @Override
     public <V> VertexProperty<V> property(String key) {
-        // TODO cache instantiated TinkerVertexProperties
-        Optional<V> value = specificProperty(key);
-        if (value.isPresent()) {
-          return new TinkerVertexProperty<V>(this, key, value.get());
+        if (cachedProperties.containsKey(key)) {
+//            System.out.println("cache hit");
+            return cachedProperties.get(key);
         } else {
-            return VertexProperty.empty();
+//            System.out.println("no cache hit :(");
+            Optional<V> value = specificProperty(key);
+            VertexProperty<V> ret;
+            if (value.isPresent()) {
+                ret = new TinkerVertexProperty<V>(this, key, value.get());
+            } else {
+                ret = VertexProperty.empty();
+            }
+            cachedProperties.put(key, ret);
+            return ret;
         }
     }
 
@@ -65,6 +75,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     @Override
     public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality, String key, V value, Object... keyValues) {
+        cachedProperties.remove(key);
         return updateSpecificProperty(key, value);
     }
 
