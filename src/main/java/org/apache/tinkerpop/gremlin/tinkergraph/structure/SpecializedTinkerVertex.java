@@ -40,18 +40,11 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     @Override
     public <V> VertexProperty<V> property(String key) {
-        Optional<V> value = specificProperty(key);
-        VertexProperty<V> ret;
-        if (value.isPresent()) {
-            ret = new TinkerVertexProperty<V>(this, key, value.get());
-        } else {
-            ret = VertexProperty.empty();
-        }
-        return ret;
+        return specificProperty(key);
     }
 
     /* implement in concrete specialised instance to avoid using generic HashMaps */
-    protected abstract <V> Optional<V> specificProperty(String key);
+    protected abstract <V> VertexProperty<V> specificProperty(String key);
 
     @Override
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {

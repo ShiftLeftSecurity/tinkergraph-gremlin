@@ -24,6 +24,7 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerVertexProperty;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
@@ -58,15 +59,15 @@ public class Song extends SpecializedTinkerVertex {
 
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
-    protected <V> Optional<V> specificProperty(String key) {
-        if (key == NAME) {
-            return Optional.of((V) name);
-        } else if (key == SONG_TYPE) {
-            return Optional.of((V) songType);
-        } else if (key == PERFORMANCES) {
-            return Optional.of((V) performances);
+    protected <V> VertexProperty<V> specificProperty(String key) {
+        if (key == NAME && name != null) {
+            return new TinkerVertexProperty(this, key, name);
+        } else if (key == SONG_TYPE && songType != null) {
+            return new TinkerVertexProperty(this, key, songType);
+        } else if (key == PERFORMANCES && performances != null) {
+            return new TinkerVertexProperty(this, key, performances);
         } else {
-            return Optional.empty();
+            return VertexProperty.empty();
         }
     }
 

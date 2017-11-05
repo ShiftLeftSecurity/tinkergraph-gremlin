@@ -40,17 +40,11 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     @Override
     public <V> Property<V> property(String key) {
-        Optional<V> value = specificProperty(key);
-        Property<V> ret;
-        if (value.isPresent()) {
-            ret = new TinkerProperty<V>(this, key, value.get());
-        } else {
-            ret = Property.empty();
-        }
-        return ret;
+        return specificProperty(key);
     }
 
-    protected abstract <V> Optional<V> specificProperty(String key);
+    /* implement in concrete specialised instance to avoid using generic HashMaps */
+    protected abstract <V> Property<V> specificProperty(String key);
 
     @Override
     public <V> Iterator<Property<V>> properties(String... propertyKeys) {

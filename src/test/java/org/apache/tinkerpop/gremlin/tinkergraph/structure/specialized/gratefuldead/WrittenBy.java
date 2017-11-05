@@ -35,8 +35,8 @@ public class WrittenBy extends SpecializedTinkerEdge {
     }
 
     @Override
-    protected <V> Optional<V> specificProperty(String key) {
-        return Optional.empty();
+    protected <V> Property<V> specificProperty(String key) {
+        return Property.empty();
     }
 
     @Override
