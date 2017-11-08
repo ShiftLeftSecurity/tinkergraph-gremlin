@@ -40,14 +40,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optim
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
@@ -96,6 +89,8 @@ public final class TinkerGraph implements Graph {
     protected final IdManager<?> vertexIdManager;
     protected final IdManager<?> edgeIdManager;
     protected final IdManager<?> vertexPropertyIdManager;
+    protected final Map<String, SpecializedElementFactory.ForVertex> specializedVertexFactoryByLabel = new HashMap();
+    protected final Map<String, SpecializedElementFactory.ForEdge> specializedEdgeFactoryByLabel = new HashMap();
     protected final VertexProperty.Cardinality defaultVertexPropertyCardinality;
 
     private final Configuration configuration;
@@ -152,6 +147,14 @@ public final class TinkerGraph implements Graph {
         return new TinkerGraph(configuration);
     }
 
+    public void registerSpecializedVertexFactory(SpecializedElementFactory.ForVertex<?> factory) {
+        specializedVertexFactoryByLabel.put(factory.forLabel(), factory);
+    }
+
+    public void registerSpecializedEdgeFactory(SpecializedElementFactory.ForEdge<?> factory) {
+        specializedEdgeFactoryByLabel.put(factory.forLabel(), factory);
+    }
+
     ////////////// STRUCTURE API METHODS //////////////////
 
     @Override
@@ -167,11 +170,17 @@ public final class TinkerGraph implements Graph {
             idValue = vertexIdManager.getNextId(this);
         }
 
-        final Vertex vertex = new TinkerVertex(idValue, label, this);
-        this.vertices.put(vertex.id(), vertex);
-
-        ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
-        return vertex;
+        if (specializedVertexFactoryByLabel.containsKey(label)) {
+            SpecializedElementFactory.ForVertex factory = specializedVertexFactoryByLabel.get(label);
+            SpecializedTinkerVertex vertex = factory.createVertex(idValue, this, ElementHelper.asMap(keyValues));
+            this.vertices.put(idValue, vertex);
+            return vertex;
+        } else { // generic vertex
+            final Vertex vertex = new TinkerVertex(idValue, label, this);
+            this.vertices.put(vertex.id(), vertex);
+            ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
+            return vertex;
+        }
     }
 
     @Override
@@ -524,6 +533,16 @@ public final class TinkerGraph implements Graph {
                 throw new IllegalStateException(String.format("Could not configure TinkerGraph %s id manager with %s", clazz.getSimpleName(), vertexIdManagerConfigValue));
             }
         }
+    }
+
+    /* how many of the vertices are `SpecializedTinkerVertex`? for debugging/testing mostly... */
+    public long specializedVertexCount() {
+        return vertices.values().stream().filter(v -> v instanceof SpecializedTinkerVertex).count();
+    }
+
+    /* how many of the vertices are `SpecializedTinkerEdge`? for debugging/testing mostly... */
+    public long specializedEdgeCount() {
+        return edges.values().stream().filter(v -> v instanceof SpecializedTinkerEdge).count();
     }
 
     /**
