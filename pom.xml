@@ -24,7 +24,7 @@ limitations under the License.
         <version>3.3.0</version>
     </parent>
     <artifactId>tinkergraph-gremlin</artifactId>
-    <version>3.3.0-shiftleft.4</version>
+    <version>3.3.0.shiftleft-SNAPSHOT</version>
     <name>Apache TinkerPop :: TinkerGraph Gremlin</name>
     <dependencies>
         <dependency>
