@@ -134,4 +134,9 @@ public class Artist extends SpecializedTinkerVertex {
             return new Artist(id, graph, name);
         }
     };
+
+    public String getName() {
+        return name;
+    }
+
 }
