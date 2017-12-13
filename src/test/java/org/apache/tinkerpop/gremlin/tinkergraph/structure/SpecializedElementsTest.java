@@ -18,10 +18,13 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.*;
+import org.apache.tinkerpop.gremlin.util.TimeUtil;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -30,12 +33,13 @@ import java.util.List;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.__;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class SpecializedElementsTest {
 
     @Test
     public void shouldSupportSpecializedElements() throws IOException {
-        TinkerGraph graph = newGratefulDeadGraph();
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
 
         List<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toList();
         assertEquals(garcias.size(), 1);
@@ -49,13 +53,13 @@ public class SpecializedElementsTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldNotAllowMixingWithGenericVertex() throws IOException {
-        TinkerGraph graph = newGratefulDeadGraph();
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
         graph.addVertex("something_else");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldNotAllowMixingWithGenericEdge() throws IOException {
-        TinkerGraph graph = newGratefulDeadGraph();
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
         GraphTraversalSource g = graph.traversal();
         List<Vertex> vertices = g.V().limit(2).toList();
         Vertex v1 = vertices.get(0);
@@ -63,13 +67,51 @@ public class SpecializedElementsTest {
         v1.addEdge("something_else", v2);
     }
 
-    private TinkerGraph newGratefulDeadGraph() throws IOException {
+    @Test
+    public void shouldUseIndices() throws IOException {
+        int loops = 10000;
+        Double avgTimeWithIndex = null;
+        Double avgTimeWithoutIndex = null;
+
+        { // tests with index
+            TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+            graph.createIndex("weight", Edge.class);
+            GraphTraversalSource g = graph.traversal();
+            assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
+            avgTimeWithIndex = TimeUtil.clock(loops, () -> g.E().has("weight", P.eq(1)).count().next());
+        }
+
+        { // tests without index
+            TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+            GraphTraversalSource g = graph.traversal();
+            assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
+            avgTimeWithoutIndex = TimeUtil.clock(loops, () -> g.E().has("weight", P.eq(1)).count().next());
+        }
+
+        System.out.println("avgTimeWithIndex = " + avgTimeWithIndex);
+        System.out.println("avgTimeWithoutIndex = " + avgTimeWithoutIndex);
+        assertTrue("avg time with index should be (significantly) less than without index",
+            avgTimeWithIndex < avgTimeWithoutIndex);
+    }
+
+    private TinkerGraph newGratefulDeadGraphWithSpecializedElements() throws IOException {
         TinkerGraph graph = TinkerGraph.open(
             Arrays.asList(Song.factory, Artist.factory),
             Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
         );
-        graph.io(IoCore.graphml()).readGraph("src/test/resources/grateful-dead.xml");
+        loadGraphMl(graph);
         return graph;
+    }
+
+    private TinkerGraph newGratefulDeadGraphWithGenericElements() throws IOException {
+        TinkerGraph graph = TinkerGraph.open();
+        loadGraphMl(graph);
+        return graph;
+    }
+
+
+    private void loadGraphMl(TinkerGraph graph) throws IOException {
+        graph.io(IoCore.graphml()).readGraph("src/test/resources/grateful-dead.xml");
     }
 
 }
