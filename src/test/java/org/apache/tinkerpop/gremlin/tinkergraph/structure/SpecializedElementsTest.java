@@ -25,6 +25,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefulde
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.__;
@@ -34,17 +35,9 @@ public class SpecializedElementsTest {
 
     @Test
     public void shouldSupportSpecializedElements() throws IOException {
-        final TinkerGraph graph = TinkerGraph.open();
-        graph.registerSpecializedVertexFactory(Song.factory);
-        graph.registerSpecializedVertexFactory(Artist.factory);
-        graph.registerSpecializedEdgeFactory(FollowedBy.factory);
-        graph.registerSpecializedEdgeFactory(SungBy.factory);
-        graph.registerSpecializedEdgeFactory(WrittenBy.factory);
+        TinkerGraph graph = newGratefulDeadGraph();
 
-        graph.io(IoCore.graphml()).readGraph("src/test/resources/grateful-dead.xml");
-        GraphTraversalSource g = graph.traversal();
-
-        List<Vertex> garcias = g.V().has("name", "Garcia").toList();
+        List<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toList();
         assertEquals(garcias.size(), 1);
         Artist garcia = (Artist) garcias.get(0); //it's actually of type `Artist`, not (only) `Vertex`
         assertEquals("Garcia", garcia.getName());
@@ -54,5 +47,29 @@ public class SpecializedElementsTest {
         Song song = (Song) songsWritten.get(0); //it's actually of type `Artist`, not (only) `Vertex`
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldNotAllowMixingWithGenericVertex() throws IOException {
+        TinkerGraph graph = newGratefulDeadGraph();
+        graph.addVertex("something_else");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void shouldNotAllowMixingWithGenericEdge() throws IOException {
+        TinkerGraph graph = newGratefulDeadGraph();
+        GraphTraversalSource g = graph.traversal();
+        List<Vertex> vertices = g.V().limit(2).toList();
+        Vertex v1 = vertices.get(0);
+        Vertex v2 = vertices.get(1);
+        v1.addEdge("something_else", v2);
+    }
+
+    private TinkerGraph newGratefulDeadGraph() throws IOException {
+        TinkerGraph graph = TinkerGraph.open(
+            Arrays.asList(Song.factory, Artist.factory),
+            Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
+        );
+        graph.io(IoCore.graphml()).readGraph("src/test/resources/grateful-dead.xml");
+        return graph;
+    }
 
 }

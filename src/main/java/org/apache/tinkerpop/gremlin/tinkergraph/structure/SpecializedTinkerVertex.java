@@ -99,7 +99,12 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
             this.addSpecializedOutEdge(edge);
             ((SpecializedTinkerVertex) inVertex).addSpecializedInEdge(edge);
             return edge;
-        } else {
+        } else { // edge label not registered for a specialized factory, treating as generic edge
+            if (graph.usesSpecializedElements) {
+                throw new IllegalArgumentException(
+                    "this instance of TinkerGraph uses specialized elements, but doesn't have a factory for label " + label
+                        + ". Mixing specialized and generic elements is not (yet) supported");
+            }
             return super.addEdge(label, vertex, keyValues);
         }
     }

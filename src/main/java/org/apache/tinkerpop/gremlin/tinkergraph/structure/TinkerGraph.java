@@ -89,9 +89,10 @@ public final class TinkerGraph implements Graph {
     protected final IdManager<?> vertexIdManager;
     protected final IdManager<?> edgeIdManager;
     protected final IdManager<?> vertexPropertyIdManager;
+    protected final VertexProperty.Cardinality defaultVertexPropertyCardinality;
     protected final Map<String, SpecializedElementFactory.ForVertex> specializedVertexFactoryByLabel = new HashMap();
     protected final Map<String, SpecializedElementFactory.ForEdge> specializedEdgeFactoryByLabel = new HashMap();
-    protected final VertexProperty.Cardinality defaultVertexPropertyCardinality;
+    protected final boolean usesSpecializedElements;
 
     private final Configuration configuration;
     private final String graphLocation;
@@ -100,8 +101,9 @@ public final class TinkerGraph implements Graph {
     /**
      * An empty private constructor that initializes {@link TinkerGraph}.
      */
-    private TinkerGraph(final Configuration configuration) {
+    private TinkerGraph(final Configuration configuration, boolean usesSpecializedElements) {
         this.configuration = configuration;
+        this.usesSpecializedElements = usesSpecializedElements;
         vertexIdManager = selectIdManager(configuration, GREMLIN_TINKERGRAPH_VERTEX_ID_MANAGER, Vertex.class);
         edgeIdManager = selectIdManager(configuration, GREMLIN_TINKERGRAPH_EDGE_ID_MANAGER, Edge.class);
         vertexPropertyIdManager = selectIdManager(configuration, GREMLIN_TINKERGRAPH_VERTEX_PROPERTY_ID_MANAGER, VertexProperty.class);
@@ -144,15 +146,23 @@ public final class TinkerGraph implements Graph {
      * @return a newly opened {@link Graph}
      */
     public static TinkerGraph open(final Configuration configuration) {
-        return new TinkerGraph(configuration);
+        return new TinkerGraph(configuration, false);
     }
 
-    public void registerSpecializedVertexFactory(SpecializedElementFactory.ForVertex<?> factory) {
-        specializedVertexFactoryByLabel.put(factory.forLabel(), factory);
+
+    public static TinkerGraph open(List<SpecializedElementFactory.ForVertex<?>> vertexFactories,
+                                   List<SpecializedElementFactory.ForEdge<?>> edgeFactories) {
+        return open(EMPTY_CONFIGURATION, vertexFactories, edgeFactories);
     }
 
-    public void registerSpecializedEdgeFactory(SpecializedElementFactory.ForEdge<?> factory) {
-        specializedEdgeFactoryByLabel.put(factory.forLabel(), factory);
+    public static TinkerGraph open(final Configuration configuration,
+                                   List<SpecializedElementFactory.ForVertex<?>> vertexFactories,
+                                   List<SpecializedElementFactory.ForEdge<?>> edgeFactories) {
+        boolean usesSpecializedElements = !vertexFactories.isEmpty() || !edgeFactories.isEmpty();
+        TinkerGraph tg =  new TinkerGraph(configuration, usesSpecializedElements);
+        vertexFactories.forEach(factory -> tg.specializedVertexFactoryByLabel.put(factory.forLabel(), factory));
+        edgeFactories.forEach(factory -> tg.specializedEdgeFactoryByLabel.put(factory.forLabel(), factory));
+        return tg;
     }
 
     ////////////// STRUCTURE API METHODS //////////////////
@@ -175,7 +185,12 @@ public final class TinkerGraph implements Graph {
             SpecializedTinkerVertex vertex = factory.createVertex(idValue, this, ElementHelper.asMap(keyValues));
             this.vertices.put(idValue, vertex);
             return vertex;
-        } else { // generic vertex
+        } else { // vertex label not registered for a specialized factory, treating as generic vertex
+            if (this.usesSpecializedElements) {
+                throw new IllegalArgumentException(
+                    "this instance of TinkerGraph uses specialized elements, but doesn't have a factory for label " + label
+                    + ". Mixing specialized and generic elements is not (yet) supported");
+            }
             final Vertex vertex = new TinkerVertex(idValue, label, this);
             this.vertices.put(vertex.id(), vertex);
             ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
