@@ -1,1 +1,17 @@
 language: java
+env:
+  global:
+  - GPG_KEY_NAME=codescience@shiftleft.io
+  - SONATYPE_USER=todo_davy
+  - secure: "todo: davy"
+  - secure: "todo: davy"
+
+install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
+script: mvn test -B
+
+cache:
+  directories:
+    - ~/.m2/repository
+
+after_success:
+  - ./travis/deploy.sh

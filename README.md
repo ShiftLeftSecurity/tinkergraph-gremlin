@@ -19,3 +19,5 @@ limitations under the License.
 
 # tinkergraph-gremlin
 
+## Releasing
+Just change the version in `pom.xml` to a non-snapshot (e.g. `3.3.0.3`), commit and tag it (e.g. `v3.3.0.3`). Then change the version to the next snapshot (e.g. `3.3.0.4-SNAPSHOT`), commit and push everything (including the tag!). Travis will automatically deploy the tagged version to sonatype and stage it so that it'll be synchronized to maven central within a few hours. 
