@@ -14,8 +14,8 @@
 
 if [ "$TRAVIS_PULL_REQUEST" == 'false' ]; then
   if [ "$TRAVIS_BRANCH" = 'master' ] || [ -n "$TRAVIS_TAG" ]; then
-    openssl aes-256-cbc -K $encrypted_3520b47862d7_key -iv $encrypted_3520b47862d7_iv -in travis/privkey.asc.enc -out travis/privkey.asc -d
-    gpg --fast-import travis/privkey.asc
+    openssl aes-256-cbc -K $encrypted_3520b47862d7_key -iv $encrypted_3520b47862d7_iv -in travis/codesigning.asc.enc -out travis/codesigning.asc -d
+    gpg --fast-import travis/codesigning.asc
     mvn deploy -P sign --settings travis/mvnsettings.xml -Drat.skip -DskipTests
   fi
 fi
