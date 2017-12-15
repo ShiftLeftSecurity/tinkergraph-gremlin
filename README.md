@@ -20,4 +20,10 @@ limitations under the License.
 # tinkergraph-gremlin
 
 ## Releasing
-Just change the version in `pom.xml` to a non-snapshot (e.g. `3.3.0.3`), commit and tag it (e.g. `v3.3.0.3`). Then change the version to the next snapshot (e.g. `3.3.0.4-SNAPSHOT`), commit and push everything (including the tag!). Travis will automatically deploy the tagged version to sonatype and stage it so that it'll be synchronized to maven central within a few hours. 
+* change the version in `pom.xml` to a non-snapshot (e.g. `3.3.0.3`)
+* commit and tag it (e.g. `v3.3.0.3`)
+* change the version to the next snapshot (e.g. `3.3.0.4-SNAPSHOT`)
+* commit and push everything (including the tag!)
+* [Travis](https://travis-ci.org/ShiftLeftSecurity/tinkergraph-gremlin) will automatically deploy the tagged version to [sonatype](https://oss.sonatype.org/content/repositories/public/io/shiftleft/tinkergraph-gremlin/) and stage it so that it'll be synchronized to [maven central](https://repo1.maven.org/maven2/io/shiftleft/tinkergraph-gremlin/) within a few hours. 
+
+
