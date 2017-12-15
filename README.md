@@ -16,6 +16,7 @@ limitations under the License.
 -->
 
 [![Build Status](https://travis-ci.org/ShiftLeftSecurity/tinkergraph-gremlin.svg?branch=master)](https://travis-ci.org/ShiftLeftSecurity/tinkergraph-gremlin)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.shifleft/tinkergraph-gremlin/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.shifleft/tinkergraph-gremlin)
 
 # tinkergraph-gremlin
 
