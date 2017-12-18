@@ -27,4 +27,6 @@ limitations under the License.
 * commit and push everything (including the tag!)
 * [Travis](https://travis-ci.org/ShiftLeftSecurity/tinkergraph-gremlin) will automatically deploy the tagged version to [sonatype](https://oss.sonatype.org/content/repositories/public/io/shiftleft/tinkergraph-gremlin/) and stage it so that it'll be synchronized to [maven central](https://repo1.maven.org/maven2/io/shiftleft/tinkergraph-gremlin/) within a few hours. 
 
-
+## Limitations
+* an OLAP (GraphComputer) implementation is available, but we haven't really tested it yet
+* you cannot (yet) mix generic and specialized Elements: it's all or nothing, and you'll get an error if you accidentally try
