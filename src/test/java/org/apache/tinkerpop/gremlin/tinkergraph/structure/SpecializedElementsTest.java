@@ -94,6 +94,63 @@ public class SpecializedElementsTest {
             avgTimeWithIndex < avgTimeWithoutIndex);
     }
 
+    // @Test
+    // only run manually since the timings vary depending on the environment
+    public void propertyLookupPerformanceComparison() throws IOException {
+        int loops = 1000;
+        Double avgTimeWithSpecializedElements = null;
+        Double avgTimeWithGenericElements = null;
+
+        { // using specialized elements
+            TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+            GraphTraversalSource g = graph.traversal();
+            assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
+            avgTimeWithSpecializedElements = TimeUtil.clock(loops, () -> g.E().has("weight", P.eq(1)).count().next());
+        }
+
+        { // using generic elements
+            TinkerGraph graph = newGratefulDeadGraphWithGenericElements();
+            GraphTraversalSource g = graph.traversal();
+            assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
+            avgTimeWithGenericElements = TimeUtil.clock(loops, () -> g.E().has("weight", P.eq(1)).count().next());
+        }
+
+        System.out.println("avgTimeWithSpecializedElements = " + avgTimeWithSpecializedElements);
+        System.out.println("avgTimeWithGenericElements = " + avgTimeWithGenericElements);
+
+        double diffPercent = (avgTimeWithGenericElements - avgTimeWithSpecializedElements) / avgTimeWithGenericElements;
+        System.out.println("performance enhancement of specialized elements = " + diffPercent);
+
+        assertTrue("avg time with specialized elements should be less than with generic elements",
+            avgTimeWithSpecializedElements < avgTimeWithGenericElements);
+    }
+
+//    @Test
+    // only run manually since the timings vary depending on the environment
+    public void traversalPerformanceComparison() throws IOException {
+        int loops = 100;
+        Double avgTimeWithSpecializedElements = null;
+        Double avgTimeWithGenericElements = null;
+
+        { // using specialized elements
+            TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+            GraphTraversalSource g = graph.traversal();
+            avgTimeWithSpecializedElements = TimeUtil.clock(loops, () -> g.V().out().out().out().toStream().count());
+        }
+
+        { // using generic elements
+            TinkerGraph graph = newGratefulDeadGraphWithGenericElements();
+            GraphTraversalSource g = graph.traversal();
+            avgTimeWithGenericElements = TimeUtil.clock(loops, () -> g.V().out().out().out().toStream().count());
+        }
+
+        System.out.println("avgTimeWithSpecializedElements = " + avgTimeWithSpecializedElements);
+        System.out.println("avgTimeWithGenericElements = " + avgTimeWithGenericElements);
+
+        double diffPercent = (avgTimeWithGenericElements - avgTimeWithSpecializedElements) / avgTimeWithGenericElements;
+        System.out.println("performance enhancement of specialized elements = " + diffPercent);
+    }
+
     private TinkerGraph newGratefulDeadGraphWithSpecializedElements() throws IOException {
         TinkerGraph graph = TinkerGraph.open(
             Arrays.asList(Song.factory, Artist.factory),
