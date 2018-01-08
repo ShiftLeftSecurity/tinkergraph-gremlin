@@ -19,7 +19,7 @@ limitations under the License.
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.shiftleft/tinkergraph-gremlin/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.shiftleft/tinkergraph-gremlin)
 
 # ShiftLeft TinkerGraph
-This is Fork of [Apache TinkerGraph](https://github.com/apache/tinkerpop/tree/master/tinkergraph-gremlin) that uses uses 70% less memory (for our use case, ymmv) and implements a strict schema validation. 
+This is Fork of [Apache TinkerGraph](https://github.com/apache/tinkerpop/tree/master/tinkergraph-gremlin) that uses uses 70% less memory (for our use case, ymmv) and implements a strict schema validation. Related blog article on [ShiftLeft Blog](https://blog.shiftleft.io/open-sourcing-our-specialized-tinkergraph-with-70-memory-reduction-and-strict-schema-validation-fa5cfb3dd82d)
 
 ## Usage
 1) add a dependency to the latest published artifact on [maven central](https://maven-badges.herokuapp.com/maven-central/io.shiftleft/tinkergraph-gremlin)
