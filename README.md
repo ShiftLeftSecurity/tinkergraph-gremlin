@@ -55,6 +55,22 @@ It is important to note though, that it's up to you if you want to make this a s
 * an OLAP (GraphComputer) implementation is available, but we haven't really tested it yet
 * you cannot (yet) mix generic and specialized Elements: it's all or nothing, and you'll get an error if you accidentally try
 
+# Bring in changes from upstream TinkerGraph
+When a new Apache TinkerGraph is being released, here's the steps to bring them into this fork:
+
+```
+# view diff
+cd ~/Projects/tinkerpop/tinkerpop3
+git diff 3.3.0..3.3.1 tinkergraph-gremlin
+# create patch
+git diff 3.3.0..3.3.1 tinkergraph-gremlin > ~/tp-upgrade.patch
+# apply patch (-p2 strips the base directory, which is different in our fork)
+cd ~/Projects/shiftleft/tinkergraph-gremlin
+git apply -p2 ~/tp-upgrade.patch
+# manually fix all conflicts (*.orig / *.rej files)
+# double check versions in pom.xml
+```
+
 # Release instructions
 * change the version in `pom.xml` to a non-snapshot (e.g. `3.3.0.3`)
 * commit and tag it (e.g. `v3.3.0.3`)
