@@ -152,14 +152,14 @@ public final class TinkerGraph implements Graph {
     }
 
 
-    public static TinkerGraph open(List<SpecializedElementFactory.ForVertex<?>> vertexFactories,
-                                   List<SpecializedElementFactory.ForEdge<?>> edgeFactories) {
+    public static TinkerGraph open(List<SpecializedElementFactory.ForVertex<?, ?>> vertexFactories,
+                                   List<SpecializedElementFactory.ForEdge<?, ?>> edgeFactories) {
         return open(EMPTY_CONFIGURATION, vertexFactories, edgeFactories);
     }
 
     public static TinkerGraph open(final Configuration configuration,
-                                   List<SpecializedElementFactory.ForVertex<?>> vertexFactories,
-                                   List<SpecializedElementFactory.ForEdge<?>> edgeFactories) {
+                                   List<SpecializedElementFactory.ForVertex<?, ?>> vertexFactories,
+                                   List<SpecializedElementFactory.ForEdge<?, ?>> edgeFactories) {
         boolean usesSpecializedElements = !vertexFactories.isEmpty() || !edgeFactories.isEmpty();
         TinkerGraph tg =  new TinkerGraph(configuration, usesSpecializedElements);
         vertexFactories.forEach(factory -> tg.specializedVertexFactoryByLabel.put(factory.forLabel(), factory));

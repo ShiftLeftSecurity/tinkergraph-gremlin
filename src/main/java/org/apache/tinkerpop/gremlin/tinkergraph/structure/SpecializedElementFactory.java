@@ -26,14 +26,14 @@ import java.util.Map;
  * create instances of these factories and register them with TinkerGraph. That way it will instantiate
  * your specialized elements rather than generic ones. */
 public class SpecializedElementFactory {
-    public interface ForVertex<T extends SpecializedTinkerVertex> {
+    public interface ForVertex<T extends SpecializedTinkerVertex, IdType> {
         public abstract String forLabel();
-        public abstract T createVertex(Object id, TinkerGraph graph, Map<String, Object> keyValueMap);
+        public abstract T createVertex(IdType id, TinkerGraph graph, Map<String, Object> keyValueMap);
     }
 
-    public interface ForEdge<T extends SpecializedTinkerEdge> {
+    public interface ForEdge<T extends SpecializedTinkerEdge, IdType> {
         public abstract String forLabel();
-        public abstract T createEdge(Object id, Vertex outVertex, Vertex inVertex, Map<String, Object> keyValueMap);
+        public abstract T createEdge(IdType id, Vertex outVertex, Vertex inVertex, Map<String, Object> keyValueMap);
     }
 }
 

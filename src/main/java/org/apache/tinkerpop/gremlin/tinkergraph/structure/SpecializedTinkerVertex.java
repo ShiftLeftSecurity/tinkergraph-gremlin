@@ -24,11 +24,11 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
 
-public abstract class SpecializedTinkerVertex extends TinkerVertex {
+public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
 
     private final Set<String> specificKeys;
 
-    protected SpecializedTinkerVertex(Object id, String label, TinkerGraph graph, Set<String> specificKeys) {
+    protected SpecializedTinkerVertex(IdType id, String label, TinkerGraph graph, Set<String> specificKeys) {
         super(id, label, graph);
         this.specificKeys = specificKeys;
     }
