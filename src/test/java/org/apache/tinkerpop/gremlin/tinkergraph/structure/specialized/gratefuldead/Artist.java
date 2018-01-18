@@ -29,7 +29,7 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
 
-public class Artist extends SpecializedTinkerVertex {
+public class Artist extends SpecializedTinkerVertex<String> {
     public static String label = "artist";
 
     public static String NAME = "name";
@@ -43,7 +43,7 @@ public class Artist extends SpecializedTinkerVertex {
     private Set<SungBy> sungByIn;
     private Set<WrittenBy> writtenByIn;
 
-    public Artist(Object id, TinkerGraph graph, String name) {
+    public Artist(String id, TinkerGraph graph, String name) {
         super(id, Artist.label, graph, SPECIFIC_KEYS);
 
         this.name = name;
@@ -122,14 +122,14 @@ public class Artist extends SpecializedTinkerVertex {
         return sungByIn;
     }
 
-    public static SpecializedElementFactory.ForVertex<Artist> factory = new SpecializedElementFactory.ForVertex<Artist>() {
+    public static SpecializedElementFactory.ForVertex<Artist, String> factory = new SpecializedElementFactory.ForVertex<Artist, String>() {
         @Override
         public String forLabel() {
             return Artist.label;
         }
 
         @Override
-        public Artist createVertex(Object id, TinkerGraph graph, Map<String, Object> keyValueMap) {
+        public Artist createVertex(String id, TinkerGraph graph, Map<String, Object> keyValueMap) {
             String name = (String) keyValueMap.get("name");
             return new Artist(id, graph, name);
         }

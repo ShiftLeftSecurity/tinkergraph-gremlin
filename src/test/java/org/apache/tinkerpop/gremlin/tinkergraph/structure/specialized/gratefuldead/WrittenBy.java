@@ -25,12 +25,12 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
 
 import java.util.*;
 
-public class WrittenBy extends SpecializedTinkerEdge {
+public class WrittenBy extends SpecializedTinkerEdge<String> {
     public static String label = "writtenBy";
 
     public static Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList());
 
-    public WrittenBy(Object id, Vertex outVertex, Vertex inVertex) {
+    public WrittenBy(String id, Vertex outVertex, Vertex inVertex) {
         super(id, outVertex, label, inVertex, SPECIFIC_KEYS);
     }
 
@@ -44,14 +44,14 @@ public class WrittenBy extends SpecializedTinkerEdge {
         throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
     }
 
-    public static SpecializedElementFactory.ForEdge<WrittenBy> factory = new SpecializedElementFactory.ForEdge<WrittenBy>() {
+    public static SpecializedElementFactory.ForEdge<WrittenBy, String> factory = new SpecializedElementFactory.ForEdge<WrittenBy, String>() {
         @Override
         public String forLabel() {
             return WrittenBy.label;
         }
 
         @Override
-        public WrittenBy createEdge(Object id, Vertex outVertex, Vertex inVertex, Map<String, Object> keyValueMap) {
+        public WrittenBy createEdge(String id, Vertex outVertex, Vertex inVertex, Map<String, Object> keyValueMap) {
             return new WrittenBy(id, outVertex, inVertex);
         }
     };

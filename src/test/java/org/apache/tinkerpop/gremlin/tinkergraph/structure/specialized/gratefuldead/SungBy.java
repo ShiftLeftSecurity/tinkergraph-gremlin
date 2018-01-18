@@ -25,12 +25,12 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
 
 import java.util.*;
 
-public class SungBy extends SpecializedTinkerEdge {
+public class SungBy extends SpecializedTinkerEdge<String> {
     public static String label = "sungBy";
 
     public static Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList());
 
-    public SungBy(Object id, Vertex outVertex, Vertex inVertex) {
+    public SungBy(String id, Vertex outVertex, Vertex inVertex) {
         super(id, outVertex, label, inVertex, SPECIFIC_KEYS);
     }
 
@@ -44,14 +44,14 @@ public class SungBy extends SpecializedTinkerEdge {
         throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
     }
 
-    public static SpecializedElementFactory.ForEdge<SungBy> factory = new SpecializedElementFactory.ForEdge<SungBy>() {
+    public static SpecializedElementFactory.ForEdge<SungBy, String> factory = new SpecializedElementFactory.ForEdge<SungBy, String>() {
         @Override
         public String forLabel() {
             return SungBy.label;
         }
 
         @Override
-        public SungBy createEdge(Object id, Vertex outVertex, Vertex inVertex, Map<String, Object> keyValueMap) {
+        public SungBy createEdge(String id, Vertex outVertex, Vertex inVertex, Map<String, Object> keyValueMap) {
             return new SungBy(id, outVertex, inVertex);
         }
     };
