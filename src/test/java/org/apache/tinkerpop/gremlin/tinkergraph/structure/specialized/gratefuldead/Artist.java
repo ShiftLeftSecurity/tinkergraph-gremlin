@@ -93,6 +93,26 @@ public class Artist extends SpecializedTinkerVertex<String> {
     }
 
     @Override
+    protected void removeSpecificOutEdge(Edge edge) {
+        throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
+    }
+
+    @Override
+    protected void removeSpecificInEdge(Edge edge) {
+        if (edge instanceof WrittenBy) {
+            if (writtenByIn != null) {
+                writtenByIn.remove(edge);
+            }
+        } else if (edge instanceof SungBy) {
+            if (sungByIn != null) {
+                sungByIn.remove(edge);
+            }
+        } else {
+            throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
+        }
+    }
+
+    @Override
     protected void addSpecializedOutEdge(Edge edge) {
         throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
     }

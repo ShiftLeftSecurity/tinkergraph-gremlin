@@ -64,4 +64,18 @@ public abstract class SpecializedTinkerEdge<IdType> extends TinkerEdge {
 
     protected abstract <V> Property<V> updateSpecificProperty(String key, V value);
 
+    @Override
+    public void remove() {
+        final SpecializedTinkerVertex<Long> outVertex = (SpecializedTinkerVertex<Long>) this.outVertex;
+        final SpecializedTinkerVertex<Long> inVertex = (SpecializedTinkerVertex<Long>) this.inVertex;
+
+        outVertex.removeOutEdge(this);
+        inVertex.removeInEdge(this);
+
+        TinkerHelper.removeElementIndex(this);
+        ((TinkerGraph) this.graph()).edges.remove(this.id());
+        this.properties = null;
+        this.removed = true;
+    }
+
 }

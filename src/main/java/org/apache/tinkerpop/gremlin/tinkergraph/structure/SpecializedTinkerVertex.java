@@ -135,4 +135,15 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
         }
     }
 
+    public void removeOutEdge(Edge edge) {
+        removeSpecificOutEdge(edge);
+    }
+
+    protected abstract void removeSpecificOutEdge(Edge edge);
+
+    public void removeInEdge(Edge edge) {
+        removeSpecificInEdge(edge);
+    }
+
+    protected abstract void removeSpecificInEdge(Edge edge);
 }

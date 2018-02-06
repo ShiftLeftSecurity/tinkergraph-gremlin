@@ -30,9 +30,12 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.__;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 public class SpecializedElementsTest {
@@ -49,6 +52,22 @@ public class SpecializedElementsTest {
         List<Vertex> songsWritten = __(garcia).in(WrittenBy.label).toList();
         assertEquals(songsWritten.size(), 4);
         Song song = (Song) songsWritten.get(0); //it's actually of type `Artist`, not (only) `Vertex`
+    }
+
+    @Test
+    public void shouldSupportRemovalOfSpecializedElements() throws IOException {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+        Set<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toSet();
+        assertNotEquals(garcias.size(), 0);
+        garcias.forEach(garcia -> garcia.remove());
+        Long garciaCount = graph.traversal().V().has("name", "Garcia").count().next();
+        assertEquals(garciaCount, Long.valueOf(0));
+
+        List<Vertex> outVertices = graph.traversal().E().outV().toList();
+        outVertices.forEach(outVertex -> assertFalse(garcias.contains(outVertex)));
+
+        List<Vertex> inVertices = graph.traversal().E().inV().toList();
+        inVertices.forEach(inVertex -> assertFalse(garcias.contains(inVertex)));
     }
 
     @Test(expected = IllegalArgumentException.class)

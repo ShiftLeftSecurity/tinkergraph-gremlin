@@ -116,6 +116,37 @@ public class Song extends SpecializedTinkerVertex<String> {
     }
 
     @Override
+    protected void removeSpecificOutEdge(Edge edge) {
+        if (edge instanceof FollowedBy) {
+            if (followedByOut != null) {
+                followedByOut.remove(edge);
+            }
+        } else if (edge instanceof WrittenBy) {
+            if (writtenByOut != null) {
+                writtenByOut.remove(edge);
+            }
+        } else if (edge instanceof SungBy) {
+            if (sungByOut != null) {
+                sungByOut.remove(edge);
+            }
+        } else {
+            throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
+        }
+
+    }
+
+    @Override
+    protected void removeSpecificInEdge(Edge edge) {
+        if (edge instanceof FollowedBy) {
+            if (followedByIn != null) {
+                followedByIn.remove(edge);
+            }
+        } else {
+            throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
+        }
+    }
+
+    @Override
     protected void addSpecializedOutEdge(Edge edge) {
         if (edge instanceof FollowedBy) {
             getFollowedByOut().add((FollowedBy) edge);
