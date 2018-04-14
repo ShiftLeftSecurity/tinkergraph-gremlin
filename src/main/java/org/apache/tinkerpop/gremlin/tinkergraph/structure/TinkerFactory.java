@@ -20,6 +20,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
@@ -134,6 +135,23 @@ public final class TinkerFactory {
         g.variables().set("creator", "marko");
         g.variables().set("lastModified", 2014);
         g.variables().set("comment", "this graph was created to provide examples and test coverage for tinkerpop3 api advances");
+    }
+
+    public static TinkerGraph createKitchenSink() {
+        final TinkerGraph g = getTinkerGraphWithNumberManager();
+        generateKitchenSink(g);
+        return g;
+    }
+
+    public static void generateKitchenSink(final TinkerGraph graph) {
+        final GraphTraversalSource g = graph.traversal();
+        g.addV("loops").property(T.id, 1000).property("name", "loop").as("me").
+          addE("self").to("me").
+          iterate();
+        g.addV("message").property(T.id, 2000).property("name", "a").as("a").
+          addV("message").property(T.id, 2001).property("name", "b").as("b").
+          addE("link").from("a").to("b").
+          addE("link").from("a").to("a").iterate();
     }
 
     private static TinkerGraph getTinkerGraphWithNumberManager() {
