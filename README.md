@@ -61,14 +61,13 @@ When a new Apache TinkerGraph is being released, here's the steps to bring them 
 ```
 # view diff
 cd ~/Projects/tinkerpop/tinkerpop3
-git diff 3.3.1..3.3.2 tinkergraph-gremlin/src
-# create patch
-git diff 3.3.1..3.3.2 tinkergraph-gremlin/src > ~/tp-upgrade.patch
+git diff 3.3.2..3.3.3 tinkergraph-gremlin/src > ~/tp-upgrade.patch
 # apply patch (-p2 strips the base directory, which is different in our fork)
 cd ~/Projects/shiftleft/tinkergraph-gremlin
 git apply -p2 ~/tp-upgrade.patch
 # manually fix all conflicts (*.orig / *.rej files)
-# double check versions in pom.xml
+# update all versions in pom.xml
+mvn clean test
 ```
 
 # Release instructions
