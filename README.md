@@ -73,5 +73,16 @@ mvn clean test
 # Release instructions
 * change the version in `pom.xml` to a non-snapshot (e.g. `3.3.0.3`)
 * commit and tag it (e.g. `v3.3.0.3`), push everything (including the tag!)
-* await [Travis](https://travis-ci.org/ShiftLeftSecurity/tinkergraph-gremlin) to automatically deploy the tagged version to [sonatype](https://oss.sonatype.org/content/repositories/public/io/shiftleft/tinkergraph-gremlin/) and stage it so that it'll be synchronized to [maven central](https://repo1.maven.org/maven2/io/shiftleft/tinkergraph-gremlin/) within a few hours. Note: check the log output of the last travis step (`$ ./travis/deploy.sh`) to be sure. 
+* await [Travis](https://travis-ci.org/ShiftLeftSecurity/tinkergraph-gremlin) to automatically deploy the tagged version to [sonatype](https://oss.sonatype.org/content/repositories/public/io/shiftleft/tinkergraph-gremlin/) and stage it so that it'll be synchronized to [maven central](https://repo1.maven.org/maven2/io/shiftleft/tinkergraph-gremlin/) within a few hours. Note: check the log output of the last travis step (`$ ./travis/deploy.sh`) to be sure. You should see something like the following at the very end:
+```
+[INFO] Remote staged 1 repositories, finished with success.
+[INFO] Remote staging repositories are being released...
+Waiting for operation to complete...
+............
+[INFO] Remote staging repositories released.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+
+```
 * change the version to the next snapshot (e.g. `3.3.0.4-SNAPSHOT`)
