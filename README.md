@@ -52,6 +52,7 @@ This means that we can throw an error if the schema is violated, e.g., if a the 
 It is important to note though, that it's up to you if you want to make this a strict validation or not - you can choose to tolerate schema violations in your domain classes.
 
 ## Limitations
+* indices aren't updated automatically when you mutate or add elements to the graph. This would be easy to do I guess, but we haven't had the need yet. Workaround: drop and recreate the index.
 * an OLAP (GraphComputer) implementation is available, but we haven't really tested it yet
 * you cannot (yet) mix generic and specialized Elements: it's all or nothing, and you'll get an error if you accidentally try
 
