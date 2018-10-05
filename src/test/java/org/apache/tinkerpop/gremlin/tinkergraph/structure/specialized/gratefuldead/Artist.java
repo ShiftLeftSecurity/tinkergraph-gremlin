@@ -60,7 +60,8 @@ public class Artist extends SpecializedTinkerVertex<String> {
     }
 
     @Override
-    protected <V> VertexProperty<V> updateSpecificProperty(String key, V value) {
+    protected <V> VertexProperty<V> updateSpecificProperty(
+      VertexProperty.Cardinality cardinality, String key, V value) {
         if (key == NAME) {
             this.name = (String) value;
         } else {

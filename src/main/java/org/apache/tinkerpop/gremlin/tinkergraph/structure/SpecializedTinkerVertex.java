@@ -64,10 +64,11 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
 
     @Override
     public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality, String key, V value, Object... keyValues) {
-        return updateSpecificProperty(key, value);
+        return updateSpecificProperty(cardinality, key, value);
     }
 
-    protected abstract <V> VertexProperty<V> updateSpecificProperty(String key, V value);
+    protected abstract <V> VertexProperty<V> updateSpecificProperty(
+      VertexProperty.Cardinality cardinality, String key, V value);
 
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... keyValues) {
