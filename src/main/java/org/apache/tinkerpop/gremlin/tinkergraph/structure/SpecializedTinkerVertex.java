@@ -40,23 +40,19 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
 
     @Override
     public <V> VertexProperty<V> property(String key) {
-        return specificProperty(key);
+        Iterator<VertexProperty<V>> iter = specificProperties(key);
+        return iter.next();
     }
 
     /* implement in concrete specialised instance to avoid using generic HashMaps */
-    protected abstract <V> VertexProperty<V> specificProperty(String key);
+    protected abstract <V> Iterator<VertexProperty<V>> specificProperties(String key);
 
     @Override
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
         if (propertyKeys.length == 0) { // return all properties
             return (Iterator) specificKeys.stream().map(key -> property(key)).filter(vp -> vp.isPresent()).iterator();
         } else if (propertyKeys.length == 1) { // treating as special case for performance
-            VertexProperty<V> ret = property(propertyKeys[0]);
-            if (ret.isPresent()) {
-                return IteratorUtils.of(ret);
-            } else {
-                return Collections.emptyIterator();
-            }
+            return specificProperties(propertyKeys[0]);
         } else {
             return Arrays.stream(propertyKeys).map(key -> (VertexProperty<V>) property(key)).filter(vp -> vp.isPresent()).iterator();
         }

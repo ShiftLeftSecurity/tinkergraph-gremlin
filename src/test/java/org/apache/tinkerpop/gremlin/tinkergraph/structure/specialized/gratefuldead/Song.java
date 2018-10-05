@@ -59,16 +59,18 @@ public class Song extends SpecializedTinkerVertex<String> {
 
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
-    protected <V> VertexProperty<V> specificProperty(String key) {
+    protected <V> Iterator<VertexProperty<V>> specificProperties(String key) {
+        final VertexProperty<V> ret;
         if (key == NAME && name != null) {
-            return new TinkerVertexProperty(this, key, name);
+            ret = new TinkerVertexProperty(this, key, name);
         } else if (key == SONG_TYPE && songType != null) {
-            return new TinkerVertexProperty(this, key, songType);
+            ret = new TinkerVertexProperty(this, key, songType);
         } else if (key == PERFORMANCES && performances != null) {
-            return new TinkerVertexProperty(this, key, performances);
+            ret = new TinkerVertexProperty(this, key, performances);
         } else {
-            return VertexProperty.empty();
+            ret = VertexProperty.empty();
         }
+        return IteratorUtils.of(ret);
     }
 
     @Override
