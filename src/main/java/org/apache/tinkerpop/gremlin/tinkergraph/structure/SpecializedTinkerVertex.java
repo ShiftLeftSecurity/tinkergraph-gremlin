@@ -41,7 +41,11 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
     @Override
     public <V> VertexProperty<V> property(String key) {
         Iterator<VertexProperty<V>> iter = specificProperties(key);
-        return iter.next();
+        if (iter.hasNext()) {
+          return iter.next();
+        } else {
+          return VertexProperty.empty();
+        }
     }
 
     /* implement in concrete specialised instance to avoid using generic HashMaps */
