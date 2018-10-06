@@ -23,6 +23,8 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
 
@@ -43,31 +45,45 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
         return specificProperty(key);
     }
 
+    /* You can override this default implementation in concrete specialised instances for performance
+     * if you like, since technically the Iterator isn't necessary.
+     * This default implementation works fine though. */
+    protected <V> VertexProperty<V> specificProperty(String key) {
+        Iterator<VertexProperty<V>> iter = specificProperties(key);
+        if (iter.hasNext()) {
+          return iter.next();
+        } else {
+          return VertexProperty.empty();
+        }
+    }
+
     /* implement in concrete specialised instance to avoid using generic HashMaps */
-    protected abstract <V> VertexProperty<V> specificProperty(String key);
+    protected abstract <V> Iterator<VertexProperty<V>> specificProperties(String key);
 
     @Override
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
         if (propertyKeys.length == 0) { // return all properties
-            return (Iterator) specificKeys.stream().map(key -> property(key)).filter(vp -> vp.isPresent()).iterator();
+            return (Iterator) specificKeys.stream().flatMap(key ->
+                StreamSupport.stream(Spliterators.spliteratorUnknownSize(
+                  specificProperties(key), Spliterator.ORDERED),false)
+            ).iterator();
         } else if (propertyKeys.length == 1) { // treating as special case for performance
-            VertexProperty<V> ret = property(propertyKeys[0]);
-            if (ret.isPresent()) {
-                return IteratorUtils.of(ret);
-            } else {
-                return Collections.emptyIterator();
-            }
+            return specificProperties(propertyKeys[0]);
         } else {
-            return Arrays.stream(propertyKeys).map(key -> (VertexProperty<V>) property(key)).filter(vp -> vp.isPresent()).iterator();
+            return (Iterator) Arrays.stream(propertyKeys).flatMap(key ->
+              StreamSupport.stream(Spliterators.spliteratorUnknownSize(
+                specificProperties(key), Spliterator.ORDERED),false)
+            ).iterator();
         }
     }
 
     @Override
     public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality, String key, V value, Object... keyValues) {
-        return updateSpecificProperty(key, value);
+        return updateSpecificProperty(cardinality, key, value);
     }
 
-    protected abstract <V> VertexProperty<V> updateSpecificProperty(String key, V value);
+    protected abstract <V> VertexProperty<V> updateSpecificProperty(
+      VertexProperty.Cardinality cardinality, String key, V value);
 
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... keyValues) {
