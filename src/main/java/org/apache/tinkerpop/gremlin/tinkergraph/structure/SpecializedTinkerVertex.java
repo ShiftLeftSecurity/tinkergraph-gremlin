@@ -23,6 +23,8 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
 
@@ -40,6 +42,13 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
 
     @Override
     public <V> VertexProperty<V> property(String key) {
+        return specificProperty(key);
+    }
+
+    /* You can override this default implementation in concrete specialised instances for performance
+     * if you like, since technically the Iterator isn't necessary.
+     * This default implementation works fine though. */
+    protected <V> VertexProperty<V> specificProperty(String key) {
         Iterator<VertexProperty<V>> iter = specificProperties(key);
         if (iter.hasNext()) {
           return iter.next();
@@ -54,11 +63,17 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
     @Override
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
         if (propertyKeys.length == 0) { // return all properties
-            return (Iterator) specificKeys.stream().map(key -> property(key)).filter(vp -> vp.isPresent()).iterator();
+            return (Iterator) specificKeys.stream().flatMap(key ->
+                StreamSupport.stream(Spliterators.spliteratorUnknownSize(
+                  specificProperties(key), Spliterator.ORDERED),false)
+            ).iterator();
         } else if (propertyKeys.length == 1) { // treating as special case for performance
             return specificProperties(propertyKeys[0]);
         } else {
-            return Arrays.stream(propertyKeys).map(key -> (VertexProperty<V>) property(key)).filter(vp -> vp.isPresent()).iterator();
+            return (Iterator) Arrays.stream(propertyKeys).flatMap(key ->
+              StreamSupport.stream(Spliterators.spliteratorUnknownSize(
+                specificProperties(key), Spliterator.ORDERED),false)
+            ).iterator();
         }
     }
 
