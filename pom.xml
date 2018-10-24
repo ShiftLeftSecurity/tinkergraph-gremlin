@@ -21,11 +21,11 @@ limitations under the License.
     <parent>
         <groupId>org.apache.tinkerpop</groupId>
         <artifactId>tinkerpop</artifactId>
-        <version>3.3.3</version>
+        <version>3.3.4</version>
     </parent>
     <groupId>io.shiftleft</groupId>
     <artifactId>tinkergraph-gremlin</artifactId>
-    <version>3.3.3.2-SNAPSHOT</version>
+    <version>3.3.4.0-SNAPSHOT</version>
     <name>Apache TinkerPop :: TinkerGraph Gremlin</name>
     <description>A fork of Tinkergraph for more type safety and less memory usage</description>
     <url>https://github.com/ShiftLeftSecurity/tinkergraph-gremlin/</url>
@@ -33,7 +33,7 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-core</artifactId>
-            <version>3.3.3</version>
+            <version>3.3.4</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -47,7 +47,7 @@ limitations under the License.
         <dependency>
             <groupId>org.apache.tinkerpop</groupId>
             <artifactId>gremlin-test</artifactId>
-            <version>3.3.3</version>
+            <version>3.3.4</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
