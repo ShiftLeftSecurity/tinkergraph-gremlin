@@ -26,9 +26,9 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
 import java.util.*;
 
 public class SungBy extends SpecializedTinkerEdge<String> {
-    public static String label = "sungBy";
+    public static final String label = "sungBy";
 
-    public static Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList());
+    public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList());
 
     public SungBy(String id, Vertex outVertex, Vertex inVertex) {
         super(id, outVertex, label, inVertex, SPECIFIC_KEYS);
@@ -51,7 +51,7 @@ public class SungBy extends SpecializedTinkerEdge<String> {
         }
 
         @Override
-        public SungBy createEdge(String id, Vertex outVertex, Vertex inVertex, Map<String, Object> keyValueMap) {
+        public SungBy createEdge(String id, Vertex outVertex, Vertex inVertex) {
             return new SungBy(id, outVertex, inVertex);
         }
     };

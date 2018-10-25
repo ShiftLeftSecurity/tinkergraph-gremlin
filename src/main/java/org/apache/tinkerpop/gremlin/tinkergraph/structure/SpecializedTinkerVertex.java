@@ -23,7 +23,6 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
@@ -79,7 +78,12 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
 
     @Override
     public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality, String key, V value, Object... keyValues) {
-        return updateSpecificProperty(cardinality, key, value);
+        if (this.removed) throw elementAlreadyRemoved(Vertex.class, id);
+        ElementHelper.legalPropertyKeyValueArray(keyValues);
+        ElementHelper.validateProperty(key, value);
+        final VertexProperty<V> vp = updateSpecificProperty(cardinality, key, value);
+        TinkerHelper.autoUpdateIndex(this, key, value, null);
+        return vp;
     }
 
     protected abstract <V> VertexProperty<V> updateSpecificProperty(
@@ -108,7 +112,8 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
             ElementHelper.legalPropertyKeyValueArray(keyValues);
             TinkerVertex inVertex = (TinkerVertex) vertex;
             TinkerVertex outVertex = this;
-            SpecializedTinkerEdge edge = factory.createEdge(idValue, outVertex, inVertex, ElementHelper.asMap(keyValues));
+            SpecializedTinkerEdge edge = factory.createEdge(idValue, outVertex, inVertex);
+            ElementHelper.attachProperties(edge, keyValues);
             graph.edges.put(idValue, edge);
 
             // TODO: allow to connect non-specialised vertices with specialised edges and vice versa

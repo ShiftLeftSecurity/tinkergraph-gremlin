@@ -30,30 +30,28 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import java.util.*;
 
 public class Artist extends SpecializedTinkerVertex<String> {
-    public static String label = "artist";
+    public static final String label = "artist";
 
-    public static String NAME = "name";
-    public static Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(NAME));
+    public static final String NAME = "name";
+    public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(NAME));
 
     // properties
     private String name;
 
     // edges
-    public static String[] ALL_EDGES = new String[] {WrittenBy.label, SungBy.label};
+    public static final String[] ALL_EDGES = new String[] {WrittenBy.label, SungBy.label};
     private Set<SungBy> sungByIn;
     private Set<WrittenBy> writtenByIn;
 
-    public Artist(String id, TinkerGraph graph, String name) {
+    public Artist(String id, TinkerGraph graph) {
         super(id, Artist.label, graph, SPECIFIC_KEYS);
-
-        this.name = name;
     }
 
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
     protected <V> Iterator<VertexProperty<V>> specificProperties(String key) {
         final VertexProperty<V> ret;
-        if (key == NAME && name != null) {
+        if (NAME.equals(key) && name != null) {
             ret = new TinkerVertexProperty(this, key, name);
         } else {
             ret = VertexProperty.empty();
@@ -64,7 +62,7 @@ public class Artist extends SpecializedTinkerVertex<String> {
     @Override
     protected <V> VertexProperty<V> updateSpecificProperty(
       VertexProperty.Cardinality cardinality, String key, V value) {
-        if (key == NAME) {
+        if (NAME.equals(key)) {
             this.name = (String) value;
         } else {
             throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
@@ -152,9 +150,8 @@ public class Artist extends SpecializedTinkerVertex<String> {
         }
 
         @Override
-        public Artist createVertex(String id, TinkerGraph graph, Map<String, Object> keyValueMap) {
-            String name = (String) keyValueMap.get("name");
-            return new Artist(id, graph, name);
+        public Artist createVertex(String id, TinkerGraph graph) {
+            return new Artist(id, graph);
         }
     };
 

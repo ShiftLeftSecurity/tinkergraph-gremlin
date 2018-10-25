@@ -42,7 +42,7 @@ public class SpecializedElementsTest {
 
     @Test
     public void shouldSupportSpecializedElements() throws IOException {
-        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
 
         List<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toList();
         assertEquals(garcias.size(), 1);
@@ -56,7 +56,7 @@ public class SpecializedElementsTest {
 
     @Test
     public void shouldSupportRemovalOfSpecializedElements() throws IOException {
-        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
         Set<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toSet();
         assertNotEquals(garcias.size(), 0);
         garcias.forEach(garcia -> garcia.remove());
@@ -72,13 +72,13 @@ public class SpecializedElementsTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldNotAllowMixingWithGenericVertex() throws IOException {
-        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
         graph.addVertex("something_else");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldNotAllowMixingWithGenericEdge() throws IOException {
-        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
         GraphTraversalSource g = graph.traversal();
         List<Vertex> vertices = g.V().limit(2).toList();
         Vertex v1 = vertices.get(0);
@@ -93,7 +93,7 @@ public class SpecializedElementsTest {
         Double avgTimeWithoutIndex = null;
 
         { // tests with index
-            TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+            TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
             graph.createIndex("weight", Edge.class);
             GraphTraversalSource g = graph.traversal();
             assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
@@ -101,7 +101,35 @@ public class SpecializedElementsTest {
         }
 
         { // tests without index
+            TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
+            GraphTraversalSource g = graph.traversal();
+            assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
+            avgTimeWithoutIndex = TimeUtil.clock(loops, () -> g.E().has("weight", P.eq(1)).count().next());
+        }
+
+        System.out.println("avgTimeWithIndex = " + avgTimeWithIndex);
+        System.out.println("avgTimeWithoutIndex = " + avgTimeWithoutIndex);
+        assertTrue("avg time with index should be (significantly) less than without index",
+            avgTimeWithIndex < avgTimeWithoutIndex);
+    }
+    
+    @Test
+    public void shouldUseIndicesCreatedBeforeLoadingData() throws IOException {
+        int loops = 10000;
+        Double avgTimeWithIndex = null;
+        Double avgTimeWithoutIndex = null;
+
+        { // tests with index
             TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+            graph.createIndex("weight", Edge.class);
+            loadGraphMl(graph);
+            GraphTraversalSource g = graph.traversal();
+            assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
+            avgTimeWithIndex = TimeUtil.clock(loops, () -> g.E().has("weight", P.eq(1)).count().next());
+        }
+
+        { // tests without index
+            TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
             GraphTraversalSource g = graph.traversal();
             assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
             avgTimeWithoutIndex = TimeUtil.clock(loops, () -> g.E().has("weight", P.eq(1)).count().next());
@@ -121,14 +149,14 @@ public class SpecializedElementsTest {
         Double avgTimeWithGenericElements = null;
 
         { // using specialized elements
-            TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+            TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
             GraphTraversalSource g = graph.traversal();
             assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
             avgTimeWithSpecializedElements = TimeUtil.clock(loops, () -> g.E().has("weight", P.eq(1)).count().next());
         }
 
         { // using generic elements
-            TinkerGraph graph = newGratefulDeadGraphWithGenericElements();
+            TinkerGraph graph = newGratefulDeadGraphWithGenericElementsWithData();
             GraphTraversalSource g = graph.traversal();
             assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
             avgTimeWithGenericElements = TimeUtil.clock(loops, () -> g.E().has("weight", P.eq(1)).count().next());
@@ -152,13 +180,13 @@ public class SpecializedElementsTest {
         Double avgTimeWithGenericElements = null;
 
         { // using specialized elements
-            TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+            TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
             GraphTraversalSource g = graph.traversal();
             avgTimeWithSpecializedElements = TimeUtil.clock(loops, () -> g.V().out().out().out().toStream().count());
         }
 
         { // using generic elements
-            TinkerGraph graph = newGratefulDeadGraphWithGenericElements();
+            TinkerGraph graph = newGratefulDeadGraphWithGenericElementsWithData();
             GraphTraversalSource g = graph.traversal();
             avgTimeWithGenericElements = TimeUtil.clock(loops, () -> g.V().out().out().out().toStream().count());
         }
@@ -171,15 +199,19 @@ public class SpecializedElementsTest {
     }
 
     private TinkerGraph newGratefulDeadGraphWithSpecializedElements() throws IOException {
-        TinkerGraph graph = TinkerGraph.open(
+        return TinkerGraph.open(
             Arrays.asList(Song.factory, Artist.factory),
             Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
         );
+    }
+    
+    private TinkerGraph newGratefulDeadGraphWithSpecializedElementsWithData() throws IOException {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
         loadGraphMl(graph);
         return graph;
     }
 
-    private TinkerGraph newGratefulDeadGraphWithGenericElements() throws IOException {
+    private TinkerGraph newGratefulDeadGraphWithGenericElementsWithData() throws IOException {
         TinkerGraph graph = TinkerGraph.open();
         loadGraphMl(graph);
         return graph;

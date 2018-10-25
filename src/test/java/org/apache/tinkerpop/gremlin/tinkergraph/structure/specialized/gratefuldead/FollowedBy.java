@@ -27,22 +27,21 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerProperty;
 import java.util.*;
 
 public class FollowedBy extends SpecializedTinkerEdge<String> {
-    public static String label = "followedBy";
+    public static final String label = "followedBy";
 
-    public static String WEIGHT = "weight";
-    public static Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(WEIGHT));
+    public static final String WEIGHT = "weight";
+    public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(WEIGHT));
 
     private Integer weight;
 
-    public FollowedBy(String id, Vertex outVertex, Vertex inVertex, Integer weight) {
+    public FollowedBy(String id, Vertex outVertex, Vertex inVertex) {
         super(id, outVertex, label, inVertex, SPECIFIC_KEYS);
-        this.weight = weight;
     }
 
     @Override
     protected <V> Property<V> specificProperty(String key) {
-        // note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings
-        if (key == WEIGHT && weight != null) {
+        // note: use the statically defined strings to take advantage of `==` (pointer comparison) over `.equals` (String content comparison) for performance 
+        if (WEIGHT.equals(key) && weight != null) {
             return new TinkerProperty(this, key, weight);
         } else {
             return Property.empty();
@@ -51,7 +50,7 @@ public class FollowedBy extends SpecializedTinkerEdge<String> {
 
     @Override
     protected <V> Property<V> updateSpecificProperty(String key, V value) {
-        if (key == WEIGHT) {
+        if (WEIGHT.equals(key)) {
             this.weight = (Integer) value;
         } else {
             throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
@@ -66,9 +65,8 @@ public class FollowedBy extends SpecializedTinkerEdge<String> {
         }
 
         @Override
-        public FollowedBy createEdge(String id, Vertex outVertex, Vertex inVertex, Map<String, Object> keyValueMap) {
-            Integer weight = (Integer) keyValueMap.get("weight");
-            return new FollowedBy(id, outVertex, inVertex, weight);
+        public FollowedBy createEdge(String id, Vertex outVertex, Vertex inVertex) {
+            return new FollowedBy(id, outVertex, inVertex);
         }
     };
 }

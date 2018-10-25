@@ -18,8 +18,10 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
@@ -59,7 +61,12 @@ public abstract class SpecializedTinkerEdge<IdType> extends TinkerEdge {
 
     @Override
     public <V> Property<V> property(String key, V value) {
-        return updateSpecificProperty(key, value);
+        if (this.removed) throw elementAlreadyRemoved(Edge.class, id);
+        ElementHelper.validateProperty(key, value);
+        final Property oldProperty = super.property(key);
+        final Property<V> p = updateSpecificProperty(key, value);
+        TinkerHelper.autoUpdateIndex(this, key, value, oldProperty.isPresent() ? oldProperty.value() : null);
+        return p;
     }
 
     protected abstract <V> Property<V> updateSpecificProperty(String key, V value);
