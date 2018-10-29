@@ -30,12 +30,12 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import java.util.*;
 
 public class Song extends SpecializedTinkerVertex<String> {
-    public static String label = "song";
+    public static final String label = "song";
 
-    public static String NAME = "name";
-    public static String SONG_TYPE = "songType";
-    public static String PERFORMANCES = "performances";
-    public static Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(NAME, SONG_TYPE, PERFORMANCES));
+    public static final String NAME = "name";
+    public static final String SONG_TYPE = "songType";
+    public static final String PERFORMANCES = "performances";
+    public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(NAME, SONG_TYPE, PERFORMANCES));
 
     // properties
     private String name;
@@ -43,18 +43,14 @@ public class Song extends SpecializedTinkerVertex<String> {
     private Integer performances;
 
     // edges
-    public static String[] ALL_EDGES = new String[] {FollowedBy.label, WrittenBy.label, SungBy.label};
+    public static final String[] ALL_EDGES = new String[] {FollowedBy.label, WrittenBy.label, SungBy.label};
     private Set<FollowedBy> followedByOut;
     private Set<FollowedBy> followedByIn;
     private Set<WrittenBy> writtenByOut;
     private Set<SungBy> sungByOut;
 
-    public Song(String id, TinkerGraph graph, String name, String songType, Integer performances) {
+    public Song(String id, TinkerGraph graph) {
         super(id, Song.label, graph, SPECIFIC_KEYS);
-
-        this.name = name;
-        this.songType = songType;
-        this.performances = performances;
     }
 
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
@@ -76,11 +72,11 @@ public class Song extends SpecializedTinkerVertex<String> {
     @Override
     protected <V> VertexProperty<V> updateSpecificProperty(
       VertexProperty.Cardinality cardinality, String key, V value) {
-        if (key == NAME) {
+        if (NAME.equals(key)) {
             this.name = (String) value;
-        } else if (key == SONG_TYPE) {
+        } else if (SONG_TYPE.equals(key)) {
             this.songType = (String) value;
-        } else if (key == PERFORMANCES) {
+        } else if (PERFORMANCES.equals(key)) {
             this.performances = (Integer) value;
         } else {
             throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
@@ -205,11 +201,8 @@ public class Song extends SpecializedTinkerVertex<String> {
         }
 
         @Override
-        public Song createVertex(String id, TinkerGraph graph, Map<String, Object> keyValueMap) {
-            String name = (String) keyValueMap.get("name");
-            String songType = (String) keyValueMap.get("songType");
-            Integer performances = (Integer) keyValueMap.get("performances");
-            return new Song(id, graph, name, songType, performances);
+        public Song createVertex(String id, TinkerGraph graph) {
+            return new Song(id, graph);
         }
     };
 }
