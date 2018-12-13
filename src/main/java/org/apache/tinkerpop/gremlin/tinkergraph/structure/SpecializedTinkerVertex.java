@@ -41,6 +41,7 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
 
     @Override
     public <V> VertexProperty<V> property(String key) {
+        if (this.removed) return VertexProperty.empty();
         return specificProperty(key);
     }
 
@@ -61,6 +62,7 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
 
     @Override
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
+        if (this.removed) return Collections.emptyIterator();
         if (propertyKeys.length == 0) { // return all properties
             return (Iterator) specificKeys.stream().flatMap(key ->
                 StreamSupport.stream(Spliterators.spliteratorUnknownSize(
