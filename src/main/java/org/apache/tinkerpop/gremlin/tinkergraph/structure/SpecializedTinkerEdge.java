@@ -53,7 +53,9 @@ public abstract class SpecializedTinkerEdge<IdType> extends TinkerEdge {
         if (propertyKeys.length == 0) {
             return (Iterator) specificKeys.stream().map(key -> property(key)).filter(vp -> vp.isPresent()).iterator();
         } else if (propertyKeys.length == 1) { // treating as special case for performance
-            return IteratorUtils.of(property(propertyKeys[0]));
+            // return IteratorUtils.of(property(propertyKeys[0]));
+            final Property<V> prop = property(propertyKeys[0]);
+            return prop.isPresent() ? IteratorUtils.of(prop) : Collections.emptyIterator();
         } else {
             return Arrays.stream(propertyKeys).map(key -> (Property<V>) property(key)).filter(vp -> vp.isPresent()).iterator();
         }
