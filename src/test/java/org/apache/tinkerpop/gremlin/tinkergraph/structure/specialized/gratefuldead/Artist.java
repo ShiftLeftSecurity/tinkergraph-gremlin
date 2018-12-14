@@ -52,11 +52,10 @@ public class Artist extends SpecializedTinkerVertex<String> {
     protected <V> Iterator<VertexProperty<V>> specificProperties(String key) {
         final VertexProperty<V> ret;
         if (NAME.equals(key) && name != null) {
-            ret = new TinkerVertexProperty(this, key, name);
+            return IteratorUtils.of(new TinkerVertexProperty(this, key, name));
         } else {
-            ret = VertexProperty.empty();
+            return Collections.emptyIterator();
         }
-        return IteratorUtils.of(ret);
     }
 
     @Override

@@ -57,16 +57,15 @@ public class Song extends SpecializedTinkerVertex<String> {
     @Override
     protected <V> Iterator<VertexProperty<V>> specificProperties(String key) {
         final VertexProperty<V> ret;
-        if (key == NAME && name != null) {
-            ret = new TinkerVertexProperty(this, key, name);
+        if (NAME.equals(key) && name != null) {
+            return IteratorUtils.of(new TinkerVertexProperty(this, key, name));
         } else if (key == SONG_TYPE && songType != null) {
-            ret = new TinkerVertexProperty(this, key, songType);
+            return IteratorUtils.of(new TinkerVertexProperty(this, key, songType));
         } else if (key == PERFORMANCES && performances != null) {
-            ret = new TinkerVertexProperty(this, key, performances);
+            return IteratorUtils.of(new TinkerVertexProperty(this, key, performances));
         } else {
-            ret = VertexProperty.empty();
+            return Collections.emptyIterator();
         }
-        return IteratorUtils.of(ret);
     }
 
     @Override

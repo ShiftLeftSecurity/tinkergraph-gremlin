@@ -141,6 +141,17 @@ public class SpecializedElementsTest {
             avgTimeWithIndex < avgTimeWithoutIndex);
     }
 
+    @Test
+    public void handleEmptyProperties() throws IOException {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
+
+        List<Object> props1 = graph.traversal().V().values("foo").toList();
+        List<Object> props2 = graph.traversal().E().values("foo").toList();
+        // results will be empty, but it should't crash. see https://github.com/ShiftLeftSecurity/tinkergraph-gremlin/issues/12
+        assertEquals(props1.size(), 0);
+        assertEquals(props2.size(), 0);
+    }
+
     // @Test
     // only run manually since the timings vary depending on the environment
     public void propertyLookupPerformanceComparison() throws IOException {
