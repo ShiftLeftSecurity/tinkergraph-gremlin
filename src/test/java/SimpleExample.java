@@ -13,12 +13,12 @@ import com.sleepycat.je.OperationStatus;
 import com.sleepycat.je.Transaction;
 
 class SimpleExample {
-  private static int numRecords = 2;   // num records to insert or retrieve
+  private static int numRecords = 3;   // num records to insert or retrieve
   private static int offset = 0;       // where we want to start inserting
   private static File envDir = new File("bdbenv");
 
   public static void main(String args[]) {
-    run(true);
+//    run(true);
     run(false);
   }
 
@@ -44,7 +44,7 @@ class SimpleExample {
       for (int i = offset; i < numRecords + offset; i++) {
         txn = environment.beginTransaction(null, null);
         IntegerBinding.intToEntry(i, keyEntry);
-        IntegerBinding.intToEntry(i+1, dataEntry);
+        IntegerBinding.intToEntry(i+10, dataEntry);
         OperationStatus status = db.put(txn, keyEntry, dataEntry);
 
         if (status != OperationStatus.SUCCESS) {
@@ -53,11 +53,16 @@ class SimpleExample {
         txn.commit();
       }
     } else {
-      Cursor cursor = db.openCursor(null, null);
-      while (cursor.getNext(keyEntry, dataEntry, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
-        System.out.println("key=" + IntegerBinding.entryToInt(keyEntry) + " data=" + IntegerBinding.entryToInt(dataEntry));
-      }
-      cursor.close();
+      IntegerBinding.intToEntry(1, keyEntry);
+      System.out.println(dataEntry); // null
+      System.out.println(db.get(null, keyEntry, dataEntry, null));
+      System.out.println(IntegerBinding.entryToInt(dataEntry));
+
+//      Cursor cursor = db.openCursor(null, null);
+//      while (cursor.getNext(keyEntry, dataEntry, LockMode.DEFAULT) == OperationStatus.SUCCESS) {
+//        System.out.println("key=" + IntegerBinding.entryToInt(keyEntry) + " data=" + IntegerBinding.entryToInt(dataEntry));
+//      }
+//      cursor.close();
     }
 
     db.close();
