@@ -39,6 +39,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.process.computer.TinkerGraphComp
 import org.apache.tinkerpop.gremlin.tinkergraph.process.computer.TinkerGraphComputerView;
 import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optimization.TinkerGraphCountStrategy;
 import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optimization.TinkerGraphStepStrategy;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.Serializer;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.io.File;
@@ -99,6 +100,11 @@ public final class TinkerGraph implements Graph {
     private final Configuration configuration;
     private final String graphLocation;
     private final String graphFormat;
+
+    /* on-disk storage - TODO: factor this out into an extension of TinkerGraph? */
+    protected boolean diskStorageEnabled = false;
+    protected Serializer<Vertex> vertexSerializer;
+    protected Serializer<Edge> edgeSerializer;
 
     /**
      * An empty private constructor that initializes {@link TinkerGraph}.
@@ -566,6 +572,20 @@ public final class TinkerGraph implements Graph {
     /* how many of the vertices are `SpecializedTinkerEdge`? for debugging/testing mostly... */
     public long specializedEdgeCount() {
         return edges.values().stream().filter(v -> v instanceof SpecializedTinkerEdge).count();
+    }
+
+    public boolean isDiskStorageEnabled() {
+        return diskStorageEnabled;
+    }
+
+    public TinkerGraph enableDiskStorage(Serializer<Vertex> vertexSerializer,
+                                         Serializer<Edge> edgeSerializer) {
+        assert(!diskStorageEnabled);
+        assert(usesSpecializedElements);
+        this.diskStorageEnabled = true;
+        this.vertexSerializer = vertexSerializer;
+        this.edgeSerializer = edgeSerializer;
+        return this;
     }
 
     /**

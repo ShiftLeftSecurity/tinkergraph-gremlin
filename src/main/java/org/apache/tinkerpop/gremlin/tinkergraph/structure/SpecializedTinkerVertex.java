@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -169,4 +170,9 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
     }
 
     protected abstract void removeSpecificInEdge(Edge edge);
+
+    /* implement for on-disk-storage support */
+    public byte[] serialize() {
+        throw new NotImplementedException("implement me for on-disk-storage support");
+    };
 }

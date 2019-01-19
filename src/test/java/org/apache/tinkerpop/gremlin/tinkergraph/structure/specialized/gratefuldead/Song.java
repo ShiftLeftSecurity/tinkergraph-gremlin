@@ -53,6 +53,7 @@ public class Song extends SpecializedTinkerVertex<String> {
         super(id, Song.label, graph, SPECIFIC_KEYS);
     }
 
+
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
     protected <V> Iterator<VertexProperty<V>> specificProperties(String key) {
@@ -204,4 +205,22 @@ public class Song extends SpecializedTinkerVertex<String> {
             return new Song(id, graph);
         }
     };
+
+    /* only for deserialization, do not use directly! */
+    @Deprecated
+    public Song() {
+        super(null, Song.label, null, SPECIFIC_KEYS);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getSongType() {
+        return songType;
+    }
+
+    public Integer getPerformances() {
+        return performances;
+    }
 }

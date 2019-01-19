@@ -27,9 +27,10 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerVertexProperty;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class Artist extends SpecializedTinkerVertex<String> {
+public class Artist extends SpecializedTinkerVertex<String> implements Serializable {
     public static final String label = "artist";
 
     public static final String NAME = "name";
@@ -45,6 +46,12 @@ public class Artist extends SpecializedTinkerVertex<String> {
 
     public Artist(String id, TinkerGraph graph) {
         super(id, Artist.label, graph, SPECIFIC_KEYS);
+    }
+
+    /* only for deserialization, do not use directly! */
+    @Deprecated
+    public Artist() {
+        super(null, Artist.label, null, SPECIFIC_KEYS);
     }
 
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */

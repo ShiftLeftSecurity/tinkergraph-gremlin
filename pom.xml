@@ -44,6 +44,16 @@ limitations under the License.
             <artifactId>je</artifactId>
             <version>7.4.5</version>
         </dependency>
+        <!--<dependency>-->
+            <!--<groupId>org.msgpack</groupId>-->
+            <!--<artifactId>msgpack-core</artifactId>-->
+            <!--<version>0.8.16</version>-->
+        <!--</dependency>-->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>2.9.8</version>
+        </dependency>
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-log4j12</artifactId>
