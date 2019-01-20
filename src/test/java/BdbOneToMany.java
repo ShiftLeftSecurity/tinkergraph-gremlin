@@ -88,8 +88,7 @@ public class BdbOneToMany {
        */
       secConfig.setSortedDuplicates(false);
       secConfig.setMultiKeyCreator(new EmailKeyCreator());
-      personByEmail = env.openSecondaryDatabase(txn, "personByEmail",
-        personDb, secConfig);
+      personByEmail = env.openSecondaryDatabase(txn, "personByEmail", personDb, secConfig);
 
       txn.commit();
     } catch (DatabaseException e) {
@@ -130,16 +129,15 @@ public class BdbOneToMany {
     putPerson(kathy);
     printPerson("Kathy");
 
-//    System.out.println
-//      ("\nPrint by email address index.");
-//    printByIndex(personByEmail);
+    System.out.println
+      ("\nPrint by email address index.");
+    printByIndex(personByEmail);
   }
 
   /**
    * Gets a person by name and prints it.
    */
-  private void printPerson(String name)
-    throws DatabaseException {
+  private void printPerson(String name) throws DatabaseException {
 
     DatabaseEntry key = new DatabaseEntry();
     keyBinding.objectToEntry(name, key);
@@ -168,8 +166,7 @@ public class BdbOneToMany {
 
     SecondaryCursor cursor = secDb.openSecondaryCursor(null, null);
     try {
-      while (cursor.getNext(secKey, priKey, priData, null) ==
-        OperationStatus.SUCCESS) {
+      while (cursor.getNext(secKey, priKey, priData, null) == OperationStatus.SUCCESS) {
         Person person = personBinding.entryToObject(priData);
         person.name = keyBinding.entryToObject(priKey);
         System.out.println("Index key [" +
@@ -197,9 +194,6 @@ public class BdbOneToMany {
     personDb.put(null, key, data);
   }
 
-  /**
-   * A person object.
-   */
   @SuppressWarnings("serial")
   private static class Person implements Serializable {
 
