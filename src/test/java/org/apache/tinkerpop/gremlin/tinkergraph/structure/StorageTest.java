@@ -32,17 +32,31 @@ import static org.junit.Assert.*;
 public class StorageTest {
 
     @Test
-    public void handleSerializeAndDeserialize() throws IOException {
-        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
-        DefaultVertexSerializer serializer = new DefaultVertexSerializer(graph, graph.specializedVertexFactoryByLabel);
+    public void handleSerializeAndDeserializeVertex() throws IOException {
+      TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
+      DefaultVertexSerializer serializer = new DefaultVertexSerializer(graph, graph.specializedVertexFactoryByLabel);
 
-        Vertex garcia = graph.traversal().V().has("name", "Garcia").next();
-        byte[] bytes = serializer.serialize((SpecializedTinkerVertex) garcia);
+      Artist garcia = (Artist) graph.traversal().V().has("name", "Garcia").next();
+      byte[] bytes = serializer.serialize(garcia);
 
-        Vertex garcia2 = serializer.deserialize(bytes);
-        assertEquals(garcia.id(), garcia2.id());
-        assertEquals(garcia.label(), garcia2.label());
+      Artist garcia2 = (Artist) serializer.deserialize(bytes);
+      assertEquals(garcia.id(), garcia2.id());
+      assertEquals(garcia.label(), garcia2.label());
+      assertEquals(garcia.getName(), garcia2.getName());
     }
+
+//    @Test
+//    public void handleSerializeAndDeserializeEdge() throws IOException {
+//      TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
+//      DefaultEdgeSerializer serializer = new DefaultVertexSerializer(graph, graph.specializedVertexFactoryByLabel);
+//
+//      Vertex garcia = graph.traversal().V().has("name", "Garcia").next();
+//      byte[] bytes = serializer.serialize((SpecializedTinkerVertex) garcia);
+//
+//      Vertex garcia2 = serializer.deserialize(bytes);
+//      assertEquals(garcia.id(), garcia2.id());
+//      assertEquals(garcia.label(), garcia2.label());
+//    }
 
     private TinkerGraph newGratefulDeadGraphWithSpecializedElements() {
         return TinkerGraph.open(

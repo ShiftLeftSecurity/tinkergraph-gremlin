@@ -10,6 +10,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.msgpack.core.MessageBufferPacker;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
+import org.msgpack.value.FloatValue;
 import org.msgpack.value.IntegerValue;
 import org.msgpack.value.Value;
 
@@ -44,10 +45,14 @@ public class DefaultVertexSerializer implements Serializer<SpecializedTinkerVert
     for (Property property : properties) {
       packer.packString(property.key());
       Object value = property.value();
-      if (value.getClass() == Long.class) packer.packLong((Long) value);
-      else if (value.getClass() == Integer.class) packer.packInt((int) value);
-      else if (value.getClass() == Boolean.class) packer.packBoolean((Boolean) value);
+      if (value.getClass() == Boolean.class) packer.packBoolean((Boolean) value);
       else if (value.getClass() == String.class) packer.packString((String) value);
+      else if (value.getClass() == Byte.class) packer.packByte((Byte) value);
+      else if (value.getClass() == Short.class) packer.packShort((Short) value);
+      else if (value.getClass() == Integer.class) packer.packInt((int) value);
+      else if (value.getClass() == Long.class) packer.packLong((Long) value);
+      else if (value.getClass() == Float.class) packer.packFloat((Float) value);
+      else if (value.getClass() == Double.class) packer.packDouble((Double) value);
       else throw new NotImplementedException("value type `" + value.getClass() + "` not yet supported (key=" + property.key() + ")");
     }
 
@@ -70,16 +75,24 @@ public class DefaultVertexSerializer implements Serializer<SpecializedTinkerVert
       final Object value;
       Value packedValue = entry.getValue();
 
-      if (packedValue.isBooleanValue()) value = packedValue.asBooleanValue().getBoolean();
-      else if (packedValue.isStringValue()) value = packedValue.asStringValue().asString();
-      else if (packedValue.isIntegerValue()) {
+      if (packedValue.isBooleanValue()) {
+        value = packedValue.asBooleanValue().getBoolean();
+      } else if (packedValue.isStringValue()) {
+        value = packedValue.asStringValue().asString();
+      } else if (packedValue.isIntegerValue()) {
         IntegerValue integerValue = packedValue.asIntegerValue();
         if (integerValue.isInLongRange()) value = integerValue.asLong();
         else if (integerValue.isInIntRange()) value = integerValue.asInt();
         else if (integerValue.isInShortRange()) value = integerValue.asShort();
         else if (integerValue.isInByteRange()) value = integerValue.asByte();
         else throw new AssertionError("integerValue not in expected ranges: " + integerValue);
-      } else throw new NotImplementedException("value type `" + packedValue.getValueType() + "` not yet supported (key=" + key + ")");
+      } else if (packedValue.isFloatValue()) {
+        // no way to check if it's a double or a float...
+        FloatValue floatValue = packedValue.asFloatValue();
+        value = floatValue.toDouble();
+      } else {
+        throw new NotImplementedException("value type `" + packedValue.getValueType() + "` not yet supported (key=" + key + ")");
+      }
 
       keyValues[idx++] = value;
     }
