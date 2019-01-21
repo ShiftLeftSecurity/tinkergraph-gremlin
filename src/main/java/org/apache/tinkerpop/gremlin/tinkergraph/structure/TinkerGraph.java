@@ -43,10 +43,16 @@ import org.apache.tinkerpop.gremlin.tinkergraph.storage.EdgeSerializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.Serializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexSerializer;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.ehcache.Cache;
+import org.ehcache.CacheManager;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 
 import java.io.File;
+import java.net.CacheRequest;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -97,9 +103,10 @@ public final class TinkerGraph implements Graph {
     protected final IdManager<?> edgeIdManager;
     protected final IdManager<?> vertexPropertyIdManager;
     protected final VertexProperty.Cardinality defaultVertexPropertyCardinality;
+
+    protected final boolean usesSpecializedElements;
     protected final Map<String, SpecializedElementFactory.ForVertex> specializedVertexFactoryByLabel = new HashMap();
     protected final Map<String, SpecializedElementFactory.ForEdge> specializedEdgeFactoryByLabel = new HashMap();
-    protected final boolean usesSpecializedElements;
 
     private final Configuration configuration;
     private final String graphLocation;
@@ -111,6 +118,14 @@ public final class TinkerGraph implements Graph {
     protected VertexSerializer vertexSerializer;
     protected EdgeSerializer edgeSerializer;
     protected final MVStore mvstore = new MVStore.Builder().fileName(filename).open();
+
+    /* cache for on-disk storage */
+    protected final String verticesCacheName = "verticesCache";
+    protected final String edgesCacheName = "edgesCache";
+    protected final CacheManager cacheManager;
+    protected final Cache<Long, SpecializedTinkerVertex> verticesCache;
+    protected final Cache<Long, SpecializedTinkerEdge> edgesCache;
+
 
     /**
      * An empty private constructor that initializes {@link TinkerGraph}.
@@ -130,6 +145,14 @@ public final class TinkerGraph implements Graph {
         if ((graphLocation != null && null == graphFormat) || (null == graphLocation && graphFormat != null))
             throw new IllegalStateException(String.format("The %s and %s must both be specified if either is present",
                     GREMLIN_TINKERGRAPH_GRAPH_LOCATION, GREMLIN_TINKERGRAPH_GRAPH_FORMAT));
+
+        cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+          .withCache(verticesCacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, SpecializedTinkerVertex.class, ResourcePoolsBuilder.heap(10)))
+          .withCache(edgesCacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, SpecializedTinkerEdge.class, ResourcePoolsBuilder.heap(10)))
+          .build();
+        cacheManager.init();
+        verticesCache = cacheManager.getCache(verticesCacheName, Long.class, SpecializedTinkerVertex.class);
+        edgesCache = cacheManager.getCache(edgesCacheName, Long.class, SpecializedTinkerEdge.class);
 
         if (graphLocation != null) loadGraph();
     }
@@ -215,6 +238,7 @@ public final class TinkerGraph implements Graph {
         if (specializedVertexFactoryByLabel.containsKey(label)) {
             SpecializedElementFactory.ForVertex factory = specializedVertexFactoryByLabel.get(label);
             SpecializedTinkerVertex vertex = factory.createVertex(idValue, this);
+//            vertexSerializer.serialize(vertex);
             this.vertices.put(idValue, vertex);
             ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
             return vertex;

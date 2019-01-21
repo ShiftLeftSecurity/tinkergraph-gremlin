@@ -23,22 +23,35 @@ public class MessagePackSimple {
 //      .packString("xxx-xxxx")
 //      .packString("yyy-yyyy");
 
-    Map<String, Object> m = new HashMap();
-    m.put("one", Long.MAX_VALUE);
-    m.put("two", true);
-    m.put("three", 3);
-    packer.packMapHeader(m.size());
-    m.forEach((key, value) -> {
-      try {
-        packer.packString(key);
-        if (value.getClass() == Long.class) packer.packLong((Long) value);
-        else if (value.getClass() == Integer.class) packer.packInt((int) value);
-        else if (value.getClass() == Boolean.class) packer.packBoolean((Boolean) value);
-        else throw new NotImplementedException("type not yet supported: " + value.getClass());
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    });
+//    Map<String, Object> m = new HashMap();
+//    m.put("one", Long.MAX_VALUE);
+//    m.put("two", true);
+//    m.put("three", 3);
+//    packer.packMapHeader(m.size());
+//    m.forEach((key, value) -> {
+//      try {
+//        packer.packString(key);
+//        if (value.getClass() == Long.class) packer.packLong((Long) value);
+//        else if (value.getClass() == Integer.class) packer.packInt((int) value);
+//        else if (value.getClass() == Boolean.class) packer.packBoolean((Boolean) value);
+//        else throw new NotImplementedException("type not yet supported: " + value.getClass());
+//      } catch (IOException e) {
+//        e.printStackTrace();
+//      }
+//    });
+
+//    Map<String, long[]> edgeIdsByLabel = new HashMap();
+
+    packer.packMapHeader(2);
+
+    packer.packString("label1__OUT");
+    packer.packArrayHeader(2);
+    packer.packLong(99);
+    packer.packLong(98);
+
+    packer.packString("label2__IN_");
+    packer.packArrayHeader(1);
+    packer.packLong(99);
 
 
 //    packer

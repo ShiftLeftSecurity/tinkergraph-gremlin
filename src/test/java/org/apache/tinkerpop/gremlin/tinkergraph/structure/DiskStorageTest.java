@@ -38,21 +38,19 @@ public class DiskStorageTest {
     @Test
     public void foo() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
-//        List<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toList();
-//        assertEquals(garcias.size(), 1);
-//        Artist garcia = (Artist) garcias.get(0); //it's actually of type `Artist`, not (only) `Vertex`
+//        Vertex garcia = graph.traversal().V().has("name", "Garcia").next();
 //
 //        byte[] bytes = vertexSerializer.serialize(garcia);
 //        System.out.println(vertexSerializer.deserialize(bytes));
 
-        graph.traversal().V().toList().forEach((Vertex v) -> {
-            try {
-                byte[] bytes = vertexSerializer.serialize(v);
-                System.out.println(vertexSerializer.deserialize(bytes).getClass());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        });
+//        graph.traversal().V().toList().forEach((Vertex v) -> {
+//            try {
+//                byte[] bytes = vertexSerializer.serialize(v);
+//                System.out.println(vertexSerializer.deserialize(bytes).getClass());
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        });
 
     }
 
@@ -75,68 +73,67 @@ public class DiskStorageTest {
         graph.io(IoCore.graphml()).readGraph("src/test/resources/grateful-dead.xml");
     }
 
-    private ObjectMapper mapper = new ObjectMapper();
+//    private ObjectMapper mapper = new ObjectMapper();
 
     /*
     * to be able to decode into the correct type, we're encoding the type into the serialized value
     * this is fairly silly, but ok for the purpose of a test
     * */
-
-    private Serializer<Vertex> vertexSerializer = new Serializer<Vertex>() {
-
-        @Override
-        public byte[] serialize(Vertex tinkerVertex) throws JsonProcessingException {
-            byte encodedType;
-            switch (tinkerVertex.label()) {
-                case Artist.label:
-                    encodedType = 1;
-                    break;
-                case Song.label:
-                    encodedType = 2;
-                    break;
-                default:
-                    throw new AssertionError("unknown label: " + tinkerVertex.label());
-            }
-
-            System.out.println(mapper.writeValueAsString(tinkerVertex));
-            byte[] serialized = mapper.writeValueAsBytes(tinkerVertex);
-            byte[] res = new byte[serialized.length + 1];
-            res[0] = encodedType;
-            for (int i = 0; i < serialized.length; i++) {
-                res[i+1] = serialized[i];
-            }
-            return res;
-        }
-
-        @Override
-        public Vertex deserialize(byte[] bytes) throws IOException {
-            byte encodedType = bytes[0];
-            Class<? extends Vertex> targetClass = null;
-            switch (encodedType) {
-                case 1:
-                    targetClass = Artist.class;
-                    break;
-                case 2:
-                    targetClass = Song.class;
-                    break;
-                default:
-                    throw new AssertionError("unknown encodedType: " + encodedType);
-            }
-//            Arrays.copyOf()
-
-            byte[] withoutEncodedType = new byte[bytes.length - 1];
-            System.arraycopy(bytes, 1, withoutEncodedType, 0, withoutEncodedType.length);
-
-//            System.out.println("deserialize");
-//            System.out.println(withoutEncodedType.length);
-//            System.out.println(withoutEncodedType[0]);
-//            System.out.println(withoutEncodedType[1]);
-//            System.out.println(withoutEncodedType[2]);
-
-            return mapper.readValue(withoutEncodedType, targetClass);
-        }
-    };
-
-    private Serializer<Edge> edgeSerializer = null;
+//    private Serializer<Vertex> vertexSerializer = new Serializer<Vertex>() {
+//
+//        @Override
+//        public byte[] serialize(Vertex tinkerVertex) throws JsonProcessingException {
+//            byte encodedType;
+//            switch (tinkerVertex.label()) {
+//                case Artist.label:
+//                    encodedType = 1;
+//                    break;
+//                case Song.label:
+//                    encodedType = 2;
+//                    break;
+//                default:
+//                    throw new AssertionError("unknown label: " + tinkerVertex.label());
+//            }
+//
+//            System.out.println(mapper.writeValueAsString(tinkerVertex));
+//            byte[] serialized = mapper.writeValueAsBytes(tinkerVertex);
+//            byte[] res = new byte[serialized.length + 1];
+//            res[0] = encodedType;
+//            for (int i = 0; i < serialized.length; i++) {
+//                res[i+1] = serialized[i];
+//            }
+//            return res;
+//        }
+//
+//        @Override
+//        public Vertex deserialize(byte[] bytes) throws IOException {
+//            byte encodedType = bytes[0];
+//            Class<? extends Vertex> targetClass = null;
+//            switch (encodedType) {
+//                case 1:
+//                    targetClass = Artist.class;
+//                    break;
+//                case 2:
+//                    targetClass = Song.class;
+//                    break;
+//                default:
+//                    throw new AssertionError("unknown encodedType: " + encodedType);
+//            }
+////            Arrays.copyOf()
+//
+//            byte[] withoutEncodedType = new byte[bytes.length - 1];
+//            System.arraycopy(bytes, 1, withoutEncodedType, 0, withoutEncodedType.length);
+//
+////            System.out.println("deserialize");
+////            System.out.println(withoutEncodedType.length);
+////            System.out.println(withoutEncodedType[0]);
+////            System.out.println(withoutEncodedType[1]);
+////            System.out.println(withoutEncodedType[2]);
+//
+//            return mapper.readValue(withoutEncodedType, targetClass);
+//        }
+//    };
+//
+//    private Serializer<Edge> edgeSerializer = null;
 
 }
