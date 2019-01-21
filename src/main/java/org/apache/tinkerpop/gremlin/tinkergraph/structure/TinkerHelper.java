@@ -61,7 +61,7 @@ public final class TinkerHelper {
             idValue = graph.edgeIdManager.getNextId(graph);
         }
 
-        edge = new TinkerEdge(idValue, outVertex, label, inVertex);
+        edge = new TinkerEdge(graph, idValue, outVertex, label, inVertex);
         ElementHelper.attachProperties(edge, keyValues);
         graph.edges.put(edge.id(), edge);
         TinkerHelper.addOutEdge(outVertex, label, edge);
@@ -120,6 +120,7 @@ public final class TinkerHelper {
 
     public static void autoUpdateIndex(final TinkerEdge edge, final String key, final Object newValue, final Object oldValue) {
         final TinkerGraph graph = (TinkerGraph) edge.graph();
+
         if (graph.edgeIndex != null)
             graph.edgeIndex.autoUpdate(key, newValue, oldValue, edge);
     }

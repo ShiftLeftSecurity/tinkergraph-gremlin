@@ -30,7 +30,7 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import java.io.Serializable;
 import java.util.*;
 
-public class Artist extends SpecializedTinkerVertex implements Serializable {
+public class Artist extends SpecializedTinkerVertex {
     public static final String label = "artist";
 
     public static final String NAME = "name";
@@ -41,17 +41,11 @@ public class Artist extends SpecializedTinkerVertex implements Serializable {
 
     // edges
     public static final String[] ALL_EDGES = new String[] {WrittenBy.label, SungBy.label};
-    private Set<SungBy> sungByIn;
-    private Set<WrittenBy> writtenByIn;
+    private Set<SungBy> sungByIn = new HashSet<>();
+    private Set<Long> writtenByIn = new HashSet<>();
 
     public Artist(Long id, TinkerGraph graph) {
         super(id, Artist.label, graph, SPECIFIC_KEYS);
-    }
-
-    /* only for deserialization, do not use directly! */
-    @Deprecated
-    public Artist() {
-        super(null, Artist.label, null, SPECIFIC_KEYS);
     }
 
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
@@ -86,7 +80,7 @@ public class Artist extends SpecializedTinkerVertex implements Serializable {
         for (String label : edgeLabels) {
             if (label == WrittenBy.label) {
                 if (direction == Direction.IN || direction == Direction.BOTH) {
-                    iterators.add(getWrittenByIn().iterator());
+                    iterators.add(getWrittenByIn());
                 }
             } else if (label == SungBy.label) {
                 if (direction == Direction.IN || direction == Direction.BOTH) {
@@ -108,7 +102,7 @@ public class Artist extends SpecializedTinkerVertex implements Serializable {
     protected void removeSpecificInEdge(Edge edge) {
         if (edge instanceof WrittenBy) {
             if (writtenByIn != null) {
-                writtenByIn.remove(edge);
+                writtenByIn.remove(edge.id());
             }
         } else if (edge instanceof SungBy) {
             if (sungByIn != null) {
@@ -127,7 +121,7 @@ public class Artist extends SpecializedTinkerVertex implements Serializable {
     @Override
     protected void addSpecializedInEdge(Edge edge) {
         if (edge instanceof WrittenBy) {
-            getWrittenByIn().add((WrittenBy) edge);
+            writtenByIn.add((Long) edge.id());
         } else if (edge instanceof SungBy) {
             getSungByIn().add((SungBy) edge);
         } else {
@@ -135,11 +129,10 @@ public class Artist extends SpecializedTinkerVertex implements Serializable {
         }
     }
 
-    private Set<WrittenBy> getWrittenByIn() {
-        if (writtenByIn == null) {
-            writtenByIn = new HashSet<>();
-        }
-        return writtenByIn;
+    private Iterator<WrittenBy> getWrittenByIn() {
+        return writtenByIn.stream().map(id -> {
+            return (WrittenBy) graph.edgeById(id);
+        }).iterator();
     }
 
     private Set<SungBy> getSungByIn() {
@@ -156,7 +149,7 @@ public class Artist extends SpecializedTinkerVertex implements Serializable {
         }
 
         @Override
-        public Artist createVertex(Long id, TinkerGraph graph) {
+        public Artist createVertex(long id, TinkerGraph graph) {
             return new Artist(id, graph);
         }
     };

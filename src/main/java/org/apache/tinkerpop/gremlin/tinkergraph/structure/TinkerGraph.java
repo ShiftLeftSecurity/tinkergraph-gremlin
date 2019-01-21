@@ -39,8 +39,12 @@ import org.apache.tinkerpop.gremlin.tinkergraph.process.computer.TinkerGraphComp
 import org.apache.tinkerpop.gremlin.tinkergraph.process.computer.TinkerGraphComputerView;
 import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optimization.TinkerGraphCountStrategy;
 import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optimization.TinkerGraphStepStrategy;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.EdgeSerializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.Serializer;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexSerializer;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.h2.mvstore.MVMap;
+import org.h2.mvstore.MVStore;
 
 import java.io.File;
 import java.util.*;
@@ -101,10 +105,12 @@ public final class TinkerGraph implements Graph {
     private final String graphLocation;
     private final String graphFormat;
 
-    /* on-disk storage - TODO: factor this out into an extension of TinkerGraph? */
-    protected boolean diskStorageEnabled = false;
-    protected Serializer<Vertex> vertexSerializer;
-    protected Serializer<Edge> edgeSerializer;
+    /* on-disk storage
+     * TODO: make configurable -> reuse graphLocation/graphFormat */
+    protected final String filename = "mvstore.bin";
+    protected VertexSerializer vertexSerializer;
+    protected EdgeSerializer edgeSerializer;
+    protected final MVStore mvstore = new MVStore.Builder().fileName(filename).open();
 
     /**
      * An empty private constructor that initializes {@link TinkerGraph}.
@@ -170,7 +176,25 @@ public final class TinkerGraph implements Graph {
         TinkerGraph tg =  new TinkerGraph(configuration, usesSpecializedElements);
         vertexFactories.forEach(factory -> tg.specializedVertexFactoryByLabel.put(factory.forLabel(), factory));
         edgeFactories.forEach(factory -> tg.specializedEdgeFactoryByLabel.put(factory.forLabel(), factory));
+        tg.vertexSerializer = new VertexSerializer(tg, tg.specializedVertexFactoryByLabel);
+        tg.edgeSerializer = new EdgeSerializer(tg, tg.specializedEdgeFactoryByLabel);
         return tg;
+    }
+
+    protected MVMap<Long, SpecializedTinkerEdge> edgeMap() {
+        return mvstore.openMap("edges");
+    }
+
+    protected MVMap<Long, SpecializedTinkerVertex> vertexMap() {
+        return mvstore.openMap("vertices");
+    }
+
+    public SpecializedTinkerEdge edgeById(long id) {
+        return edgeMap().get(id);
+    }
+
+    public SpecializedTinkerVertex vertexById(long id) {
+        return vertexMap().get(id);
     }
 
     ////////////// STRUCTURE API METHODS //////////////////
@@ -259,6 +283,7 @@ public final class TinkerGraph implements Graph {
     @Override
     public void close() {
         if (graphLocation != null) saveGraph();
+        mvstore.close();
     }
 
     @Override
@@ -563,20 +588,6 @@ public final class TinkerGraph implements Graph {
     /* how many of the vertices are `SpecializedTinkerEdge`? for debugging/testing mostly... */
     public long specializedEdgeCount() {
         return edges.values().stream().filter(v -> v instanceof SpecializedTinkerEdge).count();
-    }
-
-    public boolean isDiskStorageEnabled() {
-        return diskStorageEnabled;
-    }
-
-    public TinkerGraph enableDiskStorage(Serializer<Vertex> vertexSerializer,
-                                         Serializer<Edge> edgeSerializer) {
-        assert(!diskStorageEnabled);
-        assert(usesSpecializedElements);
-        this.diskStorageEnabled = true;
-        this.vertexSerializer = vertexSerializer;
-        this.edgeSerializer = edgeSerializer;
-        return this;
     }
 
     /**

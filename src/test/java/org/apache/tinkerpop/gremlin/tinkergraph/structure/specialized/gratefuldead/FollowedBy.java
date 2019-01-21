@@ -22,12 +22,13 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerProperty;
 
 import java.io.Serializable;
 import java.util.*;
 
-public class FollowedBy extends SpecializedTinkerEdge implements Serializable {
+public class FollowedBy extends SpecializedTinkerEdge {
     public static final String label = "followedBy";
 
     public static final String WEIGHT = "weight";
@@ -35,8 +36,8 @@ public class FollowedBy extends SpecializedTinkerEdge implements Serializable {
 
     private Integer weight;
 
-    public FollowedBy(Long id, Vertex outVertex, Vertex inVertex) {
-        super(id, outVertex, label, inVertex, SPECIFIC_KEYS);
+    public FollowedBy(TinkerGraph graph, long id, long outVertexId, long inVertexId) {
+        super(graph, id, outVertexId, label, inVertexId, SPECIFIC_KEYS);
     }
 
     @Override
@@ -66,8 +67,8 @@ public class FollowedBy extends SpecializedTinkerEdge implements Serializable {
         }
 
         @Override
-        public FollowedBy createEdge(Long id, Vertex outVertex, Vertex inVertex) {
-            return new FollowedBy(id, outVertex, inVertex);
+        public FollowedBy createEdge(long id, TinkerGraph graph, long outVertexId, long inVertexId) {
+            return new FollowedBy(graph, id, outVertexId, inVertexId);
         }
     };
 }

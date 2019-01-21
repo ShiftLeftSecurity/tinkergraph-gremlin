@@ -22,6 +22,7 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
 import java.io.Serializable;
 import java.util.*;
@@ -31,8 +32,8 @@ public class SungBy extends SpecializedTinkerEdge implements Serializable {
 
     public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList());
 
-    public SungBy(Long id, Vertex outVertex, Vertex inVertex) {
-        super(id, outVertex, label, inVertex, SPECIFIC_KEYS);
+    public SungBy(TinkerGraph graph, long id, long outVertexId, long inVertexId) {
+        super(graph, id, outVertexId, label, inVertexId, SPECIFIC_KEYS);
     }
 
     @Override
@@ -52,8 +53,8 @@ public class SungBy extends SpecializedTinkerEdge implements Serializable {
         }
 
         @Override
-        public SungBy createEdge(Long id, Vertex outVertex, Vertex inVertex) {
-            return new SungBy(id, outVertex, inVertex);
+        public SungBy createEdge(long id, TinkerGraph graph, long outVertexId, long inVertexId) {
+            return new SungBy(graph, id, outVertexId, inVertexId);
         }
     };
 

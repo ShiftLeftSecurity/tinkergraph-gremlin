@@ -61,7 +61,7 @@ public class DiskStorageTest {
         return TinkerGraph.open(
             Arrays.asList(Song.factory, Artist.factory),
             Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
-        ).enableDiskStorage(vertexSerializer, edgeSerializer);
+        );
     }
 
     private TinkerGraph newGratefulDeadGraphWithSpecializedElementsWithData() throws IOException {

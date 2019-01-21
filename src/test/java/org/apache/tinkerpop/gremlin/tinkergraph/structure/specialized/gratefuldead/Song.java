@@ -202,16 +202,10 @@ public class Song extends SpecializedTinkerVertex  implements Serializable {
         }
 
         @Override
-        public Song createVertex(Long id, TinkerGraph graph) {
+        public Song createVertex(long id, TinkerGraph graph) {
             return new Song(id, graph);
         }
     };
-
-    /* only for deserialization, do not use directly! */
-    @Deprecated
-    public Song() {
-        super(null, Song.label, null, SPECIFIC_KEYS);
-    }
 
     public String getName() {
         return name;

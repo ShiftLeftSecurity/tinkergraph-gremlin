@@ -18,10 +18,9 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
@@ -31,8 +30,14 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     private final Set<String> specificKeys;
 
-    protected SpecializedTinkerEdge(Long id, Vertex outVertex, String label, Vertex inVertex, Set<String> specificKeys) {
-        super(id, outVertex, label, inVertex);
+    //using ids instead of hard references, so we can use disk storage
+    public final long outVertexId;
+    public final long inVertexId;
+
+    protected SpecializedTinkerEdge(TinkerGraph graph, long id, long outVertexId, String label, long inVertexId, Set<String> specificKeys) {
+        super(graph, id, null, label, null);
+        this.outVertexId = outVertexId;
+        this.inVertexId = inVertexId;
         this.specificKeys = specificKeys;
     }
 
@@ -75,6 +80,11 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
     protected abstract <V> Property<V> updateSpecificProperty(String key, V value);
 
     @Override
+    public Graph graph() {
+        return this.graph;
+    }
+
+    @Override
     public void remove() {
         final SpecializedTinkerVertex outVertex = (SpecializedTinkerVertex) this.outVertex;
         final SpecializedTinkerVertex inVertex = (SpecializedTinkerVertex) this.inVertex;
@@ -88,8 +98,4 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
         this.removed = true;
     }
 
-    /* implement for on-disk-storage support */
-    public byte[] serialize() {
-        throw new NotImplementedException("implement me for on-disk-storage support");
-    };
 }

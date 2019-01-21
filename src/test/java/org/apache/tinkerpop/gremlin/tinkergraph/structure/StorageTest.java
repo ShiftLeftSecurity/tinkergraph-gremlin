@@ -18,9 +18,8 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-import org.apache.tinkerpop.gremlin.tinkergraph.storage.DefaultVertexSerializer;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexSerializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.*;
 import org.junit.Test;
 
@@ -34,7 +33,7 @@ public class StorageTest {
     @Test
     public void handleSerializeAndDeserializeVertex() throws IOException {
       TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
-      DefaultVertexSerializer serializer = new DefaultVertexSerializer(graph, graph.specializedVertexFactoryByLabel);
+      VertexSerializer serializer = new VertexSerializer(graph, graph.specializedVertexFactoryByLabel);
 
       Artist garcia = (Artist) graph.traversal().V().has("name", "Garcia").next();
       byte[] bytes = serializer.serialize(garcia);
@@ -45,10 +44,10 @@ public class StorageTest {
       assertEquals(garcia.getName(), garcia2.getName());
     }
 
-//    @Test
-//    public void handleSerializeAndDeserializeEdge() throws IOException {
-//      TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
-//      DefaultEdgeSerializer serializer = new DefaultVertexSerializer(graph, graph.specializedVertexFactoryByLabel);
+    @Test
+    public void handleSerializeAndDeserializeEdge() throws IOException {
+      TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
+//      DefaultEdgeSerializer serializer = new VertexSerializer(graph, graph.specializedVertexFactoryByLabel);
 //
 //      Vertex garcia = graph.traversal().V().has("name", "Garcia").next();
 //      byte[] bytes = serializer.serialize((SpecializedTinkerVertex) garcia);
@@ -56,7 +55,7 @@ public class StorageTest {
 //      Vertex garcia2 = serializer.deserialize(bytes);
 //      assertEquals(garcia.id(), garcia2.id());
 //      assertEquals(garcia.label(), garcia2.label());
-//    }
+    }
 
     private TinkerGraph newGratefulDeadGraphWithSpecializedElements() {
         return TinkerGraph.open(

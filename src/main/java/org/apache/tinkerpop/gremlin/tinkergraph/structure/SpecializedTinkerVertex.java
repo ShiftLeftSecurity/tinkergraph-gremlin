@@ -30,7 +30,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     private final Set<String> specificKeys;
 
-    protected SpecializedTinkerVertex(Long id, String label, TinkerGraph graph, Set<String> specificKeys) {
+    protected SpecializedTinkerVertex(long id, String label, TinkerGraph graph, Set<String> specificKeys) {
         super(id, label, graph);
         this.specificKeys = specificKeys;
     }
@@ -115,7 +115,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
             ElementHelper.legalPropertyKeyValueArray(keyValues);
             TinkerVertex inVertex = (TinkerVertex) vertex;
             TinkerVertex outVertex = this;
-            SpecializedTinkerEdge edge = factory.createEdge(idValue, outVertex, inVertex);
+            SpecializedTinkerEdge edge = factory.createEdge(idValue, graph, (long) outVertex.id, (long) inVertex.id);
             ElementHelper.attachProperties(edge, keyValues);
             graph.edges.put(idValue, edge);
 
@@ -170,9 +170,4 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     }
 
     protected abstract void removeSpecificInEdge(Edge edge);
-
-    /* implement for on-disk-storage support */
-    public byte[] serialize() {
-        throw new NotImplementedException("implement me for on-disk-storage support");
-    };
 }
