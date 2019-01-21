@@ -52,6 +52,7 @@ import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.CacheRequest;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -118,6 +119,8 @@ public final class TinkerGraph implements Graph {
     protected VertexSerializer vertexSerializer;
     protected EdgeSerializer edgeSerializer;
     protected final MVStore mvstore = new MVStore.Builder().fileName(filename).open();
+    protected final MVMap<Long, byte[]> serializedVertices = mvstore.openMap("vertices");
+    protected final MVMap<Long, byte[]> serializedEdges = mvstore.openMap("edges");
 
     /* cache for on-disk storage */
     protected final String verticesCacheName = "verticesCache";
@@ -238,8 +241,11 @@ public final class TinkerGraph implements Graph {
         if (specializedVertexFactoryByLabel.containsKey(label)) {
             SpecializedElementFactory.ForVertex factory = specializedVertexFactoryByLabel.get(label);
             SpecializedTinkerVertex vertex = factory.createVertex(idValue, this);
-//            vertexSerializer.serialize(vertex);
-            this.vertices.put(idValue, vertex);
+            try {
+              this.serializedVertices.put(idValue, vertexSerializer.serialize(vertex));
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
             ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
             return vertex;
         } else { // vertex label not registered for a specialized factory, treating as generic vertex
@@ -286,12 +292,14 @@ public final class TinkerGraph implements Graph {
 
     @Override
     public String toString() {
-        return StringFactory.graphString(this, "vertices:" + this.vertices.size() + " edges:" + this.edges.size());
+        return StringFactory.graphString(this, "vertices:" + this.serializedVertices.size() + " edges:" + this.serializedEdges.size());
     }
 
     public void clear() {
         this.vertices.clear();
+        this.serializedVertices.clear();
         this.edges.clear();
+        this.serializedEdges.clear();
         this.variables = null;
         this.currentId.set(-1L);
         this.vertexIndex = null;
@@ -322,12 +330,20 @@ public final class TinkerGraph implements Graph {
 
     @Override
     public Iterator<Vertex> vertices(final Object... vertexIds) {
-        return createElementIterator(Vertex.class, vertices, vertexIdManager, vertexIds);
+        if (usesSpecializedElements) {
+          return createElementIteratorFromSerialized(Vertex.class, serializedVertices, vertexIdManager, verticesCache, vertexSerializer, vertexIds);
+        } else {
+          return createElementIterator(Vertex.class, vertices, vertexIdManager, vertexIds);
+        }
     }
 
     @Override
     public Iterator<Edge> edges(final Object... edgeIds) {
+      if (usesSpecializedElements) {
+        return createElementIteratorFromSerialized(Edge.class, serializedEdges, edgeIdManager, edgesCache, edgeSerializer, edgeIds);
+      } else {
         return createElementIterator(Edge.class, edges, edgeIdManager, edgeIds);
+      }
     }
 
     private void loadGraph() {
@@ -375,6 +391,41 @@ public final class TinkerGraph implements Graph {
         } catch (Exception ex) {
             throw new RuntimeException(String.format("Could not save graph at %s with %s", graphLocation, graphFormat), ex);
         }
+    }
+
+    /* would have been nice to share the implementation with `createElementIterator` and just pass a transform Function, but that didn't work out... */
+    private <T extends Element> Iterator<T> createElementIteratorFromSerialized(final Class<T> clazz,
+                                                                                final Map<Long, byte[]> elements,
+                                                                                final IdManager idManager,
+                                                                                final Cache<Long, ? extends T> cache,
+                                                                                final Serializer<? extends T> serializer,
+                                                                                final Object... ids) {
+      if (0 == ids.length) {
+        return elements.values().stream().map(element -> {
+          try {
+            return clazz.cast(serializer.deserialize(element));
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        }).iterator();
+      } else {
+        final List<Object> idList = Arrays.asList(ids);
+        validateHomogenousIds(idList);
+
+        return idList.stream().map(id -> {
+          if (cache.containsKey((Long) id)) {
+            return cache.get((Long) id);
+          } else {
+            try {
+              T deserializedElement = serializer.deserialize(elements.get(id));
+              ((Cache<Long, T>) cache).put((Long) id, deserializedElement);
+              return deserializedElement;
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
+          }
+        }).iterator();
+      }
     }
 
     private <T extends Element> Iterator<T> createElementIterator(final Class<T> clazz, final Map<Object, T> elements,
@@ -604,16 +655,6 @@ public final class TinkerGraph implements Graph {
         return DefaultIdManager.LONG;
     }
 
-    /* how many of the vertices are `SpecializedTinkerVertex`? for debugging/testing mostly... */
-    public long specializedVertexCount() {
-        return vertices.values().stream().filter(v -> v instanceof SpecializedTinkerVertex).count();
-    }
-
-    /* how many of the vertices are `SpecializedTinkerEdge`? for debugging/testing mostly... */
-    public long specializedEdgeCount() {
-        return edges.values().stream().filter(v -> v instanceof SpecializedTinkerEdge).count();
-    }
-
     /**
      * TinkerGraph will use an implementation of this interface to generate identifiers when a user does not supply
      * them and to handle identifier conversions when querying to provide better flexibility with respect to
@@ -651,7 +692,7 @@ public final class TinkerGraph implements Graph {
         LONG {
             @Override
             public Long getNextId(final TinkerGraph graph) {
-                return Stream.generate(() -> (graph.currentId.incrementAndGet())).filter(id -> !graph.vertices.containsKey(id) && !graph.edges.containsKey(id)).findAny().get();
+                return Stream.generate(() -> (graph.currentId.incrementAndGet())).findAny().get();
             }
 
             @Override
@@ -681,7 +722,7 @@ public final class TinkerGraph implements Graph {
         INTEGER {
             @Override
             public Integer getNextId(final TinkerGraph graph) {
-                return Stream.generate(() -> (graph.currentId.incrementAndGet())).map(Long::intValue).filter(id -> !graph.vertices.containsKey(id) && !graph.edges.containsKey(id)).findAny().get();
+                return Stream.generate(() -> (graph.currentId.incrementAndGet())).map(Long::intValue).findAny().get();
             }
 
             @Override
@@ -741,7 +782,7 @@ public final class TinkerGraph implements Graph {
         ANY {
             @Override
             public Long getNextId(final TinkerGraph graph) {
-                return Stream.generate(() -> (graph.currentId.incrementAndGet())).filter(id -> !graph.vertices.containsKey(id) && !graph.edges.containsKey(id)).findAny().get();
+                return Stream.generate(() -> (graph.currentId.incrementAndGet())).findAny().get();
             }
 
             @Override

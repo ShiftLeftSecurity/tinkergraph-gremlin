@@ -38,7 +38,7 @@ public class DiskStorageTest {
     @Test
     public void foo() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
-//        Vertex garcia = graph.traversal().V().has("name", "Garcia").next();
+        Vertex garcia = graph.traversal().V().has("name", "Garcia").next();
 //
 //        byte[] bytes = vertexSerializer.serialize(garcia);
 //        System.out.println(vertexSerializer.deserialize(bytes));
