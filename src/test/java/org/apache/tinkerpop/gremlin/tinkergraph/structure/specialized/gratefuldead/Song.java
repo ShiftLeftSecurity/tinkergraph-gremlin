@@ -27,9 +27,10 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerVertexProperty;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class Song extends SpecializedTinkerVertex<String> {
+public class Song extends SpecializedTinkerVertex  implements Serializable {
     public static final String label = "song";
 
     public static final String NAME = "name";
@@ -49,7 +50,7 @@ public class Song extends SpecializedTinkerVertex<String> {
     private Set<WrittenBy> writtenByOut;
     private Set<SungBy> sungByOut;
 
-    public Song(String id, TinkerGraph graph) {
+    public Song(Long id, TinkerGraph graph) {
         super(id, Song.label, graph, SPECIFIC_KEYS);
     }
 
@@ -194,14 +195,14 @@ public class Song extends SpecializedTinkerVertex<String> {
         return sungByOut;
     }
 
-    public static SpecializedElementFactory.ForVertex<Song, String> factory = new SpecializedElementFactory.ForVertex<Song, String>() {
+    public static SpecializedElementFactory.ForVertex<Song> factory = new SpecializedElementFactory.ForVertex<Song>() {
         @Override
         public String forLabel() {
             return Song.label;
         }
 
         @Override
-        public Song createVertex(String id, TinkerGraph graph) {
+        public Song createVertex(Long id, TinkerGraph graph) {
             return new Song(id, graph);
         }
     };

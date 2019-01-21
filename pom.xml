@@ -40,9 +40,9 @@ limitations under the License.
             <artifactId>commons-lang3</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.sleepycat</groupId>
-            <artifactId>je</artifactId>
-            <version>7.4.5</version>
+            <groupId>org.msgpack</groupId>
+            <artifactId>msgpack-core</artifactId>
+            <version>0.8.16</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
@@ -66,14 +66,6 @@ limitations under the License.
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <repositories>
-        <repository>
-            <id>oracleReleases</id>
-            <name>Oracle Released Java Packages</name>
-            <url>http://download.oracle.com/maven</url>
-            <layout>default</layout>
-        </repository>
-    </repositories>
     <licenses>
         <license>
             <name>Apache 2</name>

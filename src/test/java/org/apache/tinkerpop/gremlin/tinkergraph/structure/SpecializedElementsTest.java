@@ -23,6 +23,7 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.DefaultVertexSerializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.*;
 import org.apache.tinkerpop.gremlin.util.TimeUtil;
 import org.junit.Test;

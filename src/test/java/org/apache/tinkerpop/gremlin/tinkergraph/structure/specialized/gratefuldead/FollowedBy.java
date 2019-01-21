@@ -24,9 +24,10 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFact
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerProperty;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class FollowedBy extends SpecializedTinkerEdge<String> {
+public class FollowedBy extends SpecializedTinkerEdge implements Serializable {
     public static final String label = "followedBy";
 
     public static final String WEIGHT = "weight";
@@ -34,7 +35,7 @@ public class FollowedBy extends SpecializedTinkerEdge<String> {
 
     private Integer weight;
 
-    public FollowedBy(String id, Vertex outVertex, Vertex inVertex) {
+    public FollowedBy(Long id, Vertex outVertex, Vertex inVertex) {
         super(id, outVertex, label, inVertex, SPECIFIC_KEYS);
     }
 
@@ -58,14 +59,14 @@ public class FollowedBy extends SpecializedTinkerEdge<String> {
         return property(key);
     }
 
-    public static SpecializedElementFactory.ForEdge<FollowedBy, String> factory = new SpecializedElementFactory.ForEdge<FollowedBy, String>() {
+    public static SpecializedElementFactory.ForEdge<FollowedBy> factory = new SpecializedElementFactory.ForEdge<FollowedBy>() {
         @Override
         public String forLabel() {
             return FollowedBy.label;
         }
 
         @Override
-        public FollowedBy createEdge(String id, Vertex outVertex, Vertex inVertex) {
+        public FollowedBy createEdge(Long id, Vertex outVertex, Vertex inVertex) {
             return new FollowedBy(id, outVertex, inVertex);
         }
     };

@@ -30,7 +30,7 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import java.io.Serializable;
 import java.util.*;
 
-public class Artist extends SpecializedTinkerVertex<String> implements Serializable {
+public class Artist extends SpecializedTinkerVertex implements Serializable {
     public static final String label = "artist";
 
     public static final String NAME = "name";
@@ -44,7 +44,7 @@ public class Artist extends SpecializedTinkerVertex<String> implements Serializa
     private Set<SungBy> sungByIn;
     private Set<WrittenBy> writtenByIn;
 
-    public Artist(String id, TinkerGraph graph) {
+    public Artist(Long id, TinkerGraph graph) {
         super(id, Artist.label, graph, SPECIFIC_KEYS);
     }
 
@@ -149,14 +149,14 @@ public class Artist extends SpecializedTinkerVertex<String> implements Serializa
         return sungByIn;
     }
 
-    public static SpecializedElementFactory.ForVertex<Artist, String> factory = new SpecializedElementFactory.ForVertex<Artist, String>() {
+    public static SpecializedElementFactory.ForVertex<Artist> factory = new SpecializedElementFactory.ForVertex<Artist>() {
         @Override
         public String forLabel() {
             return Artist.label;
         }
 
         @Override
-        public Artist createVertex(String id, TinkerGraph graph) {
+        public Artist createVertex(Long id, TinkerGraph graph) {
             return new Artist(id, graph);
         }
     };

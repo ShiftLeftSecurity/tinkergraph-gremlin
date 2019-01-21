@@ -158,14 +158,14 @@ public final class TinkerGraph implements Graph {
     }
 
 
-    public static TinkerGraph open(List<SpecializedElementFactory.ForVertex<?, ?>> vertexFactories,
-                                   List<SpecializedElementFactory.ForEdge<?, ?>> edgeFactories) {
+    public static TinkerGraph open(List<SpecializedElementFactory.ForVertex<?>> vertexFactories,
+                                   List<SpecializedElementFactory.ForEdge<?>> edgeFactories) {
         return open(EMPTY_CONFIGURATION, vertexFactories, edgeFactories);
     }
 
     public static TinkerGraph open(final Configuration configuration,
-                                   List<SpecializedElementFactory.ForVertex<?, ?>> vertexFactories,
-                                   List<SpecializedElementFactory.ForEdge<?, ?>> edgeFactories) {
+                                   List<SpecializedElementFactory.ForVertex<?>> vertexFactories,
+                                   List<SpecializedElementFactory.ForEdge<?>> edgeFactories) {
         boolean usesSpecializedElements = !vertexFactories.isEmpty() || !edgeFactories.isEmpty();
         TinkerGraph tg =  new TinkerGraph(configuration, usesSpecializedElements);
         vertexFactories.forEach(factory -> tg.specializedVertexFactoryByLabel.put(factory.forLabel(), factory));
@@ -178,14 +178,14 @@ public final class TinkerGraph implements Graph {
     @Override
     public Vertex addVertex(final Object... keyValues) {
         ElementHelper.legalPropertyKeyValueArray(keyValues);
-        Object idValue = vertexIdManager.convert(ElementHelper.getIdValue(keyValues).orElse(null));
+        Long idValue = (Long) vertexIdManager.convert(ElementHelper.getIdValue(keyValues).orElse(null));
         final String label = ElementHelper.getLabelValue(keyValues).orElse(Vertex.DEFAULT_LABEL);
 
         if (null != idValue) {
             if (this.vertices.containsKey(idValue))
                 throw Exceptions.vertexWithIdAlreadyExists(idValue);
         } else {
-            idValue = vertexIdManager.getNextId(this);
+            idValue = (Long) vertexIdManager.getNextId(this);
         }
 
         if (specializedVertexFactoryByLabel.containsKey(label)) {
@@ -552,16 +552,7 @@ public final class TinkerGraph implements Graph {
      * Construct an {@link TinkerGraph.IdManager} from the TinkerGraph {@code Configuration}.
      */
     private static IdManager<?> selectIdManager(final Configuration config, final String configKey, final Class<? extends Element> clazz) {
-        final String vertexIdManagerConfigValue = config.getString(configKey, DefaultIdManager.ANY.name());
-        try {
-            return DefaultIdManager.valueOf(vertexIdManagerConfigValue);
-        } catch (IllegalArgumentException iae) {
-            try {
-                return (IdManager) Class.forName(vertexIdManagerConfigValue).newInstance();
-            } catch (Exception ex) {
-                throw new IllegalStateException(String.format("Could not configure TinkerGraph %s id manager with %s", clazz.getSimpleName(), vertexIdManagerConfigValue));
-            }
-        }
+        return DefaultIdManager.LONG;
     }
 
     /* how many of the vertices are `SpecializedTinkerVertex`? for debugging/testing mostly... */

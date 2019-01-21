@@ -27,11 +27,11 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
 
-public abstract class SpecializedTinkerEdge<IdType> extends TinkerEdge {
+public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     private final Set<String> specificKeys;
 
-    protected SpecializedTinkerEdge(IdType id, Vertex outVertex, String label, Vertex inVertex, Set<String> specificKeys) {
+    protected SpecializedTinkerEdge(Long id, Vertex outVertex, String label, Vertex inVertex, Set<String> specificKeys) {
         super(id, outVertex, label, inVertex);
         this.specificKeys = specificKeys;
     }
@@ -76,8 +76,8 @@ public abstract class SpecializedTinkerEdge<IdType> extends TinkerEdge {
 
     @Override
     public void remove() {
-        final SpecializedTinkerVertex<Long> outVertex = (SpecializedTinkerVertex<Long>) this.outVertex;
-        final SpecializedTinkerVertex<Long> inVertex = (SpecializedTinkerVertex<Long>) this.inVertex;
+        final SpecializedTinkerVertex outVertex = (SpecializedTinkerVertex) this.outVertex;
+        final SpecializedTinkerVertex inVertex = (SpecializedTinkerVertex) this.inVertex;
 
         outVertex.removeOutEdge(this);
         inVertex.removeInEdge(this);

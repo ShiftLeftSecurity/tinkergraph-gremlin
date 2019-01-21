@@ -23,14 +23,15 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class WrittenBy extends SpecializedTinkerEdge<String> {
+public class WrittenBy extends SpecializedTinkerEdge implements Serializable {
     public static final String label = "writtenBy";
 
     public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList());
 
-    public WrittenBy(String id, Vertex outVertex, Vertex inVertex) {
+    public WrittenBy(Long id, Vertex outVertex, Vertex inVertex) {
         super(id, outVertex, label, inVertex, SPECIFIC_KEYS);
     }
 
@@ -44,14 +45,14 @@ public class WrittenBy extends SpecializedTinkerEdge<String> {
         throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
     }
 
-    public static SpecializedElementFactory.ForEdge<WrittenBy, String> factory = new SpecializedElementFactory.ForEdge<WrittenBy, String>() {
+    public static SpecializedElementFactory.ForEdge<WrittenBy> factory = new SpecializedElementFactory.ForEdge<WrittenBy>() {
         @Override
         public String forLabel() {
             return WrittenBy.label;
         }
 
         @Override
-        public WrittenBy createEdge(String id, Vertex outVertex, Vertex inVertex) {
+        public WrittenBy createEdge(Long id, Vertex outVertex, Vertex inVertex) {
             return new WrittenBy(id, outVertex, inVertex);
         }
     };

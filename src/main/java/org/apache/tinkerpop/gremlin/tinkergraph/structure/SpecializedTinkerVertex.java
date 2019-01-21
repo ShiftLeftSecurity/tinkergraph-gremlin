@@ -26,11 +26,11 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import java.util.*;
 import java.util.stream.StreamSupport;
 
-public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
+public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     private final Set<String> specificKeys;
 
-    protected SpecializedTinkerVertex(IdType id, String label, TinkerGraph graph, Set<String> specificKeys) {
+    protected SpecializedTinkerVertex(Long id, String label, TinkerGraph graph, Set<String> specificKeys) {
         super(id, label, graph);
         this.specificKeys = specificKeys;
     }
@@ -103,13 +103,13 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
 
         if (graph.specializedEdgeFactoryByLabel.containsKey(label)) {
             SpecializedElementFactory.ForEdge factory = graph.specializedEdgeFactoryByLabel.get(label);
-            Object idValue = graph.edgeIdManager.convert(ElementHelper.getIdValue(keyValues).orElse(null));
+            Long idValue = (Long) graph.edgeIdManager.convert(ElementHelper.getIdValue(keyValues).orElse(null));
             if (null != idValue) {
                 if (graph.edges.containsKey(idValue)) {
                     throw Graph.Exceptions.edgeWithIdAlreadyExists(idValue);
                 }
             } else {
-                idValue = graph.edgeIdManager.getNextId(graph);
+                idValue = (Long) graph.edgeIdManager.getNextId(graph);
             }
 
             ElementHelper.legalPropertyKeyValueArray(keyValues);
