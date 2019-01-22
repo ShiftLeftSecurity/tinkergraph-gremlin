@@ -41,7 +41,7 @@ public class Artist extends SpecializedTinkerVertex {
 
     // edges
     public static final String[] ALL_EDGES = new String[] {WrittenBy.label, SungBy.label};
-    private Set<SungBy> sungByIn = new HashSet<>();
+    private Set<Long> sungByIn = new HashSet<>();
     private Set<Long> writtenByIn = new HashSet<>();
 
     public Artist(Long id, TinkerGraph graph) {
@@ -84,7 +84,7 @@ public class Artist extends SpecializedTinkerVertex {
                 }
             } else if (label == SungBy.label) {
                 if (direction == Direction.IN || direction == Direction.BOTH) {
-                    iterators.add(getSungByIn().iterator());
+                    iterators.add(getSungByIn());
                 }
             }
         }
@@ -106,7 +106,7 @@ public class Artist extends SpecializedTinkerVertex {
             }
         } else if (edge instanceof SungBy) {
             if (sungByIn != null) {
-                sungByIn.remove(edge);
+              sungByIn.remove(edge.id());
             }
         } else {
             throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
@@ -123,7 +123,7 @@ public class Artist extends SpecializedTinkerVertex {
         if (edge instanceof WrittenBy) {
             writtenByIn.add((Long) edge.id());
         } else if (edge instanceof SungBy) {
-            getSungByIn().add((SungBy) edge);
+            sungByIn.add((Long) edge.id());
         } else {
             throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
         }
@@ -133,11 +133,8 @@ public class Artist extends SpecializedTinkerVertex {
         return writtenByIn.stream().map(id -> (WrittenBy) graph.edgeById(id)).iterator();
     }
 
-    private Set<SungBy> getSungByIn() {
-        if (sungByIn == null) {
-            sungByIn = new HashSet<>();
-        }
-        return sungByIn;
+    private Iterator<SungBy> getSungByIn() {
+        return sungByIn.stream().map(id -> (SungBy) graph.edgeById(id)).iterator();
     }
 
     public static SpecializedElementFactory.ForVertex<Artist> factory = new SpecializedElementFactory.ForVertex<Artist>() {

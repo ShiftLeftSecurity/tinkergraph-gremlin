@@ -45,10 +45,10 @@ public class Song extends SpecializedTinkerVertex  implements Serializable {
 
     // edges
     public static final String[] ALL_EDGES = new String[] {FollowedBy.label, WrittenBy.label, SungBy.label};
-    private Set<FollowedBy> followedByOut;
-    private Set<FollowedBy> followedByIn;
-    private Set<WrittenBy> writtenByOut;
-    private Set<SungBy> sungByOut;
+    private Set<Long> followedByOut = new HashSet();
+    private Set<Long> followedByIn = new HashSet();
+    private Set<Long> writtenByOut = new HashSet();
+    private Set<Long> sungByOut = new HashSet();
 
     public Song(Long id, TinkerGraph graph) {
         super(id, Song.label, graph, SPECIFIC_KEYS);
@@ -99,18 +99,18 @@ public class Song extends SpecializedTinkerVertex  implements Serializable {
         for (String label : edgeLabels) {
             if (label == FollowedBy.label) {
                 if (direction == Direction.IN || direction == Direction.BOTH) {
-                    iterators.add(getFollowedByIn().iterator());
+                    iterators.add(getFollowedByIn());
                 }
                 if (direction == Direction.OUT || direction == Direction.BOTH) {
-                    iterators.add(getFollowedByOut().iterator());
+                    iterators.add(getFollowedByOut());
                 }
             } else if (label == WrittenBy.label) {
                 if (direction == Direction.OUT) {
-                    iterators.add(getWrittenByOut().iterator());
+                    iterators.add(getWrittenByOut());
                 }
             } else if (label == SungBy.label) {
                 if (direction == Direction.OUT) {
-                    iterators.add(getSungByOut().iterator());
+                    iterators.add(getSungByOut());
                 }
             }
         }
@@ -123,15 +123,15 @@ public class Song extends SpecializedTinkerVertex  implements Serializable {
     protected void removeSpecificOutEdge(Edge edge) {
         if (edge instanceof FollowedBy) {
             if (followedByOut != null) {
-                followedByOut.remove(edge);
+                followedByOut.remove(edge.id());
             }
         } else if (edge instanceof WrittenBy) {
             if (writtenByOut != null) {
-                writtenByOut.remove(edge);
+                writtenByOut.remove(edge.id());
             }
         } else if (edge instanceof SungBy) {
             if (sungByOut != null) {
-                sungByOut.remove(edge);
+                sungByOut.remove(edge.id());
             }
         } else {
             throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
@@ -143,7 +143,7 @@ public class Song extends SpecializedTinkerVertex  implements Serializable {
     protected void removeSpecificInEdge(Edge edge) {
         if (edge instanceof FollowedBy) {
             if (followedByIn != null) {
-                followedByIn.remove(edge);
+                followedByIn.remove(edge.id());
             }
         } else {
             throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
@@ -153,11 +153,11 @@ public class Song extends SpecializedTinkerVertex  implements Serializable {
     @Override
     protected void addSpecializedOutEdge(Edge edge) {
         if (edge instanceof FollowedBy) {
-            getFollowedByOut().add((FollowedBy) edge);
+            followedByOut.add((Long) edge.id());
         } else if (edge instanceof WrittenBy) {
-            getWrittenByOut().add((WrittenBy) edge);
+            writtenByOut.add((Long) edge.id());
         } else if (edge instanceof SungBy) {
-            getSungByOut().add((SungBy) edge);
+            sungByOut.add((Long) edge.id());
         } else {
             throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
         }
@@ -166,37 +166,25 @@ public class Song extends SpecializedTinkerVertex  implements Serializable {
     @Override
     protected void addSpecializedInEdge(Edge edge) {
         if (edge instanceof FollowedBy) {
-            getFollowedByIn().add((FollowedBy) edge);
+            followedByIn.add((Long) edge.id());
         } else {
             throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
         }
     }
 
-    private Set<FollowedBy> getFollowedByOut() {
-        if (followedByOut == null) {
-            followedByOut = new HashSet<>();
-        }
-        return followedByOut;
+    private Iterator<FollowedBy> getFollowedByOut() {
+        return followedByOut.stream().map(id -> (FollowedBy) graph.edgeById(id)).iterator();
     }
 
-    private Set<FollowedBy> getFollowedByIn() {
-        if (followedByIn == null) {
-            followedByIn = new HashSet<>();
-        }
-        return followedByIn;
+    private Iterator<FollowedBy> getFollowedByIn() {
+        return followedByIn.stream().map(id -> (FollowedBy) graph.edgeById(id)).iterator();
     }
 
-    private Set<WrittenBy> getWrittenByOut() {
-        if (writtenByOut == null) {
-            writtenByOut = new HashSet<>();
-        }
-        return writtenByOut;
+    private Iterator<WrittenBy> getWrittenByOut() {
+        return writtenByOut.stream().map(id -> (WrittenBy) graph.edgeById(id)).iterator();
     }
-    private Set<SungBy> getSungByOut() {
-        if (sungByOut == null) {
-            sungByOut = new HashSet<>();
-        }
-        return sungByOut;
+    private Iterator<SungBy> getSungByOut() {
+        return sungByOut.stream().map(id -> (SungBy) graph.edgeById(id)).iterator();
     }
 
     public static SpecializedElementFactory.ForVertex<Song> factory = new SpecializedElementFactory.ForVertex<Song>() {
