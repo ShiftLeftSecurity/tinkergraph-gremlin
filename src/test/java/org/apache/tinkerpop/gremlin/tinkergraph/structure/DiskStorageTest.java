@@ -38,20 +38,14 @@ public class DiskStorageTest {
     @Test
     public void foo() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
-        Vertex garcia = graph.traversal().V().has("name", "Garcia").next();
+        System.out.println(graph);
+//        Vertex v1 = graph.traversal().V().next();
+//        Vertex v1 = graph.vertices().next();
+//        System.out.println(((Song)v1).getName()); //null: fix
 //
-//        byte[] bytes = vertexSerializer.serialize(garcia);
-//        System.out.println(vertexSerializer.deserialize(bytes));
-
-//        graph.traversal().V().toList().forEach((Vertex v) -> {
-//            try {
-//                byte[] bytes = vertexSerializer.serialize(v);
-//                System.out.println(vertexSerializer.deserialize(bytes).getClass());
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        });
-
+//        Vertex garcia = graph.traversal().V().has("name", "Garcia").next();
+//      System.out.println("DiskStorageTest.foo " + garcia.property("name"));
+//
     }
 
 

@@ -207,20 +207,12 @@ public final class TinkerGraph implements Graph {
         return tg;
     }
 
-    protected MVMap<Long, SpecializedTinkerEdge> edgeMap() {
-        return mvstore.openMap("edges");
-    }
-
-    protected MVMap<Long, SpecializedTinkerVertex> vertexMap() {
-        return mvstore.openMap("vertices");
-    }
-
     public SpecializedTinkerEdge edgeById(long id) {
-        return edgeMap().get(id);
+        return getElement(id, serializedEdges, edgesCache, edgeSerializer);
     }
 
     public SpecializedTinkerVertex vertexById(long id) {
-        return vertexMap().get(id);
+      return getElement(id, serializedVertices, verticesCache, vertexSerializer);
     }
 
     ////////////// STRUCTURE API METHODS //////////////////
@@ -241,12 +233,12 @@ public final class TinkerGraph implements Graph {
         if (specializedVertexFactoryByLabel.containsKey(label)) {
             SpecializedElementFactory.ForVertex factory = specializedVertexFactoryByLabel.get(label);
             SpecializedTinkerVertex vertex = factory.createVertex(idValue, this);
+            ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
             try {
               this.serializedVertices.put(idValue, vertexSerializer.serialize(vertex));
             } catch (IOException e) {
               throw new RuntimeException(e);
             }
-            ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
             return vertex;
         } else { // vertex label not registered for a specialized factory, treating as generic vertex
             if (this.usesSpecializedElements) {
@@ -393,38 +385,40 @@ public final class TinkerGraph implements Graph {
         }
     }
 
-    /* would have been nice to share the implementation with `createElementIterator` and just pass a transform Function, but that didn't work out... */
+
+    /** would have been nice to share the implementation with `createElementIterator` and just pass a transform Function, but that didn't work out... */
     private <T extends Element> Iterator<T> createElementIteratorFromSerialized(final Class<T> clazz,
                                                                                 final Map<Long, byte[]> elements,
                                                                                 final IdManager idManager,
                                                                                 final Cache<Long, ? extends T> cache,
                                                                                 final Serializer<? extends T> serializer,
                                                                                 final Object... ids) {
+      final Collection<Object> idList;
       if (0 == ids.length) {
-        return elements.values().stream().map(element -> {
-          try {
-            return clazz.cast(serializer.deserialize(element));
-          } catch (IOException e) {
-            throw new RuntimeException(e);
-          }
-        }).iterator();
+        // TODO there must be a cleaner way, java...
+        Object[] idObjects = elements.keySet().stream().map(l -> (Object) l).toArray();
+        idList = Arrays.asList(idObjects);
       } else {
-        final List<Object> idList = Arrays.asList(ids);
-        validateHomogenousIds(idList);
+        idList = Arrays.asList(ids);
+      }
+      return idList.stream().map(id -> getElement((Long) id, elements, cache, serializer)).iterator();
+    }
 
-        return idList.stream().map(id -> {
-          if (cache.containsKey((Long) id)) {
-            return cache.get((Long) id);
-          } else {
-            try {
-              T deserializedElement = serializer.deserialize(elements.get(id));
-              ((Cache<Long, T>) cache).put((Long) id, deserializedElement);
-              return deserializedElement;
-            } catch (IOException e) {
-              throw new RuntimeException(e);
-            }
-          }
-        }).iterator();
+  /** check for element in cache. deserialize and populate cache if not in cache */
+    private <T extends Element> T getElement(final long id,
+                                             final Map<Long, byte[]> elements,
+                                             final Cache<Long, ? extends T> cache,
+                                             final Serializer<? extends T> serializer) {
+      if (cache.containsKey((Long) id)) {
+        return cache.get((Long) id);
+      } else {
+        try {
+          T deserializedElement = serializer.deserialize(elements.get(id));
+          ((Cache<Long, T>) cache).put((Long) id, deserializedElement);
+          return deserializedElement;
+        } catch (IOException e) {
+          throw new RuntimeException(e);
+        }
       }
     }
 

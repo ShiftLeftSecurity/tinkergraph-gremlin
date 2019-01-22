@@ -130,9 +130,7 @@ public class Artist extends SpecializedTinkerVertex {
     }
 
     private Iterator<WrittenBy> getWrittenByIn() {
-        return writtenByIn.stream().map(id -> {
-            return (WrittenBy) graph.edgeById(id);
-        }).iterator();
+        return writtenByIn.stream().map(id -> (WrittenBy) graph.edgeById(id)).iterator();
     }
 
     private Set<SungBy> getSungByIn() {

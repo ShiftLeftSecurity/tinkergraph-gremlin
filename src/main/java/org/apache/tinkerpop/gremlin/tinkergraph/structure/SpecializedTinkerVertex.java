@@ -23,6 +23,7 @@ import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.StreamSupport;
 
@@ -117,7 +118,13 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
             TinkerVertex outVertex = this;
             SpecializedTinkerEdge edge = factory.createEdge(idValue, graph, (long) outVertex.id, (long) inVertex.id);
             ElementHelper.attachProperties(edge, keyValues);
-            graph.edges.put(idValue, edge);
+
+            try {
+                byte[] serializedEdge = graph.edgeSerializer.serialize(edge);
+                graph.serializedEdges.put(idValue, serializedEdge);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
 
             // TODO: allow to connect non-specialised vertices with specialised edges and vice versa
             this.addSpecializedOutEdge(edge);

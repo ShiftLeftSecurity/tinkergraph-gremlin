@@ -55,11 +55,13 @@ public abstract class Serializer<A> {
         value = packedValue.asStringValue().asString();
       } else if (packedValue.isIntegerValue()) {
         IntegerValue integerValue = packedValue.asIntegerValue();
-        if (integerValue.isInLongRange()) value = integerValue.asLong();
-        else if (integerValue.isInIntRange()) value = integerValue.asInt();
-        else if (integerValue.isInShortRange()) value = integerValue.asShort();
-        else if (integerValue.isInByteRange()) value = integerValue.asByte();
-        else throw new AssertionError("integerValue not in expected ranges: " + integerValue);
+        value = integerValue.asLong();
+        // TODO would be better to use the smallest possible type, but that leads to casting issues later
+//        if (integerValue.isInLongRange()) value = integerValue.asLong();
+//        else if (integerValue.isInIntRange()) value = integerValue.asInt();
+//        else if (integerValue.isInShortRange()) value = integerValue.asShort();
+//        else if (integerValue.isInByteRange()) value = integerValue.asByte();
+//        else throw new AssertionError("integerValue not in expected ranges: " + integerValue);
       } else if (packedValue.isFloatValue()) {
         // no way to check if it's a double or a float...
         FloatValue floatValue = packedValue.asFloatValue();

@@ -27,6 +27,9 @@ public class VertexSerializer extends Serializer<SpecializedTinkerVertex> {
     MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
     packer.packLong((Long) vertex.id());
     packer.packString(vertex.label());
+//    if (vertex.id().toString().equals("2")) {
+//      System.out.println("VertexSerializer.serialize: vertex.properties.hasNext = " + vertex.properties().hasNext());
+//    }
     packProperties(packer, vertex.properties());
 
     return packer.toByteArray();
