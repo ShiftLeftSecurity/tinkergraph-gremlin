@@ -41,6 +41,19 @@ import static org.junit.Assert.assertTrue;
 public class SpecializedElementsTest {
 
     @Test
+    public void fooremoveme() throws IOException {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
+
+        List<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toList();
+        assertEquals(garcias.size(), 1);
+        Artist garcia = (Artist) garcias.get(0); //it's actually of type `Artist`, not (only) `Vertex`
+        assertEquals("Garcia", garcia.getName());
+        System.out.println("SpecializedElementsTest.fooremoveme " + garcia.id());
+//        List<Vertex> songsWritten = __(garcia).in(WrittenBy.label).toList();
+//        System.out.println("SpecializedElementsTest.fooremoveme " + garcia.id());
+    }
+
+    @Test
     public void shouldSupportSpecializedElements() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
 
