@@ -62,6 +62,12 @@ public class VertexSerializer extends Serializer<SpecializedTinkerVertex> {
       // a simple group by would be nice, but java collections are still very basic apparently
       Set<String> labels = edges.stream().map(e -> e.label()).collect(Collectors.toSet());
       packer.packMapHeader(labels.size());
+//      if (vertex.id().toString().equals("340") && direction.equals(Direction.IN)) {
+//        System.out.println("VertexSerializer.packEdgeIds 340. labels.size=" + labels.size());
+//      }
+      if (vertex.id().toString().equals("1")) {
+        System.out.println("VertexSerializer.packEdgeIds 1. labels.size=" + labels.size());
+      }
       for (String label : labels) {
         Set<Long> edgeIds = edges.stream().filter(e -> e.label().equals(label)).map(e -> (Long) e.id()).collect(Collectors.toSet());
         packer.packArrayHeader(edgeIds.size());
@@ -75,7 +81,11 @@ public class VertexSerializer extends Serializer<SpecializedTinkerVertex> {
   /** format: two `Map<Label, Array<EdgeId>>`, i.e. one Map for `IN` and one for `OUT` edges */
   private void unpackEdges(MessageUnpacker unpacker, SpecializedTinkerVertex vertex) throws IOException {
     for (Direction direction : new Direction[]{Direction.IN, Direction.OUT}) {
-      Map<Value, Value> valueMap = unpacker.unpackValue().asMapValue().map();
+      try {
+        Map<Value, Value> valueMap = unpacker.unpackValue().asMapValue().map();
+      } catch (Exception e) {
+        System.out.println("VertexSerializer.unpackEdges");
+      }
     }
   }
 

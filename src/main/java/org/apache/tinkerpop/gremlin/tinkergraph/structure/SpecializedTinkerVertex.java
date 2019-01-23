@@ -124,7 +124,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
                 graph.serializedEdges.put(idValue, serializedEdge);
 
                 // edge ids are persisted together with the vertex, so we need to update the serialized vertex
-                // this could be optimized for bulk loading
+                // TODO optimise for bulk loading
                 graph.serializedVertices.put((Long) vertex.id(), graph.vertexSerializer.serialize((SpecializedTinkerVertex) vertex));
             } catch (IOException e) {
                 throw new RuntimeException(e);
