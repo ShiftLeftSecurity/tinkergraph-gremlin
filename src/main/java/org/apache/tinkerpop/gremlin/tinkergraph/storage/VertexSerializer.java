@@ -6,14 +6,15 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.msgpack.core.MessageBufferPacker;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
-import org.msgpack.value.Value;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,21 +41,6 @@ public class VertexSerializer extends Serializer<SpecializedTinkerVertex> {
     return packer.toByteArray();
   }
 
-  @Override
-  public SpecializedTinkerVertex deserialize(byte[] bytes) throws IOException {
-    MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes);
-    Long id = unpacker.unpackLong();
-    String label = unpacker.unpackString();
-    Object[] keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
-
-    SpecializedTinkerVertex vertex = vertexFactoryByLabel.get(label).createVertex(id, graph);
-    ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
-    unpackEdges(unpacker, vertex);
-
-    return vertex;
-  }
-
-
   /** format: two `Map<Label, Array<EdgeId>>`, i.e. one Map for `IN` and one for `OUT` edges */
   private void packEdgeIds(MessageBufferPacker packer, SpecializedTinkerVertex vertex) throws IOException {
     for (Direction direction : new Direction[]{Direction.IN, Direction.OUT}) {
@@ -65,10 +51,8 @@ public class VertexSerializer extends Serializer<SpecializedTinkerVertex> {
 //      if (vertex.id().toString().equals("340") && direction.equals(Direction.IN)) {
 //        System.out.println("VertexSerializer.packEdgeIds 340. labels.size=" + labels.size());
 //      }
-      if (vertex.id().toString().equals("1")) {
-        System.out.println("VertexSerializer.packEdgeIds 1. labels.size=" + labels.size());
-      }
       for (String label : labels) {
+        packer.packString(label);
         Set<Long> edgeIds = edges.stream().filter(e -> e.label().equals(label)).map(e -> (Long) e.id()).collect(Collectors.toSet());
         packer.packArrayHeader(edgeIds.size());
         for (Long edgeId : edgeIds) {
@@ -78,15 +62,61 @@ public class VertexSerializer extends Serializer<SpecializedTinkerVertex> {
     }
   }
 
-  /** format: two `Map<Label, Array<EdgeId>>`, i.e. one Map for `IN` and one for `OUT` edges */
-  private void unpackEdges(MessageUnpacker unpacker, SpecializedTinkerVertex vertex) throws IOException {
-    for (Direction direction : new Direction[]{Direction.IN, Direction.OUT}) {
-      try {
-        Map<Value, Value> valueMap = unpacker.unpackValue().asMapValue().map();
-      } catch (Exception e) {
-        System.out.println("VertexSerializer.unpackEdges");
+//  boolean debug = false;
+
+  @Override
+  public SpecializedTinkerVertex deserialize(byte[] bytes) throws IOException {
+    MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes);
+    Long id = unpacker.unpackLong();
+    String label = unpacker.unpackString();
+    Object[] keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
+
+    SpecializedTinkerVertex vertex = vertexFactoryByLabel.get(label).createVertex(id, graph);
+    ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
+
+
+    Map<String, long[]> inEdgeIdsByLabel = unpackEdges(unpacker);
+    Map<String, long[]> outEdgeIdsByLabel = unpackEdges(unpacker);
+//    if (vertex.id().toString().equals("340")) {
+//      System.out.println("VertexSerializer.deserialize");
+//      System.out.println(inEdgeIdsByLabel.get("writtenBy").length);
+//    }
+
+    inEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
+      String edgeLabel = entry.getKey();
+      for (long edgeId : entry.getValue()) {
+        SpecializedTinkerEdge edge = graph.edgeById(edgeId);
+        // TODO pass ID/label only so we don't need to deserialize
+        vertex.addSpecializedInEdge(edge);
       }
+    });
+
+    outEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
+      String edgeLabel = entry.getKey();
+      for (long edgeId : entry.getValue()) {
+        SpecializedTinkerEdge edge = graph.edgeById(edgeId);
+        // TODO pass ID/label only so we don't need to deserialize
+        vertex.addSpecializedOutEdge(edge);
+      }
+    });
+
+    return vertex;
+  }
+
+  /** format: `Map<Label, Array<EdgeId>>` */
+  private Map<String, long[]> unpackEdges(MessageUnpacker unpacker) throws IOException {
+    int labelCount = unpacker.unpackMapHeader();
+    Map<String, long[]> edgeIdsByLabel = new HashMap<>(labelCount);
+    for (int i = 0; i < labelCount; i++) {
+      String label = unpacker.unpackString();
+      int edgeIdsCount = unpacker.unpackArrayHeader();
+      long[] edgeIds = new long[edgeIdsCount];
+      for (int j = 0; j < edgeIdsCount; j++) {
+        edgeIds[j] = unpacker.unpackLong();
+      }
+      edgeIdsByLabel.put(label, edgeIds);
     }
+    return edgeIdsByLabel;
   }
 
 }

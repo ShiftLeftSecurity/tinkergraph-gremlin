@@ -73,6 +73,10 @@ public class Artist extends SpecializedTinkerVertex {
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
     protected Iterator<Edge> specificEdges(Direction direction, String... edgeLabels) {
+//        if (id().toString().equals("340")) {
+//        if (debug) {
+//            System.out.println("Artist.specificEdges");
+//        }
         List<Iterator<?>> iterators = new LinkedList<>();
         if (edgeLabels.length == 0) {
             edgeLabels = ALL_EDGES;
@@ -114,12 +118,12 @@ public class Artist extends SpecializedTinkerVertex {
     }
 
     @Override
-    protected void addSpecializedOutEdge(Edge edge) {
+    public void addSpecializedOutEdge(Edge edge) {
         throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
     }
 
     @Override
-    protected void addSpecializedInEdge(Edge edge) {
+    public void addSpecializedInEdge(Edge edge) {
         if (edge instanceof WrittenBy) {
             writtenByIn.add((Long) edge.id());
         } else if (edge instanceof SungBy) {
@@ -130,7 +134,18 @@ public class Artist extends SpecializedTinkerVertex {
     }
 
     private Iterator<WrittenBy> getWrittenByIn() {
+        if (TinkerGraph.debug) {
+            Object[] objects = writtenByIn.stream().map(id -> (WrittenBy) graph.edgeById(id)).toArray();
+            System.out.println("Artist.getWrittenByIn " + objects.length);
+        }
         return writtenByIn.stream().map(id -> (WrittenBy) graph.edgeById(id)).iterator();
+//        return writtenByIn.stream().map(id -> {
+//            if (TinkerGraph.debug) {
+//                WrittenBy edge = (WrittenBy) graph.edgeById(id);
+//                return edge;
+//            } else
+//                return (WrittenBy) graph.edgeById(id);
+//        }).iterator();
     }
 
     private Iterator<SungBy> getSungByIn() {

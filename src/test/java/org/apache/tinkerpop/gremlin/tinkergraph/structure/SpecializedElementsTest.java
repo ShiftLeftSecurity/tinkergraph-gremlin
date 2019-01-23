@@ -20,6 +20,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
@@ -29,6 +30,7 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -44,13 +46,25 @@ public class SpecializedElementsTest {
     public void fooremoveme() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
 
-        List<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toList();
-        assertEquals(garcias.size(), 1);
-        Artist garcia = (Artist) garcias.get(0); //it's actually of type `Artist`, not (only) `Vertex`
+//        List<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toList();
+//        assertEquals(garcias.size(), 1);
+//        Artist garcia = (Artist) garcias.get(0); //it's actually of type `Artist`, not (only) `Vertex`
+        Artist garcia = (Artist) graph.traversal().V(340l).next();
         assertEquals("Garcia", garcia.getName());
-        System.out.println("SpecializedElementsTest.fooremoveme " + garcia.id());
-//        List<Vertex> songsWritten = __(garcia).in(WrittenBy.label).toList();
-//        System.out.println("SpecializedElementsTest.fooremoveme " + garcia.id());
+
+        Iterator<Edge> edges = garcia.edges(Direction.IN, WrittenBy.label);
+        while (edges.hasNext()) {
+            System.out.println("direct on vertex: " + edges.next());
+        }
+
+        List<Edge> x1 = graph.traversal().V(340l).inE(WrittenBy.label).toList();
+        System.out.println("via graph: " + x1.size());
+
+        TinkerGraph.debug = true;
+        // TODO why doesn't the below work then?
+        //        List<Vertex> songsWritten = __(garcia).in(WrittenBy.label).toList();
+//        System.out.println("SpecializedElementsTest.fooremoveme " + songsWritten.size());
+
     }
 
     @Test

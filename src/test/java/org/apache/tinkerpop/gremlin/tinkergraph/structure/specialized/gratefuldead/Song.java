@@ -151,7 +151,7 @@ public class Song extends SpecializedTinkerVertex  implements Serializable {
     }
 
     @Override
-    protected void addSpecializedOutEdge(Edge edge) {
+    public void addSpecializedOutEdge(Edge edge) {
         if (edge instanceof FollowedBy) {
             followedByOut.add((Long) edge.id());
         } else if (edge instanceof WrittenBy) {
@@ -164,7 +164,7 @@ public class Song extends SpecializedTinkerVertex  implements Serializable {
     }
 
     @Override
-    protected void addSpecializedInEdge(Edge edge) {
+    public void addSpecializedInEdge(Edge edge) {
         if (edge instanceof FollowedBy) {
             followedByIn.add((Long) edge.id());
         } else {

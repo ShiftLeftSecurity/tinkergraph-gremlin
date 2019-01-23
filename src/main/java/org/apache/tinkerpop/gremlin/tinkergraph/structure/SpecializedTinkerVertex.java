@@ -144,9 +144,13 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         }
     }
 
-    protected abstract void addSpecializedOutEdge(Edge edge);
+    /** do not call directly (other than from deserializer)
+     *  I whish there was an easy way to forbid this in java */
+    public abstract void addSpecializedOutEdge(Edge edge);
 
-    protected abstract void addSpecializedInEdge(Edge edge);
+    /** do not call directly (other than from deserializer)
+     *  I whish there was an easy way to forbid this in java */
+    public abstract void addSpecializedInEdge(Edge edge);
 
     @Override
     public Iterator<Edge> edges(final Direction direction, final String... edgeLabels) {

@@ -98,4 +98,10 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
         this.removed = true;
     }
 
+    @Override
+    /** adaptation of `StringFactory.edgeString` to cover the fact that we hold the IDs rather than hard references */
+    public String toString() {
+        return "e[" + id() + "]" + "[" + outVertexId + "-" + label + "->" + inVertexId + "]";
+    }
+
 }
