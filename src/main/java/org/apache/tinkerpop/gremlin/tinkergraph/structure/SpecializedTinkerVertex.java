@@ -132,8 +132,8 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
             }
 
             // TODO: allow to connect non-specialised vertices with specialised edges and vice versa
-            this.addSpecializedOutEdge(edge);
-            ((SpecializedTinkerVertex) inVertex).addSpecializedInEdge(edge);
+            this.addSpecializedOutEdge(edge.label(), (Long) edge.id());
+            ((SpecializedTinkerVertex) inVertex).addSpecializedInEdge(edge.label(), (Long) edge.id());
             return edge;
         } else { // edge label not registered for a specialized factory, treating as generic edge
             if (graph.usesSpecializedElements) {
@@ -147,11 +147,11 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     /** do not call directly (other than from deserializer)
      *  I whish there was an easy way to forbid this in java */
-    public abstract void addSpecializedOutEdge(Edge edge);
+    public abstract void addSpecializedOutEdge(String edgeLabel, long edgeId);
 
     /** do not call directly (other than from deserializer)
      *  I whish there was an easy way to forbid this in java */
-    public abstract void addSpecializedInEdge(Edge edge);
+    public abstract void addSpecializedInEdge(String edgeLabel, long edgeId);
 
     @Override
     public Iterator<Edge> edges(final Direction direction, final String... edgeLabels) {
@@ -175,15 +175,15 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         }
     }
 
-    public void removeOutEdge(Edge edge) {
-        removeSpecificOutEdge(edge);
+    public void removeOutEdge(long edgeId) {
+        removeSpecificOutEdge(edgeId);
     }
 
-    protected abstract void removeSpecificOutEdge(Edge edge);
+    protected abstract void removeSpecificOutEdge(long edgeId);
 
-    public void removeInEdge(Edge edge) {
-        removeSpecificInEdge(edge);
+    public void removeInEdge(long edgeId) {
+        removeSpecificInEdge(edgeId);
     }
 
-    protected abstract void removeSpecificInEdge(Edge edge);
+    protected abstract void removeSpecificInEdge(long edgeId);
 }

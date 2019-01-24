@@ -87,8 +87,8 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
         final SpecializedTinkerVertex outVertex = (SpecializedTinkerVertex) this.outVertex;
         final SpecializedTinkerVertex inVertex = (SpecializedTinkerVertex) this.inVertex;
 
-        outVertex.removeOutEdge(this);
-        inVertex.removeInEdge(this);
+        outVertex.removeOutEdge((Long) this.id());
+        inVertex.removeInEdge((Long) this.id());
 
         TinkerHelper.removeElementIndex(this);
         ((TinkerGraph) this.graph()).edges.remove(this.id());

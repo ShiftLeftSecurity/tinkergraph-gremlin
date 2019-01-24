@@ -77,18 +77,14 @@ public class VertexSerializer extends Serializer<SpecializedTinkerVertex> {
     inEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
       String edgeLabel = entry.getKey();
       for (long edgeId : entry.getValue()) {
-        SpecializedTinkerEdge edge = graph.edgeById(edgeId);
-        // TODO pass ID/label only so we don't need to deserialize
-        vertex.addSpecializedInEdge(edge);
+        vertex.addSpecializedInEdge(edgeLabel, edgeId);
       }
     });
 
     outEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
       String edgeLabel = entry.getKey();
       for (long edgeId : entry.getValue()) {
-        SpecializedTinkerEdge edge = graph.edgeById(edgeId);
-        // TODO pass ID/label only so we don't need to deserialize
-        vertex.addSpecializedOutEdge(edge);
+        vertex.addSpecializedOutEdge(edgeLabel, edgeId);
       }
     });
 

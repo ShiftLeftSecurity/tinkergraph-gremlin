@@ -120,55 +120,36 @@ public class Song extends SpecializedTinkerVertex  implements Serializable {
     }
 
     @Override
-    protected void removeSpecificOutEdge(Edge edge) {
-        if (edge instanceof FollowedBy) {
-            if (followedByOut != null) {
-                followedByOut.remove(edge.id());
-            }
-        } else if (edge instanceof WrittenBy) {
-            if (writtenByOut != null) {
-                writtenByOut.remove(edge.id());
-            }
-        } else if (edge instanceof SungBy) {
-            if (sungByOut != null) {
-                sungByOut.remove(edge.id());
-            }
-        } else {
-            throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
-        }
-
+    protected void removeSpecificOutEdge(long edgeId) {
+        followedByOut.remove(edgeId);
+        writtenByOut.remove(edgeId);
+        sungByOut.remove(edgeId);
     }
 
     @Override
-    protected void removeSpecificInEdge(Edge edge) {
-        if (edge instanceof FollowedBy) {
-            if (followedByIn != null) {
-                followedByIn.remove(edge.id());
-            }
+    protected void removeSpecificInEdge(long edgeId) {
+        followedByIn.remove(edgeId);
+    }
+
+    @Override
+    public void addSpecializedOutEdge(String edgeLabel, long edgeId) {
+        if (FollowedBy.label.equals(edgeLabel)) {
+            followedByOut.add(edgeId);
+        } else if (WrittenBy.label.equals(edgeLabel)) {
+            writtenByOut.add(edgeId);
+        } else if (SungBy.label.equals(edgeLabel)) {
+            sungByOut.add(edgeId);
         } else {
-            throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
+            throw new IllegalArgumentException("edge type " + edgeLabel + " not supported");
         }
     }
 
     @Override
-    public void addSpecializedOutEdge(Edge edge) {
-        if (edge instanceof FollowedBy) {
-            followedByOut.add((Long) edge.id());
-        } else if (edge instanceof WrittenBy) {
-            writtenByOut.add((Long) edge.id());
-        } else if (edge instanceof SungBy) {
-            sungByOut.add((Long) edge.id());
+    public void addSpecializedInEdge(String edgeLabel, long edgeId) {
+        if (FollowedBy.label.equals(edgeLabel)) {
+            followedByIn.add(edgeId);
         } else {
-            throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
-        }
-    }
-
-    @Override
-    public void addSpecializedInEdge(Edge edge) {
-        if (edge instanceof FollowedBy) {
-            followedByIn.add((Long) edge.id());
-        } else {
-            throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
+            throw new IllegalArgumentException("edge type " + edgeLabel + " not supported");
         }
     }
 

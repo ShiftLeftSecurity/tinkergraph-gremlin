@@ -94,38 +94,29 @@ public class Artist extends SpecializedTinkerVertex {
     }
 
     @Override
-    protected void removeSpecificOutEdge(Edge edge) {
-        throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
+    protected void removeSpecificOutEdge(long edgeId) {
+        throw new IllegalArgumentException("no out edges allowed here");
     }
 
     @Override
-    protected void removeSpecificInEdge(Edge edge) {
-        if (edge instanceof WrittenBy) {
-            if (writtenByIn != null) {
-                writtenByIn.remove(edge.id());
-            }
-        } else if (edge instanceof SungBy) {
-            if (sungByIn != null) {
-              sungByIn.remove(edge.id());
-            }
+    protected void removeSpecificInEdge(long edgeId) {
+        writtenByIn.remove(edgeId);
+        sungByIn.remove(edgeId);
+    }
+
+    @Override
+    public void addSpecializedOutEdge(String edgeLabel, long edgeId) {
+        throw new IllegalArgumentException("no out edges allowed here");
+    }
+
+    @Override
+    public void addSpecializedInEdge(String edgeLabel, long edgeId) {
+        if (WrittenBy.label.equals(edgeLabel)) {
+            writtenByIn.add(edgeId);
+        } else if (SungBy.label.equals(edgeLabel)) {
+            sungByIn.add(edgeId);
         } else {
-            throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
-        }
-    }
-
-    @Override
-    public void addSpecializedOutEdge(Edge edge) {
-        throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
-    }
-
-    @Override
-    public void addSpecializedInEdge(Edge edge) {
-        if (edge instanceof WrittenBy) {
-            writtenByIn.add((Long) edge.id());
-        } else if (edge instanceof SungBy) {
-            sungByIn.add((Long) edge.id());
-        } else {
-            throw new IllegalArgumentException("edge type " + edge.getClass() + " not supported");
+            throw new IllegalArgumentException("edge type " + edgeLabel + " not supported");
         }
     }
 
