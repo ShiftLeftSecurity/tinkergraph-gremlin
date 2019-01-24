@@ -92,9 +92,6 @@ public class Song extends SpecializedTinkerVertex  implements Serializable {
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
     protected Iterator<Edge> specificEdges(Direction direction, String... edgeLabels) {
-        if (TinkerGraph.debug) {
-            System.out.println();
-        }
         List<Iterator<?>> iterators = new LinkedList<>();
         if (edgeLabels.length == 0) {
             edgeLabels = ALL_EDGES;

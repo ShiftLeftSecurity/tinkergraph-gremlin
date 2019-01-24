@@ -207,13 +207,7 @@ public final class TinkerGraph implements Graph {
         return tg;
     }
 
-
-    public static boolean debug = false;
-
     public SpecializedTinkerEdge edgeById(long id) {
-//        if (debug) {
-//            System.out.println("TinkerGraph.edgeById");
-//        }
         return getElement(id, serializedEdges, edgesCache, edgeSerializer);
     }
 

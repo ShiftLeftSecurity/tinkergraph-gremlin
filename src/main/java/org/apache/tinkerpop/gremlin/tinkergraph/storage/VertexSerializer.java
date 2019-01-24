@@ -48,9 +48,7 @@ public class VertexSerializer extends Serializer<SpecializedTinkerVertex> {
       // a simple group by would be nice, but java collections are still very basic apparently
       Set<String> labels = edges.stream().map(e -> e.label()).collect(Collectors.toSet());
       packer.packMapHeader(labels.size());
-//      if (vertex.id().toString().equals("340") && direction.equals(Direction.IN)) {
-//        System.out.println("VertexSerializer.packEdgeIds 340. labels.size=" + labels.size());
-//      }
+
       for (String label : labels) {
         packer.packString(label);
         Set<Long> edgeIds = edges.stream().filter(e -> e.label().equals(label)).map(e -> (Long) e.id()).collect(Collectors.toSet());
@@ -61,8 +59,6 @@ public class VertexSerializer extends Serializer<SpecializedTinkerVertex> {
       }
     }
   }
-
-//  boolean debug = false;
 
   @Override
   public SpecializedTinkerVertex deserialize(byte[] bytes) throws IOException {
@@ -77,10 +73,6 @@ public class VertexSerializer extends Serializer<SpecializedTinkerVertex> {
 
     Map<String, long[]> inEdgeIdsByLabel = unpackEdges(unpacker);
     Map<String, long[]> outEdgeIdsByLabel = unpackEdges(unpacker);
-//    if (vertex.id().toString().equals("340")) {
-//      System.out.println("VertexSerializer.deserialize");
-//      System.out.println(inEdgeIdsByLabel.get("writtenBy").length);
-//    }
 
     inEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
       String edgeLabel = entry.getKey();
