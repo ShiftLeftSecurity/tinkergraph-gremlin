@@ -186,4 +186,12 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     }
 
     protected abstract void removeSpecificInEdge(long edgeId);
+
+    @Override
+    public void remove() {
+        super.remove();
+        Long id = (Long) this.id();
+        this.graph.serializedVertices.remove(id);
+        this.graph.verticesCache.remove(id);
+    }
 }

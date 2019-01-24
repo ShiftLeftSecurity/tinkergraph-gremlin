@@ -47,6 +47,7 @@ public class SpecializedElementsTest {
         assertEquals(garcias.size(), 1);
         Artist garcia = (Artist) garcias.get(0); //it's actually of type `Artist`, not (only) `Vertex`
         assertEquals("Garcia", garcia.getName());
+        graph.close();
     }
 
     @Test
@@ -79,38 +80,54 @@ public class SpecializedElementsTest {
         List<Vertex> songBoth = __(song).both().toList();
         assertEquals(1, songBoth.size());
         assertEquals(garcia, songBoth.get(0));
+        graph.close();
     }
 
     @Test
     public void shouldSupportRemovalOfSpecializedElements() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
         Set<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toSet();
-        assertNotEquals(garcias.size(), 0);
+        assertNotEquals(0, garcias.size());
         garcias.forEach(garcia -> garcia.remove());
         Long garciaCount = graph.traversal().V().has("name", "Garcia").count().next();
-        assertEquals(garciaCount, Long.valueOf(0));
+        assertEquals(Long.valueOf(0), garciaCount);
 
         List<Vertex> outVertices = graph.traversal().E().outV().toList();
         outVertices.forEach(outVertex -> assertFalse(garcias.contains(outVertex)));
 
         List<Vertex> inVertices = graph.traversal().E().inV().toList();
         inVertices.forEach(inVertex -> assertFalse(garcias.contains(inVertex)));
+        graph.close();
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldNotAllowMixingWithGenericVertex() throws IOException {
+        boolean caughtException = false;
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
-        graph.addVertex("something_else");
+        try {
+            graph.addVertex("something_else");
+        } catch (IllegalArgumentException e) {
+            caughtException = true;
+        }
+        graph.close();
+        assertTrue(caughtException);
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test
     public void shouldNotAllowMixingWithGenericEdge() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
-        GraphTraversalSource g = graph.traversal();
-        List<Vertex> vertices = g.V().limit(2).toList();
-        Vertex v1 = vertices.get(0);
-        Vertex v2 = vertices.get(1);
-        v1.addEdge("something_else", v2);
+        boolean caughtException = false;
+        try {
+            GraphTraversalSource g = graph.traversal();
+            List<Vertex> vertices = g.V().limit(2).toList();
+            Vertex v1 = vertices.get(0);
+            Vertex v2 = vertices.get(1);
+            v1.addEdge("something_else", v2);
+        } catch (IllegalArgumentException e) {
+            caughtException = true;
+        }
+        graph.close();
+        assertTrue(caughtException);
     }
 
     @Test
@@ -181,12 +198,13 @@ public class SpecializedElementsTest {
         // results will be empty, but it should't crash. see https://github.com/ShiftLeftSecurity/tinkergraph-gremlin/issues/12
         assertEquals(props1.size(), 0);
         assertEquals(props2.size(), 0);
+        graph.close();
     }
 
     // @Test
     // only run manually since the timings vary depending on the environment
     public void propertyLookupPerformanceComparison() throws IOException {
-        int loops = 1000;
+        int loops = 100;
         Double avgTimeWithSpecializedElements = null;
         Double avgTimeWithGenericElements = null;
 
@@ -195,6 +213,7 @@ public class SpecializedElementsTest {
             GraphTraversalSource g = graph.traversal();
             assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
             avgTimeWithSpecializedElements = TimeUtil.clock(loops, () -> g.E().has("weight", P.eq(1)).count().next());
+            graph.close();
         }
 
         { // using generic elements
@@ -202,6 +221,7 @@ public class SpecializedElementsTest {
             GraphTraversalSource g = graph.traversal();
             assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
             avgTimeWithGenericElements = TimeUtil.clock(loops, () -> g.E().has("weight", P.eq(1)).count().next());
+            graph.close();
         }
 
         System.out.println("avgTimeWithSpecializedElements = " + avgTimeWithSpecializedElements);
@@ -217,7 +237,7 @@ public class SpecializedElementsTest {
 //    @Test
     // only run manually since the timings vary depending on the environment
     public void traversalPerformanceComparison() throws IOException {
-        int loops = 100;
+        int loops = 10;
         Double avgTimeWithSpecializedElements = null;
         Double avgTimeWithGenericElements = null;
 
@@ -225,12 +245,14 @@ public class SpecializedElementsTest {
             TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
             GraphTraversalSource g = graph.traversal();
             avgTimeWithSpecializedElements = TimeUtil.clock(loops, () -> g.V().out().out().out().toStream().count());
+            graph.close();
         }
 
         { // using generic elements
             TinkerGraph graph = newGratefulDeadGraphWithGenericElementsWithData();
             GraphTraversalSource g = graph.traversal();
             avgTimeWithGenericElements = TimeUtil.clock(loops, () -> g.V().out().out().out().toStream().count());
+            graph.close();
         }
 
         System.out.println("avgTimeWithSpecializedElements = " + avgTimeWithSpecializedElements);

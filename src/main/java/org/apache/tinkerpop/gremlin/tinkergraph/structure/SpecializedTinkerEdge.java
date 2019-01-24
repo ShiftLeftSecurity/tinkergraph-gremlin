@@ -84,14 +84,17 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     @Override
     public void remove() {
-        final SpecializedTinkerVertex outVertex = (SpecializedTinkerVertex) this.outVertex;
-        final SpecializedTinkerVertex inVertex = (SpecializedTinkerVertex) this.inVertex;
+        final SpecializedTinkerVertex outVertex = (SpecializedTinkerVertex) this.outVertex();
+        final SpecializedTinkerVertex inVertex = (SpecializedTinkerVertex) this.inVertex();
 
-        outVertex.removeOutEdge((Long) this.id());
-        inVertex.removeInEdge((Long) this.id());
+        Long id = (Long) this.id();
+        outVertex.removeOutEdge(id);
+        inVertex.removeInEdge(id);
 
         TinkerHelper.removeElementIndex(this);
-        ((TinkerGraph) this.graph()).edges.remove(this.id());
+        ((TinkerGraph) this.graph()).edges.remove(id);
+        ((TinkerGraph) this.graph()).serializedEdges.remove(id);
+        ((TinkerGraph) this.graph()).edgesCache.remove(id);
         this.properties = null;
         this.removed = true;
     }

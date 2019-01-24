@@ -62,6 +62,9 @@ public class VertexSerializer extends Serializer<SpecializedTinkerVertex> {
 
   @Override
   public SpecializedTinkerVertex deserialize(byte[] bytes) throws IOException {
+    if (null == bytes)
+      return null;
+
     MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes);
     Long id = unpacker.unpackLong();
     String label = unpacker.unpackString();

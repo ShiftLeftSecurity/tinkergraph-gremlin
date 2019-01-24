@@ -415,7 +415,9 @@ public final class TinkerGraph implements Graph {
       } else {
         try {
           T deserializedElement = serializer.deserialize(elements.get(id));
-          ((Cache<Long, T>) cache).put((Long) id, deserializedElement);
+          if (deserializedElement != null) {
+              ((Cache<Long, T>) cache).put((Long) id, deserializedElement);
+          }
           return deserializedElement;
         } catch (IOException e) {
           throw new RuntimeException(e);
