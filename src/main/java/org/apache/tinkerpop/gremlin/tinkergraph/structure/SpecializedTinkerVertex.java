@@ -125,6 +125,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
                 // edge ids are persisted together with the vertex, so we need to update the serialized vertex
                 // TODO optimise for bulk loading
+                graph.serializedVertices.put((Long) id(), graph.vertexSerializer.serialize(this));
                 graph.serializedVertices.put((Long) vertex.id(), graph.vertexSerializer.serialize((SpecializedTinkerVertex) vertex));
             } catch (IOException e) {
                 throw new RuntimeException(e);
@@ -168,7 +169,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         } else if (direction == Direction.OUT) {
             return IteratorUtils.map(edges, Edge::inVertex);
         } else if (direction == Direction.BOTH) {
-            return IteratorUtils.flatMap(edges, Edge::bothVertices);
+            return IteratorUtils.concat(vertices(Direction.IN), vertices(Direction.OUT));
         } else {
             return Collections.emptyIterator();
         }

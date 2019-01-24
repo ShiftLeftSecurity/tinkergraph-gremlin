@@ -18,9 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
@@ -102,6 +100,16 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
     /** adaptation of `StringFactory.edgeString` to cover the fact that we hold the IDs rather than hard references */
     public String toString() {
         return "e[" + id() + "]" + "[" + outVertexId + "-" + label + "->" + inVertexId + "]";
+    }
+
+    @Override
+    public Vertex outVertex() {
+        return graph.vertexById(this.outVertexId);
+    }
+
+    @Override
+    public Vertex inVertex() {
+        return graph.vertexById(this.inVertexId);
     }
 
 }

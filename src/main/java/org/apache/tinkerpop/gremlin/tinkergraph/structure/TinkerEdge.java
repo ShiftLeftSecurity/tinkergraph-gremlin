@@ -119,11 +119,11 @@ public class TinkerEdge extends TinkerElement implements Edge {
         if (removed) return Collections.emptyIterator();
         switch (direction) {
             case OUT:
-                return IteratorUtils.of(this.outVertex);
+                return IteratorUtils.of(this.outVertex());
             case IN:
-                return IteratorUtils.of(this.inVertex);
+                return IteratorUtils.of(this.inVertex());
             default:
-                return IteratorUtils.of(this.outVertex, this.inVertex);
+                return IteratorUtils.of(this.outVertex(), this.inVertex());
         }
     }
 

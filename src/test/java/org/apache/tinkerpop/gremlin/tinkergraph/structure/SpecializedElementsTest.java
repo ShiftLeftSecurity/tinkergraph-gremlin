@@ -35,37 +35,9 @@ import java.util.List;
 import java.util.Set;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.__;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class SpecializedElementsTest {
-
-    @Test
-    public void fooremoveme() throws IOException {
-        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
-
-//        List<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toList();
-//        assertEquals(garcias.size(), 1);
-//        Artist garcia = (Artist) garcias.get(0); //it's actually of type `Artist`, not (only) `Vertex`
-        Artist garcia = (Artist) graph.traversal().V(340l).next();
-        assertEquals("Garcia", garcia.getName());
-
-        Iterator<Edge> edges = garcia.edges(Direction.IN, WrittenBy.label);
-        while (edges.hasNext()) {
-            System.out.println("direct on vertex: " + edges.next());
-        }
-
-        List<Edge> x1 = graph.traversal().V(340l).inE(WrittenBy.label).toList();
-        System.out.println("via graph: " + x1.size());
-
-        TinkerGraph.debug = true;
-        // TODO why doesn't the below work then?
-        //        List<Vertex> songsWritten = __(garcia).in(WrittenBy.label).toList();
-//        System.out.println("SpecializedElementsTest.fooremoveme " + songsWritten.size());
-
-    }
 
     @Test
     public void shouldSupportSpecializedElements() throws IOException {
@@ -75,10 +47,38 @@ public class SpecializedElementsTest {
         assertEquals(garcias.size(), 1);
         Artist garcia = (Artist) garcias.get(0); //it's actually of type `Artist`, not (only) `Vertex`
         assertEquals("Garcia", garcia.getName());
+    }
 
-        List<Vertex> songsWritten = __(garcia).in(WrittenBy.label).toList();
-        assertEquals(songsWritten.size(), 4);
+    @Test
+    public void testBasicSteps() throws IOException {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
+        Vertex garcia = graph.traversal().V().has("name", "Garcia").next();
+
+        // inE
+        assertEquals(4, __(garcia).inE(WrittenBy.label).toList().size());
+
+        // in
+        List<Vertex> songsWritten = __(garcia).in(WrittenBy.label).has("name", "CREAM PUFF WAR").toList();
+        assertEquals(songsWritten.size(), 1);
         Song song = (Song) songsWritten.get(0); //it's actually of type `Artist`, not (only) `Vertex`
+        assertEquals("CREAM PUFF WAR", song.getName());
+
+        // outE
+        assertEquals(1, __(song).outE(WrittenBy.label).toList().size());
+
+        // out
+        List<Vertex> songOut = __(song).out().toList();
+        assertEquals(1, songOut.size());
+        assertEquals(garcia, songOut.get(0));
+
+        // bothE
+        List<Edge> songBothE = __(song).bothE().toList();
+        assertEquals(1, songBothE.size());
+
+        // both
+        List<Vertex> songBoth = __(song).both().toList();
+        assertEquals(1, songBoth.size());
+        assertEquals(garcia, songBoth.get(0));
     }
 
     @Test
