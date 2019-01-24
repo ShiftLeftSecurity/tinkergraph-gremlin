@@ -115,7 +115,7 @@ public class SpecializedElementsTest {
 
     @Test
     public void shouldUseIndices() throws IOException {
-        int loops = 10000;
+        int loops = 100;
         Double avgTimeWithIndex = null;
         Double avgTimeWithoutIndex = null;
 
@@ -125,6 +125,7 @@ public class SpecializedElementsTest {
             GraphTraversalSource g = graph.traversal();
             assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
             avgTimeWithIndex = TimeUtil.clock(loops, () -> g.E().has("weight", P.eq(1)).count().next());
+            graph.close();
         }
 
         { // tests without index
@@ -132,6 +133,7 @@ public class SpecializedElementsTest {
             GraphTraversalSource g = graph.traversal();
             assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
             avgTimeWithoutIndex = TimeUtil.clock(loops, () -> g.E().has("weight", P.eq(1)).count().next());
+            graph.close();
         }
 
         System.out.println("avgTimeWithIndex = " + avgTimeWithIndex);
@@ -142,7 +144,7 @@ public class SpecializedElementsTest {
     
     @Test
     public void shouldUseIndicesCreatedBeforeLoadingData() throws IOException {
-        int loops = 10000;
+        int loops = 100;
         Double avgTimeWithIndex = null;
         Double avgTimeWithoutIndex = null;
 
@@ -153,6 +155,7 @@ public class SpecializedElementsTest {
             GraphTraversalSource g = graph.traversal();
             assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
             avgTimeWithIndex = TimeUtil.clock(loops, () -> g.E().has("weight", P.eq(1)).count().next());
+            graph.close();
         }
 
         { // tests without index
@@ -160,6 +163,7 @@ public class SpecializedElementsTest {
             GraphTraversalSource g = graph.traversal();
             assertEquals(3564, (long) g.E().has("weight", P.eq(1)).count().next());
             avgTimeWithoutIndex = TimeUtil.clock(loops, () -> g.E().has("weight", P.eq(1)).count().next());
+            graph.close();
         }
 
         System.out.println("avgTimeWithIndex = " + avgTimeWithIndex);

@@ -122,13 +122,13 @@ public final class TinkerHelper {
         final TinkerGraph graph = (TinkerGraph) edge.graph();
 
         if (graph.edgeIndex != null)
-            graph.edgeIndex.autoUpdate(key, newValue, oldValue, edge);
+            graph.edgeIndex.autoUpdate(key, newValue, oldValue, (Long) edge.id());
     }
 
     public static void autoUpdateIndex(final TinkerVertex vertex, final String key, final Object newValue, final Object oldValue) {
         final TinkerGraph graph = (TinkerGraph) vertex.graph();
         if (graph.vertexIndex != null)
-            graph.vertexIndex.autoUpdate(key, newValue, oldValue, vertex);
+            graph.vertexIndex.autoUpdate(key, newValue, oldValue, (Long) vertex.id());
     }
 
     public static void removeElementIndex(final TinkerVertex vertex) {
@@ -146,13 +146,13 @@ public final class TinkerHelper {
     public static void removeIndex(final TinkerVertex vertex, final String key, final Object value) {
         final TinkerGraph graph = (TinkerGraph) vertex.graph();
         if (graph.vertexIndex != null)
-            graph.vertexIndex.remove(key, value, vertex);
+            graph.vertexIndex.remove(key, value, (Long) vertex.id());
     }
 
     public static void removeIndex(final TinkerEdge edge, final String key, final Object value) {
         final TinkerGraph graph = (TinkerGraph) edge.graph();
         if (graph.edgeIndex != null)
-            graph.edgeIndex.remove(key, value, edge);
+            graph.edgeIndex.remove(key, value, (Long) edge.id());
     }
 
     public static Iterator<TinkerEdge> getEdges(final TinkerVertex vertex, final Direction direction, final String... edgeLabels) {

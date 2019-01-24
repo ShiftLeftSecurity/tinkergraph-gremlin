@@ -30,13 +30,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * @author Marko A. Rodriguez (http://markorodriguez.com)
  */
 final class TinkerIndex<T extends Element> {
 
-    protected Map<String, Map<Object, Set<T>>> index = new ConcurrentHashMap<>();
+    protected Map<String, Map<Object, Set<Long>>> index = new ConcurrentHashMap<>();
     protected final Class<T> indexClass;
     private final Set<String> indexedKeys = new HashSet<>();
     private final TinkerGraph graph;
@@ -46,39 +48,47 @@ final class TinkerIndex<T extends Element> {
         this.indexClass = indexClass;
     }
 
-    protected void put(final String key, final Object value, final T element) {
-        Map<Object, Set<T>> keyMap = this.index.get(key);
+    protected void put(final String key, final Object value, final long id) {
+        Map<Object, Set<Long>> keyMap = this.index.get(key);
         if (null == keyMap) {
-            this.index.putIfAbsent(key, new ConcurrentHashMap<Object, Set<T>>());
+            this.index.putIfAbsent(key, new ConcurrentHashMap<Object, Set<Long>>());
             keyMap = this.index.get(key);
         }
-        Set<T> objects = keyMap.get(value);
-        if (null == objects) {
+        Set<Long> ids = keyMap.get(value);
+        if (null == ids) {
             keyMap.putIfAbsent(value, ConcurrentHashMap.newKeySet());
-            objects = keyMap.get(value);
+            ids = keyMap.get(value);
         }
-        objects.add(element);
+        ids.add(id);
     }
 
     public List<T> get(final String key, final Object value) {
-        final Map<Object, Set<T>> keyMap = this.index.get(key);
+        final Map<Object, Set<Long>> keyMap = this.index.get(key);
         if (null == keyMap) {
             return Collections.emptyList();
         } else {
-            Set<T> set = keyMap.get(value);
-            if (null == set)
+            Set<Long> ids = keyMap.get(value);
+            if (null == ids)
                 return Collections.emptyList();
-            else
-                return new ArrayList<>(set);
+            else {
+                final Set<T> elements;
+                if (Vertex.class.isAssignableFrom(this.indexClass)) {
+                    elements = ids.stream().map(id -> (T) graph.vertexById(id)).collect(Collectors.toSet());
+                } else {
+                    elements = ids.stream().map(id -> (T) graph.edgeById(id)).collect(Collectors.toSet());
+                }
+                return new ArrayList<>(elements);
+            }
+
         }
     }
 
     public long count(final String key, final Object value) {
-        final Map<Object, Set<T>> keyMap = this.index.get(key);
+        final Map<Object, Set<Long>> keyMap = this.index.get(key);
         if (null == keyMap) {
             return 0;
         } else {
-            Set<T> set = keyMap.get(value);
+            Set<Long> set = keyMap.get(value);
             if (null == set)
                 return 0;
             else
@@ -86,13 +96,13 @@ final class TinkerIndex<T extends Element> {
         }
     }
 
-    public void remove(final String key, final Object value, final T element) {
-        final Map<Object, Set<T>> keyMap = this.index.get(key);
+    public void remove(final String key, final Object value, final long id) {
+        final Map<Object, Set<Long>> keyMap = this.index.get(key);
         if (null != keyMap) {
-            Set<T> objects = keyMap.get(value);
-            if (null != objects) {
-                objects.remove(element);
-                if (objects.size() == 0) {
+            Set<Long> ids = keyMap.get(value);
+            if (null != ids) {
+                ids.remove(id);
+                if (ids.size() == 0) {
                     keyMap.remove(value);
                 }
             }
@@ -101,25 +111,25 @@ final class TinkerIndex<T extends Element> {
 
     public void removeElement(final T element) {
         if (this.indexClass.isAssignableFrom(element.getClass())) {
-            for (Map<Object, Set<T>> map : index.values()) {
-                for (Set<T> set : map.values()) {
-                    set.remove(element);
+            for (Map<Object, Set<Long>> map : index.values()) {
+                for (Set<Long> set : map.values()) {
+                    set.remove(element.id());
                 }
             }
         }
     }
 
-    public void autoUpdate(final String key, final Object newValue, final Object oldValue, final T element) {
+    public void autoUpdate(final String key, final Object newValue, final Object oldValue, final long id) {
         if (this.indexedKeys.contains(key)) {
             if (oldValue != null)
-                this.remove(key, oldValue, element);
-            this.put(key, newValue, element);
+                this.remove(key, oldValue, id);
+            this.put(key, newValue, id);
         }
     }
 
-    public void autoRemove(final String key, final Object oldValue, final T element) {
+    public void autoRemove(final String key, final Object oldValue, final long id) {
         if (this.indexedKeys.contains(key))
-            this.remove(key, oldValue, element);
+            this.remove(key, oldValue, id);
     }
 
     public void createKeyIndex(final String key) {
@@ -132,12 +142,15 @@ final class TinkerIndex<T extends Element> {
             return;
         this.indexedKeys.add(key);
 
-        (Vertex.class.isAssignableFrom(this.indexClass) ?
-                this.graph.vertices.values().<T>stream() :
-                this.graph.edges.values().<T>stream())
-                .map(e -> new Object[]{((T) e).property(key), e})
+        final Stream<T> elements;
+        if (Vertex.class.isAssignableFrom(this.indexClass)) {
+            elements = this.graph.serializedVertices.keySet().stream().map(id -> (T) graph.vertexById(id));
+        } else {
+            elements = this.graph.serializedEdges.keySet().stream().map(id -> (T) graph.edgeById(id));
+        }
+        elements.map(e -> new Object[]{((T) e).property(key), e.id()})
                 .filter(a -> ((Property) a[0]).isPresent())
-                .forEach(a -> this.put(key, ((Property) a[0]).value(), (T) a[1]));
+                .forEach(a -> this.put(key, ((Property) a[0]).value(), (Long) a[1]));
     }
 
     public void dropKeyIndex(final String key) {
