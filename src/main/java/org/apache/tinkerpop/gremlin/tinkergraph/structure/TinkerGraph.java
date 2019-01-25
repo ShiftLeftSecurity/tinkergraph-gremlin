@@ -78,9 +78,13 @@ public final class TinkerGraph implements Graph {
                 TinkerGraphCountStrategy.instance()));
     }
 
-    private static final Configuration EMPTY_CONFIGURATION = new BaseConfiguration() {{
-        this.setProperty(Graph.GRAPH, TinkerGraph.class.getName());
-    }};
+    private static final Configuration EMPTY_CONFIGURATION() {
+        return new BaseConfiguration() {{
+            this.setProperty(Graph.GRAPH, TinkerGraph.class.getName());
+            this.setProperty(GREMLIN_TINKERGRAPH_GRAPH_LOCATION, "mvstore_" + System.currentTimeMillis() + ".bin");
+            this.setProperty(GREMLIN_TINKERGRAPH_GRAPH_FORMAT, "mvstore");
+        }};
+    }
 
     public static final String GREMLIN_TINKERGRAPH_VERTEX_ID_MANAGER = "gremlin.tinkergraph.vertexIdManager";
     public static final String GREMLIN_TINKERGRAPH_EDGE_ID_MANAGER = "gremlin.tinkergraph.edgeIdManager";
@@ -114,14 +118,11 @@ public final class TinkerGraph implements Graph {
     private final String graphLocation;
     private final String graphFormat;
 
-    /* on-disk storage
-     * TODO: make configurable -> reuse graphLocation/graphFormat */
-    protected final String filename = "mvstore.bin";
     protected VertexSerializer vertexSerializer;
     protected EdgeSerializer edgeSerializer;
-    protected final MVStore mvstore = new MVStore.Builder().fileName(filename).open();
-    protected final MVMap<Long, byte[]> serializedVertices = mvstore.openMap("vertices");
-    protected final MVMap<Long, byte[]> serializedEdges = mvstore.openMap("edges");
+    protected final MVStore mvstore;
+    protected final MVMap<Long, byte[]> serializedVertices;
+    protected final MVMap<Long, byte[]> serializedEdges;
 
     /* cache for on-disk storage */
     protected final String verticesCacheName = "verticesCache";
@@ -145,6 +146,9 @@ public final class TinkerGraph implements Graph {
 
         graphLocation = configuration.getString(GREMLIN_TINKERGRAPH_GRAPH_LOCATION, null);
         graphFormat = configuration.getString(GREMLIN_TINKERGRAPH_GRAPH_FORMAT, null);
+        mvstore = new MVStore.Builder().fileName(graphLocation).open();
+        serializedVertices = mvstore.openMap("vertices");
+        serializedEdges = mvstore.openMap("edges");
 
         if ((graphLocation != null && null == graphFormat) || (null == graphLocation && graphFormat != null))
             throw new IllegalStateException(String.format("The %s and %s must both be specified if either is present",
@@ -170,7 +174,7 @@ public final class TinkerGraph implements Graph {
      * Test Suite.
      */
     public static TinkerGraph open() {
-        return open(EMPTY_CONFIGURATION);
+        return open(EMPTY_CONFIGURATION());
     }
 
     /**
@@ -193,7 +197,7 @@ public final class TinkerGraph implements Graph {
 
     public static TinkerGraph open(List<SpecializedElementFactory.ForVertex<?>> vertexFactories,
                                    List<SpecializedElementFactory.ForEdge<?>> edgeFactories) {
-        return open(EMPTY_CONFIGURATION, vertexFactories, edgeFactories);
+        return open(EMPTY_CONFIGURATION(), vertexFactories, edgeFactories);
     }
 
     public static TinkerGraph open(final Configuration configuration,
@@ -349,6 +353,8 @@ public final class TinkerGraph implements Graph {
                     io(IoCore.graphson()).readGraph(graphLocation);
                 } else if (graphFormat.equals("gryo")) {
                     io(IoCore.gryo()).readGraph(graphLocation);
+                } else if (graphFormat.equals("mvstore")) {
+                    // TODO allow to just read back from that same file - might lead to confusion, so leaving out for now
                 } else {
                     io(IoCore.createIoBuilder(graphFormat)).readGraph(graphLocation);
                 }
@@ -378,6 +384,8 @@ public final class TinkerGraph implements Graph {
                 io(IoCore.graphson()).writeGraph(graphLocation);
             } else if (graphFormat.equals("gryo")) {
                 io(IoCore.gryo()).writeGraph(graphLocation);
+            } else if (graphFormat.equals("mvstore")) {
+                // TODO allow to just read back from that same file - might lead to confusion, so leaving out for now
             } else {
                 io(IoCore.createIoBuilder(graphFormat)).writeGraph(graphLocation);
             }
