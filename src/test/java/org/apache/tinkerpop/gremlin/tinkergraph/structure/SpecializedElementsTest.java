@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
+import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -282,20 +283,33 @@ public class SpecializedElementsTest {
         System.out.println("performance enhancement of specialized elements = " + diffPercent);
     }
 
-    // @Test
+    @Test
+    public void foo() {
+        System.out.println(Runtime.getRuntime().totalMemory());
+    }
+
+
+//    @Test
     // only run manually since the timings vary depending on the environment
+    // 1M vertices normally consume 2.5G memory, but you can run this test even with `-Xmx100m`
     public void shouldAllowGiganticGraphs() throws IOException, InterruptedException {
-        Long vertexCount = 10l;
-        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
-        for (long i = 0; i <= vertexCount; i++) {
-           Vertex v = graph.addVertex(Song.label);
-           v.property(Song.NAME, UUID.randomUUID().toString());
-           v.property(Song.SONG_TYPE, UUID.randomUUID().toString());
+        int vertexCount = 1000000;
+//        Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
+//        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_VERTEX_CACHE_MAX_HEAP_PERCENTAGE, 40f);
+//        configuration.setProperty(GREMLIN_TINKERGRAPH_EDGE_CACHE_MAX_HEAP_PERCENTAGE, 20f);
+        TinkerGraph graph = TinkerGraph.open(
+//          configuration,
+          Arrays.asList(Song.factory, Artist.factory),
+          Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
+        );
+        for (long i = 0; i < vertexCount; i++) {
+            if (i % 100000 == 0) {
+                System.out.println(i);
+            }
+            Vertex v = graph.addVertex(Song.label);
+            v.property(Song.NAME, UUID.randomUUID().toString());
+            v.property(Song.SONG_TYPE, UUID.randomUUID().toString());
         }
-        System.out.println("added " + vertexCount + "vertices");
-        Thread.sleep(10000);
-        assertEquals(vertexCount, graph.traversal().V().count().next());
-        Thread.sleep(10000);
 
         graph.close();
     }

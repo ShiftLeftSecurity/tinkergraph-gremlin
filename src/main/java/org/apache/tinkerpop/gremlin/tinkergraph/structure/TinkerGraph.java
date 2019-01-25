@@ -78,11 +78,13 @@ public final class TinkerGraph implements Graph {
                 TinkerGraphCountStrategy.instance()));
     }
 
-    private static final Configuration EMPTY_CONFIGURATION() {
+    public static final Configuration EMPTY_CONFIGURATION() {
         return new BaseConfiguration() {{
             this.setProperty(Graph.GRAPH, TinkerGraph.class.getName());
             this.setProperty(GREMLIN_TINKERGRAPH_GRAPH_LOCATION, "mvstore_" + System.currentTimeMillis() + ".bin");
             this.setProperty(GREMLIN_TINKERGRAPH_GRAPH_FORMAT, "mvstore");
+            this.setProperty(GREMLIN_TINKERGRAPH_VERTEX_CACHE_MAX_HEAP_PERCENTAGE, 50f);
+            this.setProperty(GREMLIN_TINKERGRAPH_EDGE_CACHE_MAX_HEAP_PERCENTAGE, 30f);
         }};
     }
 
@@ -92,6 +94,8 @@ public final class TinkerGraph implements Graph {
     public static final String GREMLIN_TINKERGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY = "gremlin.tinkergraph.defaultVertexPropertyCardinality";
     public static final String GREMLIN_TINKERGRAPH_GRAPH_LOCATION = "gremlin.tinkergraph.graphLocation";
     public static final String GREMLIN_TINKERGRAPH_GRAPH_FORMAT = "gremlin.tinkergraph.graphFormat";
+    public static final String GREMLIN_TINKERGRAPH_VERTEX_CACHE_MAX_HEAP_PERCENTAGE = "gremlin.tinkergraph.vertexCache.maxHeapPercentage";
+    public static final String GREMLIN_TINKERGRAPH_EDGE_CACHE_MAX_HEAP_PERCENTAGE = "gremlin.tinkergraph.edgeCache.maxHeapPercentage";
 
     private final TinkerGraphFeatures features = new TinkerGraphFeatures();
 
@@ -154,9 +158,13 @@ public final class TinkerGraph implements Graph {
             throw new IllegalStateException(String.format("The %s and %s must both be specified if either is present",
                     GREMLIN_TINKERGRAPH_GRAPH_LOCATION, GREMLIN_TINKERGRAPH_GRAPH_FORMAT));
 
+        float maxMemory = Runtime.getRuntime().maxMemory();
+        long vertexMaxHeapBytes = (long) (maxMemory / 100f * configuration.getFloat(GREMLIN_TINKERGRAPH_VERTEX_CACHE_MAX_HEAP_PERCENTAGE));
+        long edgeMaxHeapBytes = (long) (maxMemory / 100f * configuration.getFloat(GREMLIN_TINKERGRAPH_EDGE_CACHE_MAX_HEAP_PERCENTAGE));
+        System.out.println("initializing caches with the following max sizes: vertexCache=" + vertexMaxHeapBytes + ", edgeCache=" + edgeMaxHeapBytes);
         cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-          .withCache(verticesCacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, SpecializedTinkerVertex.class, ResourcePoolsBuilder.heap(100000)))
-          .withCache(edgesCacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, SpecializedTinkerEdge.class, ResourcePoolsBuilder.heap(100000)))
+          .withCache(verticesCacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, SpecializedTinkerVertex.class, ResourcePoolsBuilder.heap(vertexMaxHeapBytes)))
+          .withCache(edgesCacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, SpecializedTinkerEdge.class, ResourcePoolsBuilder.heap(edgeMaxHeapBytes)))
           .build();
         cacheManager.init();
         verticesCache = cacheManager.getCache(verticesCacheName, Long.class, SpecializedTinkerVertex.class);
