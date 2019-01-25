@@ -86,6 +86,12 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         ElementHelper.legalPropertyKeyValueArray(keyValues);
         ElementHelper.validateProperty(key, value);
         final VertexProperty<V> vp = updateSpecificProperty(cardinality, key, value);
+        try {
+            // TODO optimise for bulk loading
+            graph.serializedVertices.put((Long) id(), graph.vertexSerializer.serialize(this));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         TinkerHelper.autoUpdateIndex(this, key, value, null);
         return vp;
     }

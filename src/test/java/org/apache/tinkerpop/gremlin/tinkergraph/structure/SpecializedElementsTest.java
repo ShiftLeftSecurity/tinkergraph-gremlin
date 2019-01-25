@@ -20,19 +20,17 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.*;
 import org.apache.tinkerpop.gremlin.util.TimeUtil;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.__;
 import static org.junit.Assert.*;
@@ -80,6 +78,28 @@ public class SpecializedElementsTest {
         List<Vertex> songBoth = __(song).both().toList();
         assertEquals(1, songBoth.size());
         assertEquals(garcia, songBoth.get(0));
+        graph.close();
+    }
+
+    @Test
+    public void shouldAllowAddingElementsAndSettingProperties() throws IOException {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+
+        Vertex song1 = graph.addVertex(Song.label);
+        Vertex song2 = graph.addVertex(Song.label);
+        song1.property(Song.NAME, "song 1");
+        song2.property(Song.NAME, "song 2");
+
+        List<Vertex> vertices = graph.traversal().V().toList();
+        assertEquals(2, vertices.size());
+        Set<Object> names = graph.traversal().V().values("name").toSet();
+        assertTrue(names.contains("song 1"));
+        assertTrue(names.contains("song 2"));
+
+        song1.addEdge(FollowedBy.label, song2, FollowedBy.WEIGHT, new Integer(42));
+        assertEquals(42, graph.traversal().E().values(FollowedBy.WEIGHT).next());
+        assertEquals(42, __(song1).outE().values(FollowedBy.WEIGHT).next());
+
         graph.close();
     }
 
@@ -260,6 +280,24 @@ public class SpecializedElementsTest {
 
         double diffPercent = (avgTimeWithGenericElements - avgTimeWithSpecializedElements) / avgTimeWithGenericElements;
         System.out.println("performance enhancement of specialized elements = " + diffPercent);
+    }
+
+    // @Test
+    // only run manually since the timings vary depending on the environment
+    public void shouldAllowGiganticGraphs() throws IOException, InterruptedException {
+        Long vertexCount = 10l;
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+        for (long i = 0; i <= vertexCount; i++) {
+           Vertex v = graph.addVertex(Song.label);
+           v.property(Song.NAME, UUID.randomUUID().toString());
+           v.property(Song.SONG_TYPE, UUID.randomUUID().toString());
+        }
+        System.out.println("added " + vertexCount + "vertices");
+        Thread.sleep(10000);
+        assertEquals(vertexCount, graph.traversal().V().count().next());
+        Thread.sleep(10000);
+
+        graph.close();
     }
 
     private TinkerGraph newGratefulDeadGraphWithSpecializedElements() throws IOException {

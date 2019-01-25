@@ -418,13 +418,13 @@ public final class TinkerGraph implements Graph {
                                              final Map<Long, byte[]> elements,
                                              final Cache<Long, ? extends T> cache,
                                              final Serializer<? extends T> serializer) {
-      if (cache.containsKey((Long) id)) {
-        return cache.get((Long) id);
+      if (cache.containsKey(id)) {
+        return cache.get(id);
       } else {
         try {
           T deserializedElement = serializer.deserialize(elements.get(id));
           if (deserializedElement != null) {
-              ((Cache<Long, T>) cache).put((Long) id, deserializedElement);
+              ((Cache<Long, T>) cache).put(id, deserializedElement);
           }
           return deserializedElement;
         } catch (IOException e) {

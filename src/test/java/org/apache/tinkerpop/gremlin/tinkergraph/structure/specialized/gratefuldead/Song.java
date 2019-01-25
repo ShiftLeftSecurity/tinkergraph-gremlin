@@ -30,7 +30,7 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import java.io.Serializable;
 import java.util.*;
 
-public class Song extends SpecializedTinkerVertex  implements Serializable {
+public class Song extends SpecializedTinkerVertex implements Serializable {
     public static final String label = "song";
 
     public static final String NAME = "name";
