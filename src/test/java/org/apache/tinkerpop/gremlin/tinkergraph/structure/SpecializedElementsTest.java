@@ -201,10 +201,10 @@ public class SpecializedElementsTest {
         graph.close();
     }
 
-    // @Test
+//     @Test
     // only run manually since the timings vary depending on the environment
     public void propertyLookupPerformanceComparison() throws IOException {
-        int loops = 100;
+        int loops = 1000;
         Double avgTimeWithSpecializedElements = null;
         Double avgTimeWithGenericElements = null;
 
@@ -237,7 +237,7 @@ public class SpecializedElementsTest {
 //    @Test
     // only run manually since the timings vary depending on the environment
     public void traversalPerformanceComparison() throws IOException {
-        int loops = 10;
+        int loops = 1000;
         Double avgTimeWithSpecializedElements = null;
         Double avgTimeWithGenericElements = null;
 

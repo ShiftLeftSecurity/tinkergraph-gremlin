@@ -151,8 +151,8 @@ public final class TinkerGraph implements Graph {
                     GREMLIN_TINKERGRAPH_GRAPH_LOCATION, GREMLIN_TINKERGRAPH_GRAPH_FORMAT));
 
         cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-          .withCache(verticesCacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, SpecializedTinkerVertex.class, ResourcePoolsBuilder.heap(10)))
-          .withCache(edgesCacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, SpecializedTinkerEdge.class, ResourcePoolsBuilder.heap(10)))
+          .withCache(verticesCacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, SpecializedTinkerVertex.class, ResourcePoolsBuilder.heap(100000)))
+          .withCache(edgesCacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, SpecializedTinkerEdge.class, ResourcePoolsBuilder.heap(100000)))
           .build();
         cacheManager.init();
         verticesCache = cacheManager.getCache(verticesCacheName, Long.class, SpecializedTinkerVertex.class);
