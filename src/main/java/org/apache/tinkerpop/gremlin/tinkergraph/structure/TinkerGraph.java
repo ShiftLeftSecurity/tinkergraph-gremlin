@@ -58,6 +58,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * An in-memory (with optional persistence on calls to {@link #close()}), reference implementation of the property
@@ -220,12 +221,26 @@ public final class TinkerGraph implements Graph {
         return tg;
     }
 
-    public SpecializedTinkerEdge edgeById(Long id) {
+    public Edge edgeById(Long id) {
         return getElement(id, serializedEdges, edgesCache, edgeSerializer);
     }
 
-    public SpecializedTinkerVertex vertexById(Long id) {
+    public Iterator<Edge> edgesById(Iterator<Long> ids) {
+        Spliterator<Long> spliterator = Spliterators.spliteratorUnknownSize(ids, Spliterator.ORDERED);
+        boolean parallel = false;
+        Stream<Long> stream = StreamSupport.stream(spliterator, parallel);
+        return stream.map(id -> edgeById(id)).iterator();
+    }
+
+    public Vertex vertexById(Long id) {
       return getElement(id, serializedVertices, verticesCache, vertexSerializer);
+    }
+
+    public Iterator<Vertex> verticesById(Iterator<Long> ids) {
+        Spliterator<Long> spliterator = Spliterators.spliteratorUnknownSize(ids, Spliterator.ORDERED);
+        boolean parallel = false;
+        Stream<Long> stream = StreamSupport.stream(spliterator, parallel);
+        return stream.map(id -> vertexById(id)).iterator();
     }
 
     ////////////// STRUCTURE API METHODS //////////////////
