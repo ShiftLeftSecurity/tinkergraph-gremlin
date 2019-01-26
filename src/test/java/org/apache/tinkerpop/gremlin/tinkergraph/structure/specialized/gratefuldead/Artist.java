@@ -94,12 +94,12 @@ public class Artist extends SpecializedTinkerVertex {
     }
 
     @Override
-    protected void removeSpecificOutEdge(long edgeId) {
+    protected void removeSpecificOutEdge(Long edgeId) {
         throw new IllegalArgumentException("no out edges allowed here");
     }
 
     @Override
-    protected void removeSpecificInEdge(long edgeId) {
+    protected void removeSpecificInEdge(Long edgeId) {
         writtenByIn.remove(edgeId);
         sungByIn.remove(edgeId);
     }
@@ -135,7 +135,7 @@ public class Artist extends SpecializedTinkerVertex {
         }
 
         @Override
-        public Artist createVertex(long id, TinkerGraph graph) {
+        public Artist createVertex(Long id, TinkerGraph graph) {
             return new Artist(id, graph);
         }
     };

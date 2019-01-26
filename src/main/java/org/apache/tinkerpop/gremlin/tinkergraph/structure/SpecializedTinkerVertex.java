@@ -18,7 +18,6 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -181,17 +180,17 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         }
     }
 
-    public void removeOutEdge(long edgeId) {
+    public void removeOutEdge(Long edgeId) {
         removeSpecificOutEdge(edgeId);
     }
 
-    protected abstract void removeSpecificOutEdge(long edgeId);
+    protected abstract void removeSpecificOutEdge(Long edgeId);
 
-    public void removeInEdge(long edgeId) {
+    public void removeInEdge(Long edgeId) {
         removeSpecificInEdge(edgeId);
     }
 
-    protected abstract void removeSpecificInEdge(long edgeId);
+    protected abstract void removeSpecificInEdge(Long edgeId);
 
     @Override
     public void remove() {

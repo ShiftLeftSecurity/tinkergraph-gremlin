@@ -71,7 +71,7 @@ public class FollowedBy extends SpecializedTinkerEdge {
         }
 
         @Override
-        public FollowedBy createEdge(long id, TinkerGraph graph, long outVertexId, long inVertexId) {
+        public FollowedBy createEdge(Long id, TinkerGraph graph, Long outVertexId, Long inVertexId) {
             return new FollowedBy(graph, id, outVertexId, inVertexId);
         }
     };

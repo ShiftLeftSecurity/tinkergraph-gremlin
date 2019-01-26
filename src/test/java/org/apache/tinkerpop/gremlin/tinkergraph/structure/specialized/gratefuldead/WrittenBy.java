@@ -53,7 +53,7 @@ public class WrittenBy extends SpecializedTinkerEdge implements Serializable {
         }
 
         @Override
-        public WrittenBy createEdge(long id, TinkerGraph graph, long outVertexId, long inVertexId) {
+        public WrittenBy createEdge(Long id, TinkerGraph graph, Long outVertexId, Long inVertexId) {
             return new WrittenBy(graph, id, outVertexId, inVertexId);
         }
     };

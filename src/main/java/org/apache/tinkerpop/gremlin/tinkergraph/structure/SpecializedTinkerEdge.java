@@ -32,7 +32,7 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
     public final long outVertexId;
     public final long inVertexId;
 
-    protected SpecializedTinkerEdge(TinkerGraph graph, long id, long outVertexId, String label, long inVertexId, Set<String> specificKeys) {
+    protected SpecializedTinkerEdge(TinkerGraph graph, Long id, long outVertexId, String label, long inVertexId, Set<String> specificKeys) {
         super(graph, id, null, label, null);
         this.outVertexId = outVertexId;
         this.inVertexId = inVertexId;

@@ -53,7 +53,7 @@ public class SungBy extends SpecializedTinkerEdge implements Serializable {
         }
 
         @Override
-        public SungBy createEdge(long id, TinkerGraph graph, long outVertexId, long inVertexId) {
+        public SungBy createEdge(Long id, TinkerGraph graph, Long outVertexId, Long inVertexId) {
             return new SungBy(graph, id, outVertexId, inVertexId);
         }
     };

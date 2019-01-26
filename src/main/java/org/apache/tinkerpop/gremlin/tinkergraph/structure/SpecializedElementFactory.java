@@ -26,12 +26,12 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 public class SpecializedElementFactory {
     public interface ForVertex<T extends SpecializedTinkerVertex> {
         public abstract String forLabel();
-        public abstract T createVertex(long id, TinkerGraph graph);
+        public abstract T createVertex(Long id, TinkerGraph graph);
     }
 
     public interface ForEdge<T extends SpecializedTinkerEdge> {
         public abstract String forLabel();
-        public abstract T createEdge(long id, TinkerGraph graph, long outVertexId, long inVertexId);
+        public abstract T createEdge(Long id, TinkerGraph graph, Long outVertexId, Long inVertexId);
     }
 }
 

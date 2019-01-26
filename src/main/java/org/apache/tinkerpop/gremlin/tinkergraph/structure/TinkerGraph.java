@@ -220,11 +220,11 @@ public final class TinkerGraph implements Graph {
         return tg;
     }
 
-    public SpecializedTinkerEdge edgeById(long id) {
+    public SpecializedTinkerEdge edgeById(Long id) {
         return getElement(id, serializedEdges, edgesCache, edgeSerializer);
     }
 
-    public SpecializedTinkerVertex vertexById(long id) {
+    public SpecializedTinkerVertex vertexById(Long id) {
       return getElement(id, serializedVertices, verticesCache, vertexSerializer);
     }
 
@@ -422,7 +422,7 @@ public final class TinkerGraph implements Graph {
     }
 
   /** check for element in cache. deserialize and populate cache if not in cache */
-    private <T extends Element> T getElement(final long id,
+    private <T extends Element> T getElement(final Long id,
                                              final Map<Long, byte[]> elements,
                                              final Cache<Long, ? extends T> cache,
                                              final Serializer<? extends T> serializer) {

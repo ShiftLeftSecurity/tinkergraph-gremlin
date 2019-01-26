@@ -26,9 +26,12 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVerte
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerVertexProperty;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.apache.tinkerpop.gremlin.util.iterator.MultiIterator;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 public class Song extends SpecializedTinkerVertex implements Serializable {
     public static final String label = "song";
@@ -58,6 +61,13 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
     protected <V> Iterator<VertexProperty<V>> specificProperties(String key) {
+        MultiIterator<String> i = new MultiIterator<>();
+        int characteristics = Spliterator.DISTINCT | Spliterator.SORTED | Spliterator.ORDERED;
+        Spliterator<String> spliterator = Spliterators.spliteratorUnknownSize(i, characteristics);
+        boolean parallel = false;
+        Stream<String> stream = StreamSupport.stream(spliterator, parallel);
+
+
         final VertexProperty<V> ret;
         if (NAME.equals(key) && name != null) {
             return IteratorUtils.of(new TinkerVertexProperty(this, key, name));
@@ -120,14 +130,14 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
     }
 
     @Override
-    protected void removeSpecificOutEdge(long edgeId) {
+    protected void removeSpecificOutEdge(Long edgeId) {
         followedByOut.remove(edgeId);
         writtenByOut.remove(edgeId);
         sungByOut.remove(edgeId);
     }
 
     @Override
-    protected void removeSpecificInEdge(long edgeId) {
+    protected void removeSpecificInEdge(Long edgeId) {
         followedByIn.remove(edgeId);
     }
 
@@ -175,7 +185,7 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
         }
 
         @Override
-        public Song createVertex(long id, TinkerGraph graph) {
+        public Song createVertex(Long id, TinkerGraph graph) {
             return new Song(id, graph);
         }
     };
