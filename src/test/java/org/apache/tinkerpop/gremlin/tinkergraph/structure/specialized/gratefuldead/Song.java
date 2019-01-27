@@ -61,13 +61,6 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
     protected <V> Iterator<VertexProperty<V>> specificProperties(String key) {
-        MultiIterator<String> i = new MultiIterator<>();
-        int characteristics = Spliterator.DISTINCT | Spliterator.SORTED | Spliterator.ORDERED;
-        Spliterator<String> spliterator = Spliterators.spliteratorUnknownSize(i, characteristics);
-        boolean parallel = false;
-        Stream<String> stream = StreamSupport.stream(spliterator, parallel);
-
-
         final VertexProperty<V> ret;
         if (NAME.equals(key) && name != null) {
             return IteratorUtils.of(new TinkerVertexProperty(this, key, name));
@@ -88,11 +81,7 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
         } else if (SONG_TYPE.equals(key)) {
             this.songType = (String) value;
         } else if (PERFORMANCES.equals(key)) {
-            if (value instanceof Long) {
-                this.performances = ((Long) value).intValue();
-            } else {
-                this.performances = (Integer) value;
-            }
+            this.performances = (Integer) value;
         } else {
             throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
         }

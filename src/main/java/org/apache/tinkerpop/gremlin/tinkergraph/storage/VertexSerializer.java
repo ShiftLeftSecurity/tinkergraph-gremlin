@@ -91,7 +91,6 @@ public class VertexSerializer extends Serializer<SpecializedTinkerVertex> {
     SpecializedTinkerVertex vertex = vertexFactoryByLabel.get(label).createVertex(id, graph);
     ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
 
-
     Map<String, long[]> inEdgeIdsByLabel = unpackEdges(unpacker);
     Map<String, long[]> outEdgeIdsByLabel = unpackEdges(unpacker);
 
