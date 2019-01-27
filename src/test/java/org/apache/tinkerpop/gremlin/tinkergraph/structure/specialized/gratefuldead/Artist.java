@@ -72,7 +72,7 @@ public class Artist extends SpecializedTinkerVertex {
 
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
-    protected Iterator<Edge> specificEdges(Direction direction, String... edgeLabels) {
+    protected Iterator<Long> specificEdges(Direction direction, String... edgeLabels) {
         List<Iterator<?>> iterators = new LinkedList<>();
         if (edgeLabels.length == 0) {
             edgeLabels = ALL_EDGES;
@@ -89,7 +89,7 @@ public class Artist extends SpecializedTinkerVertex {
             }
         }
 
-        Iterator<Edge>[] iteratorsArray = iterators.toArray(new Iterator[iterators.size()]);
+        Iterator<Long>[] iteratorsArray = iterators.toArray(new Iterator[iterators.size()]);
         return IteratorUtils.concat(iteratorsArray);
     }
 
@@ -120,12 +120,12 @@ public class Artist extends SpecializedTinkerVertex {
         }
     }
 
-    private Iterator<WrittenBy> getWrittenByIn() {
-        return writtenByIn.stream().map(id -> (WrittenBy) graph.edgeById(id)).iterator();
+    private Iterator<Long> getWrittenByIn() {
+        return writtenByIn.iterator();
     }
 
-    private Iterator<SungBy> getSungByIn() {
-        return sungByIn.stream().map(id -> (SungBy) graph.edgeById(id)).iterator();
+    private Iterator<Long> getSungByIn() {
+        return sungByIn.iterator();
     }
 
     public static SpecializedElementFactory.ForVertex<Artist> factory = new SpecializedElementFactory.ForVertex<Artist>() {

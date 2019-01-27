@@ -90,7 +90,7 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
 
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
-    protected Iterator<Edge> specificEdges(Direction direction, String... edgeLabels) {
+    protected Iterator<Long> specificEdges(Direction direction, String... edgeLabels) {
         List<Iterator<?>> iterators = new LinkedList<>();
         if (edgeLabels.length == 0) {
             edgeLabels = ALL_EDGES;
@@ -114,7 +114,7 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
             }
         }
 
-        Iterator<Edge>[] iteratorsArray = iterators.toArray(new Iterator[iterators.size()]);
+        Iterator<Long>[] iteratorsArray = iterators.toArray(new Iterator[iterators.size()]);
         return IteratorUtils.concat(iteratorsArray);
     }
 
@@ -152,19 +152,19 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
         }
     }
 
-    private Iterator<FollowedBy> getFollowedByOut() {
-        return followedByOut.stream().map(id -> (FollowedBy) graph.edgeById(id)).iterator();
+    private Iterator<Long> getFollowedByOut() {
+        return followedByOut.iterator();
     }
 
-    private Iterator<FollowedBy> getFollowedByIn() {
-        return followedByIn.stream().map(id -> (FollowedBy) graph.edgeById(id)).iterator();
+    private Iterator<Long> getFollowedByIn() {
+        return followedByIn.iterator();
     }
 
-    private Iterator<WrittenBy> getWrittenByOut() {
-        return writtenByOut.stream().map(id -> (WrittenBy) graph.edgeById(id)).iterator();
+    private Iterator<Long> getWrittenByOut() {
+        return writtenByOut.iterator();
     }
-    private Iterator<SungBy> getSungByOut() {
-        return sungByOut.stream().map(id -> (SungBy) graph.edgeById(id)).iterator();
+    private Iterator<Long> getSungByOut() {
+        return sungByOut.iterator();
     }
 
     public static SpecializedElementFactory.ForVertex<Song> factory = new SpecializedElementFactory.ForVertex<Song>() {

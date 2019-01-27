@@ -160,15 +160,15 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     @Override
     public Iterator<Edge> edges(final Direction direction, final String... edgeLabels) {
-        return specificEdges(direction, edgeLabels);
+        return graph.edgesById(specificEdges(direction, edgeLabels));
     }
 
     /* implement in concrete specialised instance to avoid using generic HashMaps */
-    protected abstract Iterator<Edge> specificEdges(final Direction direction, final String... edgeLabels);
+    protected abstract Iterator<Long> specificEdges(final Direction direction, final String... edgeLabels);
 
     @Override
     public Iterator<Vertex> vertices(final Direction direction, final String... edgeLabels) {
-        Iterator<Edge> edges = specificEdges(direction, edgeLabels);
+        Iterator<Edge> edges = edges(direction, edgeLabels);
         if (direction == Direction.IN) {
             return IteratorUtils.map(edges, Edge::outVertex);
         } else if (direction == Direction.OUT) {
