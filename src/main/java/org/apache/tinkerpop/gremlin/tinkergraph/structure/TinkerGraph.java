@@ -243,6 +243,8 @@ public final class TinkerGraph implements Graph {
         return stream.map(id -> vertexById(id)).iterator();
     }
 
+
+
     ////////////// STRUCTURE API METHODS //////////////////
 
     @Override
@@ -351,7 +353,7 @@ public final class TinkerGraph implements Graph {
     @Override
     public Iterator<Vertex> vertices(final Object... vertexIds) {
         if (usesSpecializedElements) {
-          return createElementIteratorFromSerialized(Vertex.class, serializedVertices, vertexIdManager, verticesCache, vertexSerializer, vertexIds);
+          return createElementIteratorFromSerialized(Vertex.class, serializedVertices, verticesCache, vertexSerializer, vertexIds);
         } else {
           return createElementIterator(Vertex.class, vertices, vertexIdManager, vertexIds);
         }
@@ -360,7 +362,7 @@ public final class TinkerGraph implements Graph {
     @Override
     public Iterator<Edge> edges(final Object... edgeIds) {
       if (usesSpecializedElements) {
-        return createElementIteratorFromSerialized(Edge.class, serializedEdges, edgeIdManager, edgesCache, edgeSerializer, edgeIds);
+        return createElementIteratorFromSerialized(Edge.class, serializedEdges, edgesCache, edgeSerializer, edgeIds);
       } else {
         return createElementIterator(Edge.class, edges, edgeIdManager, edgeIds);
       }
@@ -421,19 +423,31 @@ public final class TinkerGraph implements Graph {
     /** would have been nice to share the implementation with `createElementIterator` and just pass a transform Function, but that didn't work out... */
     private <T extends Element> Iterator<T> createElementIteratorFromSerialized(final Class<T> clazz,
                                                                                 final Map<Long, byte[]> elements,
-                                                                                final IdManager idManager,
                                                                                 final Cache<Long, ? extends T> cache,
                                                                                 final Serializer<? extends T> serializer,
                                                                                 final Object... ids) {
+      // for whatever reason the passed objects can either be elements or their ids... :(
       final Collection<Object> idList;
       if (0 == ids.length) {
-        // TODO there must be a cleaner way, java...
-        Object[] idObjects = elements.keySet().stream().map(l -> (Object) l).toArray();
-        idList = Arrays.asList(idObjects);
+          // TODO really, is that the way to do this in java?
+          idList = Arrays.asList(elements.keySet().stream().map(l -> (Object) l).toArray());
       } else {
-        idList = Arrays.asList(ids);
+          idList = Arrays.asList(ids);
       }
-      return idList.stream().map(id -> getElement((Long) id, elements, cache, serializer)).iterator();
+
+      return idList.stream().map(obj -> {
+          if (clazz.isInstance(obj)) {
+              return (T) obj;
+          } else {
+              final Long id;
+              if (obj instanceof Integer) {
+                  id = ((Integer) obj).longValue();
+              } else {
+                  id = (Long) obj;
+              }
+              return getElement(id, elements, cache, serializer);
+          }
+      }).iterator();
     }
 
   /** check for element in cache. deserialize and populate cache if not in cache */
