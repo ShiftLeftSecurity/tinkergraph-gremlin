@@ -102,7 +102,7 @@ public final class TinkerGraph implements Graph {
 
     protected AtomicLong currentId = new AtomicLong(-1L);
     // TODO: remove once standard tests work for specialized elements (only used for standard vertices)
-    protected Map<Object, Vertex> vertices = new ConcurrentHashMap<>();
+    protected Map<Object, Vertex>   vertices = new ConcurrentHashMap<>();
     protected Map<Object, Edge> edges = new ConcurrentHashMap<>();
 
     protected TinkerGraphVariables variables = null;
