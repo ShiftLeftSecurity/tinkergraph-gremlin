@@ -22,6 +22,7 @@ import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
@@ -39,8 +40,48 @@ import static org.junit.Assert.*;
 public class SpecializedElementsTest {
 
     @Test
-    public void shouldSupportSpecializedElements() throws IOException {
+    public void simplisticTest() {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+
+        Vertex v0 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 1");
+        Vertex v1 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 2");
+        v0.addEdge(FollowedBy.label, v1);
+
+        Set<Object> songNames = graph.traversal().V().values(Song.NAME).toSet();
+        assertTrue(songNames.contains("Song 1"));
+        assertTrue(songNames.contains("Song 2"));
+
+        List<Edge> edges = __(v0).bothE(FollowedBy.label).toList();
+        System.out.println("SpecializedElementsTest.simplisticTest " + edges);
+    }
+
+    @Test
+    public void gratefulDeadGraph() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
+
+        List<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toList();
+        assertEquals(garcias.size(), 1);
+        Artist garcia = (Artist) garcias.get(0); //it's actually of type `Artist`, not (only) `Vertex`
+        assertEquals("Garcia", garcia.getName());
+        graph.close();
+    }
+
+
+    @Test
+    public void withTinyCache() throws IOException {
+        // setting cache to ~100k bytes - calculating ercentage for current jvm's heap
+        float maxMemory = Runtime.getRuntime().maxMemory();
+        float heap100kPercentage = 100000f / maxMemory * 100;
+
+        Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
+        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_CACHE_MAX_HEAP_PERCENTAGE, heap100kPercentage);
+
+        TinkerGraph graph = TinkerGraph.open(
+          configuration,
+          Arrays.asList(Song.factory, Artist.factory),
+          Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
+        );
+        loadGraphMl(graph);
 
         List<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toList();
         assertEquals(garcias.size(), 1);
@@ -284,37 +325,24 @@ public class SpecializedElementsTest {
     }
 
     @Test
-    public void foo() {
-        System.out.println(Runtime.getRuntime().totalMemory());
-    }
-
-
-//    @Test
     // only run manually since the timings vary depending on the environment
-    // 1M vertices normally consume 2.5G memory, but you can run this test even with `-Xmx100m`
-    public void shouldAllowGiganticGraphs() throws IOException, InterruptedException {
+    // 1M vertices normally consume 2.5G memory, but you can run this test even with `-Xmx200m` - it'll be much slower then, though
+    public void shouldAllowGiganticGraphs() {
         int vertexCount = 1000000;
-//        Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
-//        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_VERTEX_CACHE_MAX_HEAP_PERCENTAGE, 40f);
-//        configuration.setProperty(GREMLIN_TINKERGRAPH_EDGE_CACHE_MAX_HEAP_PERCENTAGE, 20f);
-        TinkerGraph graph = TinkerGraph.open(
-//          configuration,
-          Arrays.asList(Song.factory, Artist.factory),
-          Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
-        );
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
         for (long i = 0; i < vertexCount; i++) {
-            if (i % 100000 == 0) {
-                System.out.println(i);
-            }
-            Vertex v = graph.addVertex(Song.label);
-            v.property(Song.NAME, UUID.randomUUID().toString());
-            v.property(Song.SONG_TYPE, UUID.randomUUID().toString());
+           if (i % 100000 == 0) {
+               System.out.println(i);
+           }
+           Vertex v = graph.addVertex(Song.label);
+           v.property(Song.NAME, UUID.randomUUID().toString());
+           v.property(Song.SONG_TYPE, UUID.randomUUID().toString());
         }
 
         graph.close();
     }
 
-    private TinkerGraph newGratefulDeadGraphWithSpecializedElements() throws IOException {
+    private TinkerGraph newGratefulDeadGraphWithSpecializedElements() {
         return TinkerGraph.open(
             Arrays.asList(Song.factory, Artist.factory),
             Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)

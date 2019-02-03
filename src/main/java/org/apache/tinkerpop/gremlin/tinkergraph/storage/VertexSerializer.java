@@ -21,6 +21,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 import org.apache.commons.collections.IteratorUtils;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
@@ -32,13 +33,10 @@ import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
-public class VertexSerializer extends Serializer<SpecializedTinkerVertex> {
+public class VertexSerializer extends Serializer<Vertex> {
 
   protected final TinkerGraph graph;
   protected final Map<String, SpecializedElementFactory.ForVertex> vertexFactoryByLabel;
@@ -48,19 +46,29 @@ public class VertexSerializer extends Serializer<SpecializedTinkerVertex> {
     this.vertexFactoryByLabel = vertexFactoryByLabel;
   }
 
+  static Set<Long> serializedIds = new HashSet();
+
   @Override
-  public byte[] serialize(SpecializedTinkerVertex vertex) throws IOException {
+  public byte[] serialize(Vertex vertex) throws IOException {
+    long start = System.currentTimeMillis();
+
     MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
     packer.packLong((Long) vertex.id());
     packer.packString(vertex.label());
     packProperties(packer, vertex.properties());
     packEdgeIds(packer, vertex);
 
+    long duration = System.currentTimeMillis() - start;
+    boolean newElem = serializedIds.add((Long) vertex.id());
+    if (!newElem)
+      System.out.println("VertexSerializer.serialize for id=" + vertex.id() + " took " + duration + "ms. newElem=" + newElem);
+
     return packer.toByteArray();
   }
 
-  /** format: two `Map<Label, Array<EdgeId>>`, i.e. one Map for `IN` and one for `OUT` edges */
-  private void packEdgeIds(MessageBufferPacker packer, SpecializedTinkerVertex vertex) throws IOException {
+  /** format: two `Map<Label, Array<EdgeId>>`, i.e. one Map for `IN` and one for `OUT` edges
+   * TODO: this is rather inefficient, because we potentially need to deserialize edges, just to get their ids and labels. idea: add a shortcut for SpecializedElements */
+  private void packEdgeIds(MessageBufferPacker packer, Vertex vertex) throws IOException {
     for (Direction direction : new Direction[]{Direction.IN, Direction.OUT}) {
       List<Edge> edges = IteratorUtils.toList(vertex.edges(direction));
       // a simple group by would be nice, but java collections are still very basic apparently

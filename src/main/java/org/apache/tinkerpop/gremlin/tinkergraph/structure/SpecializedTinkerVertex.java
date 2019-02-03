@@ -85,12 +85,6 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         ElementHelper.legalPropertyKeyValueArray(keyValues);
         ElementHelper.validateProperty(key, value);
         final VertexProperty<V> vp = updateSpecificProperty(cardinality, key, value);
-        try {
-            // TODO optimise for bulk loading
-            graph.serializedVertices.put((Long) id(), graph.vertexSerializer.serialize(this));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
         TinkerHelper.autoUpdateIndex(this, key, value, null);
         return vp;
     }
@@ -123,18 +117,8 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
             TinkerVertex outVertex = this;
             SpecializedTinkerEdge edge = factory.createEdge(idValue, graph, (long) outVertex.id, (long) inVertex.id);
             ElementHelper.attachProperties(edge, keyValues);
-
-            try {
-                byte[] serializedEdge = graph.edgeSerializer.serialize(edge);
-                graph.serializedEdges.put(idValue, serializedEdge);
-
-                // edge ids are persisted together with the vertex, so we need to update the serialized vertex
-                // TODO optimise for bulk loading
-                graph.serializedVertices.put((Long) id(), graph.vertexSerializer.serialize(this));
-                graph.serializedVertices.put((Long) vertex.id(), graph.vertexSerializer.serialize((SpecializedTinkerVertex) vertex));
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            graph.edgeIds.add(idValue);
+            graph.edgesCache.put(idValue, edge);
 
             // TODO: allow to connect non-specialised vertices with specialised edges and vice versa
             this.addSpecializedOutEdge(edge.label(), (Long) edge.id());
@@ -196,7 +180,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     public void remove() {
         super.remove();
         Long id = (Long) this.id();
-        this.graph.serializedVertices.remove(id);
         this.graph.verticesCache.remove(id);
+        this.graph.vertexIds.remove(id);
     }
 }

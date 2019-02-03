@@ -93,7 +93,7 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
         TinkerHelper.removeElementIndex(this);
         ((TinkerGraph) this.graph()).edges.remove(id);
-        ((TinkerGraph) this.graph()).serializedEdges.remove(id);
+        ((TinkerGraph) this.graph()).edgeIds.remove(id);
         ((TinkerGraph) this.graph()).edgesCache.remove(id);
         this.properties = null;
         this.removed = true;

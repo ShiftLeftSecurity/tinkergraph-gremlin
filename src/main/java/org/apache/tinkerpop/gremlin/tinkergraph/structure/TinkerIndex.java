@@ -144,9 +144,9 @@ final class TinkerIndex<T extends Element> {
 
         final Stream<T> elements;
         if (Vertex.class.isAssignableFrom(this.indexClass)) {
-            elements = this.graph.serializedVertices.keySet().stream().map(id -> (T) graph.vertexById(id));
+            elements = this.graph.onDiskVertexOverflow.keySet().stream().map(id -> (T) graph.vertexById(id));
         } else {
-            elements = this.graph.serializedEdges.keySet().stream().map(id -> (T) graph.edgeById(id));
+            elements = this.graph.onDiskEdgeOverflow.keySet().stream().map(id -> (T) graph.edgeById(id));
         }
         elements.map(e -> new Object[]{((T) e).property(key), e.id()})
                 .filter(a -> ((Property) a[0]).isPresent())

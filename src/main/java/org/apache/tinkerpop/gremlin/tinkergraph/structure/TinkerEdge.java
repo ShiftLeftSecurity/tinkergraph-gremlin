@@ -27,6 +27,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,7 +42,7 @@ import java.util.stream.Collectors;
 public class TinkerEdge extends TinkerElement implements Edge {
 
     protected Map<String, Property> properties;
-    protected final TinkerGraph graph;
+    final protected TinkerGraph graph;
     protected final Vertex inVertex;
     protected final Vertex outVertex;
 
