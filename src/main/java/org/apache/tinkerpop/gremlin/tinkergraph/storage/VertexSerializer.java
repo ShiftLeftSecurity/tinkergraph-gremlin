@@ -34,7 +34,6 @@ import org.msgpack.core.MessageUnpacker;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class VertexSerializer extends Serializer<Vertex> {
 
@@ -45,8 +44,6 @@ public class VertexSerializer extends Serializer<Vertex> {
     this.graph = graph;
     this.vertexFactoryByLabel = vertexFactoryByLabel;
   }
-
-  static Set<Long> serializedIds = new HashSet();
 
   @Override
   public byte[] serialize(Vertex vertex) throws IOException {
@@ -100,7 +97,11 @@ public class VertexSerializer extends Serializer<Vertex> {
     String label = unpacker.unpackString();
     Object[] keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
 
-    SpecializedTinkerVertex vertex = vertexFactoryByLabel.get(label).createVertex(id, graph);
+    SpecializedElementFactory.ForVertex vertexFactory = vertexFactoryByLabel.get(label);
+    if (vertexFactory == null) {
+      throw new AssertionError("vertexFactory not found for id=" + id + ", label=" + label);
+    }
+    SpecializedTinkerVertex vertex = vertexFactory.createVertex(id, graph);
     ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
 
     Map<String, long[]> inEdgeIdsByLabel = unpackEdges(unpacker);

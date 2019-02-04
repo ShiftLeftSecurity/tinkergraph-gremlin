@@ -138,8 +138,7 @@ public final class TinkerGraph implements Graph {
     protected VertexSerializer vertexSerializer;
     protected EdgeSerializer edgeSerializer;
     protected final MVStore mvstore;
-    protected final MVMap<Long, byte[]> onDiskVertexOverflow;
-    protected final MVMap<Long, byte[]> onDiskEdgeOverflow;
+    protected final MVMap<Long, byte[]> onDiskElementOverflow;
 
     /**
      * An empty private constructor that initializes {@link TinkerGraph}.
@@ -166,10 +165,9 @@ public final class TinkerGraph implements Graph {
         }
         mvstore = new MVStore.Builder()
           .fileName(mvstoreFile.getAbsolutePath())
-          .autoCompactFillRate(0) // to avoid `Chunk ## no longer exists` error https://github.com/h2database/h2database/issues/373
+//          .autoCompactFillRate(0) // to avoid `Chunk ## no longer exists` error https://github.com/h2database/h2database/issues/373
           .open();
-        onDiskVertexOverflow = mvstore.openMap("vertices");
-        onDiskEdgeOverflow = mvstore.openMap("edges");
+        onDiskElementOverflow = mvstore.openMap("elements");
 
         if ((graphLocation != null && null == graphFormat) || (null == graphLocation && graphFormat != null))
             throw new IllegalStateException(String.format("The %s and %s must both be specified if either is present",
@@ -183,7 +181,7 @@ public final class TinkerGraph implements Graph {
 
         CacheEventListener<Long, Vertex> vertexCacheEventListener = event -> {
             if (event.getType().equals(EventType.REMOVED)) {
-                onDiskVertexOverflow.remove(event.getKey());
+                onDiskElementOverflow.remove(event.getKey());
             } else if (event.getType().equals(EventType.EVICTED)) {
                 Vertex vertex = event.getOldValue();
                 final byte[] serialized;
@@ -193,12 +191,12 @@ public final class TinkerGraph implements Graph {
                     e.printStackTrace();
                     throw new RuntimeException("unable to serialize " + vertex, e);
                 }
-                onDiskVertexOverflow.put((Long) vertex.id(), serialized);
+                onDiskElementOverflow.put((Long) vertex.id(), serialized);
             }
         };
         CacheEventListener<Long, Edge> edgeCacheEventListener = event -> {
             if (event.getType().equals(EventType.REMOVED)) {
-                onDiskEdgeOverflow.remove(event.getKey());
+                onDiskElementOverflow.remove(event.getKey());
             } else if (event.getType().equals(EventType.EVICTED)) {
                 Edge edge = event.getOldValue();
                 final byte[] serialized;
@@ -208,7 +206,7 @@ public final class TinkerGraph implements Graph {
                     e.printStackTrace();
                     throw new RuntimeException("unable to serialize " + edge, e);
                 }
-                onDiskEdgeOverflow.put((Long) edge.id(), serialized);
+                onDiskElementOverflow.put((Long) edge.id(), serialized);
             }
         };
 
@@ -275,7 +273,7 @@ public final class TinkerGraph implements Graph {
     }
 
     public Edge edgeById(Long id) {
-        return getElement(id, onDiskEdgeOverflow, edgesCache, edgeSerializer);
+        return getElement(id, edgesCache, edgeSerializer);
     }
 
     public Iterator<Edge> edgesById(Iterator<Long> ids) {
@@ -286,7 +284,7 @@ public final class TinkerGraph implements Graph {
     }
 
     public Vertex vertexById(Long id) {
-      return getElement(id, onDiskVertexOverflow, verticesCache, vertexSerializer);
+      return getElement(id, verticesCache, vertexSerializer);
     }
 
     public Iterator<Vertex> verticesById(Iterator<Long> ids) {
@@ -306,11 +304,12 @@ public final class TinkerGraph implements Graph {
         final String label = ElementHelper.getLabelValue(keyValues).orElse(Vertex.DEFAULT_LABEL);
 
         if (null != idValue) {
-            if (this.vertices.containsKey(idValue))
+            if (this.vertexIds.contains(idValue))
                 throw Exceptions.vertexWithIdAlreadyExists(idValue);
         } else {
             idValue = (Long) vertexIdManager.getNextId(this);
         }
+        currentId.set(Long.max(idValue, currentId.get()));
 
         if (specializedVertexFactoryByLabel.containsKey(label)) {
             SpecializedElementFactory.ForVertex factory = specializedVertexFactoryByLabel.get(label);
@@ -369,10 +368,9 @@ public final class TinkerGraph implements Graph {
     public void clear() {
         this.vertices.clear();
         this.vertexIds.clear();
-        this.onDiskVertexOverflow.clear();
         this.edges.clear();
         this.edgeIds.clear();
-        this.onDiskEdgeOverflow.clear();
+        this.onDiskElementOverflow.clear();
         this.variables = null;
         this.currentId.set(-1L);
         this.vertexIndex = null;
@@ -404,7 +402,7 @@ public final class TinkerGraph implements Graph {
     @Override
     public Iterator<Vertex> vertices(final Object... vertexIds) {
         if (usesSpecializedElements) {
-          return createElementIteratorForCached(Vertex.class, this.vertexIds, onDiskVertexOverflow, verticesCache, vertexSerializer, vertexIds);
+          return createElementIteratorForCached(Vertex.class, this.vertexIds, verticesCache, vertexSerializer, vertexIds);
         } else {
           return createElementIterator(Vertex.class, vertices, vertexIdManager, vertexIds);
         }
@@ -413,7 +411,7 @@ public final class TinkerGraph implements Graph {
     @Override
     public Iterator<Edge> edges(final Object... edgeIds) {
       if (usesSpecializedElements) {
-        return createElementIteratorForCached(Edge.class, this.edgeIds, onDiskEdgeOverflow, edgesCache, edgeSerializer, edgeIds);
+        return createElementIteratorForCached(Edge.class, this.edgeIds, edgesCache, edgeSerializer, edgeIds);
       } else {
         return createElementIterator(Edge.class, edges, edgeIdManager, edgeIds);
       }
@@ -474,7 +472,6 @@ public final class TinkerGraph implements Graph {
     /** would have been nice to share the implementation with `createElementIterator` and just pass a transform Function, but that didn't work out... */
     private <T extends Element> Iterator<T> createElementIteratorForCached(final Class<T> clazz,
                                                                            final Set<Long> allElementIds,
-                                                                           final Map<Long, byte[]> onDiskOverflow,
                                                                            final Cache<Long, ? extends T> cache,
                                                                            final Serializer<? extends T> serializer,
                                                                            final Object... ids) {
@@ -497,7 +494,7 @@ public final class TinkerGraph implements Graph {
               } else {
                   id = (Long) obj;
               }
-              T element = getElement(id, onDiskOverflow, cache, serializer);
+              T element = getElement(id, cache, serializer);
               return element;
           }
       }).iterator();
@@ -505,14 +502,13 @@ public final class TinkerGraph implements Graph {
 
   /** check for element in cache, otherwise read from `onDiskOverflow`, deserialize and put back in cache */
     private <T extends Element> T getElement(final Long id,
-                                             final Map<Long, byte[]> onDiskOverflow,
                                              final Cache<Long, ? extends T> cache,
                                              final Serializer<? extends T> serializer) {
       if (cache.containsKey(id)) {
         return cache.get(id);
       } else {
         try {
-          T deserializedElement = serializer.deserialize(onDiskOverflow.get(id));
+          T deserializedElement = serializer.deserialize(onDiskElementOverflow.get(id));
           if (deserializedElement != null) {
               ((Cache<Long, T>) cache).put(id, deserializedElement);
           }

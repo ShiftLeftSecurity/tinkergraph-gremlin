@@ -23,15 +23,11 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * @author Marko A. Rodriguez (http://markorodriguez.com)
@@ -142,12 +138,16 @@ final class TinkerIndex<T extends Element> {
             return;
         this.indexedKeys.add(key);
 
-        final Stream<T> elements;
+
+        final Iterator<T> elementsIter;
         if (Vertex.class.isAssignableFrom(this.indexClass)) {
-            elements = this.graph.onDiskVertexOverflow.keySet().stream().map(id -> (T) graph.vertexById(id));
+             elementsIter = (Iterator<T>) graph.vertices();
         } else {
-            elements = this.graph.onDiskEdgeOverflow.keySet().stream().map(id -> (T) graph.edgeById(id));
+            elementsIter = (Iterator<T>) graph.edges();
         }
+        Spliterator<T> spliterator = Spliterators.spliteratorUnknownSize(elementsIter, Spliterator.ORDERED);
+        boolean parallel = false;
+        final Stream<T> elements = StreamSupport.stream(spliterator, parallel);
         elements.map(e -> new Object[]{((T) e).property(key), e.id()})
                 .filter(a -> ((Property) a[0]).isPresent())
                 .forEach(a -> this.put(key, ((Property) a[0]).value(), (Long) a[1]));

@@ -103,14 +103,16 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
         if (graph.specializedEdgeFactoryByLabel.containsKey(label)) {
             SpecializedElementFactory.ForEdge factory = graph.specializedEdgeFactoryByLabel.get(label);
+
             Long idValue = (Long) graph.edgeIdManager.convert(ElementHelper.getIdValue(keyValues).orElse(null));
             if (null != idValue) {
-                if (graph.edges.containsKey(idValue)) {
+                if (graph.edgeIds.contains(idValue)) {
                     throw Graph.Exceptions.edgeWithIdAlreadyExists(idValue);
                 }
             } else {
                 idValue = (Long) graph.edgeIdManager.getNextId(graph);
             }
+            graph.currentId.set(Long.max(idValue, graph.currentId.get()));
 
             ElementHelper.legalPropertyKeyValueArray(keyValues);
             TinkerVertex inVertex = (TinkerVertex) vertex;
