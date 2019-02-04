@@ -158,7 +158,8 @@ public final class TinkerGraph implements Graph {
 
         final File mvstoreFile;
         try {
-            mvstoreFile = File.createTempFile("mvstore", "bin");
+            mvstoreFile = File.createTempFile("mvstore", ".bin");
+            mvstoreFile.deleteOnExit();
             System.out.println("on-disk cache overflow file: " + mvstoreFile);
         } catch (IOException e) {
             throw new RuntimeException("cannot create tmp file for mvstore", e);
