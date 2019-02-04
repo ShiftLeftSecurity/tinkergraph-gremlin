@@ -164,7 +164,10 @@ public final class TinkerGraph implements Graph {
         } catch (IOException e) {
             throw new RuntimeException("cannot create tmp file for mvstore", e);
         }
-        mvstore = new MVStore.Builder().fileName(mvstoreFile.getAbsolutePath()).open();
+        mvstore = new MVStore.Builder()
+          .fileName(mvstoreFile.getAbsolutePath())
+          .autoCompactFillRate(0) // to avoid `Chunk ## no longer exists` error https://github.com/h2database/h2database/issues/373
+          .open();
         onDiskVertexOverflow = mvstore.openMap("vertices");
         onDiskEdgeOverflow = mvstore.openMap("edges");
 
