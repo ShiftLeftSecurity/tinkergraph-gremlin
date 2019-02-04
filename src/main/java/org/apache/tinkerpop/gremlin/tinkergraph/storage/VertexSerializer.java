@@ -50,18 +50,11 @@ public class VertexSerializer extends Serializer<Vertex> {
 
   @Override
   public byte[] serialize(Vertex vertex) throws IOException {
-    long start = System.currentTimeMillis();
-
     MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
     packer.packLong((Long) vertex.id());
     packer.packString(vertex.label());
     packProperties(packer, vertex.properties());
     packEdgeIds(packer, vertex);
-
-    long duration = System.currentTimeMillis() - start;
-    boolean newElem = serializedIds.add((Long) vertex.id());
-    if (!newElem)
-      System.out.println("VertexSerializer.serialize for id=" + vertex.id() + " took " + duration + "ms. newElem=" + newElem);
 
     return packer.toByteArray();
   }

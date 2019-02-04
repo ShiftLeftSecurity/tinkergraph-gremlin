@@ -51,7 +51,7 @@ final class TinkerIndex<T extends Element> {
     protected void put(final String key, final Object value, final long id) {
         Map<Object, Set<Long>> keyMap = this.index.get(key);
         if (null == keyMap) {
-            this.index.putIfAbsent(key, new ConcurrentHashMap<Object, Set<Long>>());
+            this.index.putIfAbsent(key, new ConcurrentHashMap<>());
             keyMap = this.index.get(key);
         }
         Set<Long> ids = keyMap.get(value);

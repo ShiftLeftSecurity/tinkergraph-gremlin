@@ -209,9 +209,9 @@ public final class TinkerGraph implements Graph {
         };
 
         CacheEventListenerConfigurationBuilder vertexCacheEventListenerConfig = CacheEventListenerConfigurationBuilder
-          .newEventListenerConfiguration(vertexCacheEventListener, EventType.EVICTED, EventType.REMOVED).asynchronous();
+          .newEventListenerConfiguration(vertexCacheEventListener, EventType.EVICTED, EventType.REMOVED).synchronous().unordered();
         CacheEventListenerConfigurationBuilder edgeCacheEventListenerConfig = CacheEventListenerConfigurationBuilder
-          .newEventListenerConfiguration(edgeCacheEventListener, EventType.EVICTED, EventType.REMOVED).asynchronous();
+          .newEventListenerConfiguration(edgeCacheEventListener, EventType.EVICTED, EventType.REMOVED).synchronous().unordered();
         cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
           .withCache(verticesCacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, SpecializedTinkerVertex.class, resourcePools).add(vertexCacheEventListenerConfig))
           .withCache(edgesCacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, SpecializedTinkerEdge.class, resourcePools).add(edgeCacheEventListenerConfig))
