@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
@@ -102,6 +103,20 @@ public class Artist extends SpecializedTinkerVertex {
     protected void removeSpecificInEdge(Long edgeId) {
         writtenByIn.remove(edgeId);
         sungByIn.remove(edgeId);
+    }
+
+    @Override
+    public Map<String, Set<Long>> edgeIdsByLabel(Direction direction) {
+        final Map<String, Set<Long>> result = new HashMap<>();
+        if (direction.equals(Direction.IN)) {
+            result.put(SungBy.label, sungByIn);
+            result.put(WrittenBy.label, writtenByIn);
+        } else if (direction.equals(Direction.OUT)) {
+        } else {
+            throw new NotImplementedException("not implemented for direction=" + direction);
+        }
+
+        return result;
     }
 
     @Override

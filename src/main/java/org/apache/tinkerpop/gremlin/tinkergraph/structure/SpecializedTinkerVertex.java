@@ -183,4 +183,6 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         this.graph.verticesCache.remove(id);
         this.graph.vertexIds.remove(id);
     }
+
+    public abstract Map<String, Set<Long>> edgeIdsByLabel(Direction direction);
 }

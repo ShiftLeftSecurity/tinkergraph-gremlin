@@ -25,7 +25,6 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.msgpack.core.MessageBufferPacker;
@@ -35,6 +34,7 @@ import org.msgpack.core.MessageUnpacker;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class VertexSerializer extends Serializer<Vertex> {
 
@@ -59,18 +59,29 @@ public class VertexSerializer extends Serializer<Vertex> {
     return packer.toByteArray();
   }
 
-  /** format: two `Map<Label, Array<EdgeId>>`, i.e. one Map for `IN` and one for `OUT` edges
-   * TODO: this is rather inefficient, because we potentially need to deserialize edges, just to get their ids and labels. idea: add a shortcut for SpecializedElements */
+  /** format: two `Map<Label, Array<EdgeId>>`, i.e. one Map for `IN` and one for `OUT` edges */
   private void packEdgeIds(MessageBufferPacker packer, Vertex vertex) throws IOException {
     for (Direction direction : new Direction[]{Direction.IN, Direction.OUT}) {
-      List<Edge> edges = IteratorUtils.toList(vertex.edges(direction));
-      // a simple group by would be nice, but java collections are still very basic apparently
-      Set<String> labels = edges.stream().map(e -> e.label()).collect(Collectors.toSet());
-      packer.packMapHeader(labels.size());
+      final Map<String, Set<Long>> edgeIdsByLabel;
+      if (vertex instanceof SpecializedTinkerVertex) {
+        edgeIdsByLabel = ((SpecializedTinkerVertex) vertex).edgeIdsByLabel(direction);
+      } else {
+        edgeIdsByLabel = new HashMap<>();
+        List<Edge> edges = IteratorUtils.toList(vertex.edges(direction));
+        // a simple group by would be nice, but java collections are still very basic apparently
+        Set<String> labels = edges.stream().map(e -> e.label()).collect(Collectors.toSet());
+        for (String label : labels) {
+          Set<Long> edgeIds = edges.stream().filter(e -> e.label().equals(label)).map(e -> (Long) e.id()).collect(Collectors.toSet());
+          edgeIdsByLabel.put(label, edgeIds);
+        }
+      }
 
+      // a simple group by would be nice, but java collections are still very basic apparently
+      packer.packMapHeader(edgeIdsByLabel.size());
+      Set<String> labels = edgeIdsByLabel.keySet();
       for (String label : labels) {
         packer.packString(label);
-        Set<Long> edgeIds = edges.stream().filter(e -> e.label().equals(label)).map(e -> (Long) e.id()).collect(Collectors.toSet());
+        Set<Long> edgeIds = edgeIdsByLabel.get(label);
         packer.packArrayHeader(edgeIds.size());
         for (Long edgeId : edgeIds) {
           packer.packLong(edgeId);

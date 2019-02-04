@@ -18,20 +18,17 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerVertexProperty;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.apache.tinkerpop.gremlin.util.iterator.MultiIterator;
 
 import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 public class Song extends SpecializedTinkerVertex implements Serializable {
     public static final String label = "song";
@@ -128,6 +125,22 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
     @Override
     protected void removeSpecificInEdge(Long edgeId) {
         followedByIn.remove(edgeId);
+    }
+
+    @Override
+    public Map<String, Set<Long>> edgeIdsByLabel(Direction direction) {
+        final Map<String, Set<Long>> result = new HashMap<>();
+        if (direction.equals(Direction.IN)) {
+            result.put(FollowedBy.label, followedByIn);
+        } else if (direction.equals(Direction.OUT)) {
+            result.put(FollowedBy.label, followedByOut);
+            result.put(WrittenBy.label, writtenByOut);
+            result.put(SungBy.label, sungByOut);
+        } else {
+            throw new NotImplementedException("not implemented for direction=" + direction);
+        }
+
+        return result;
     }
 
     @Override
