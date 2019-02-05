@@ -123,13 +123,14 @@ public final class TinkerGraph implements Graph {
     private final String graphLocation;
     private final String graphFormat;
 
-    /* storing all vertexIds and edgeIds as well. sort-of duplicate of the keys of cache and overflow */
-    protected Set<Long> vertexIds = new HashSet<>();
-    protected Set<Long> edgeIds = new HashSet<>();
-
     /* on heap cache  */
-    protected final String verticesCacheName = "verticesCache";
-    protected final String edgesCacheName = "edgesCache";
+    /* storing all vertexIds and edgeIds as well. 
+     * TODO: use more memory efficient set, or even use another tiered cache 
+     * n.b. bloom filters don't help, because we need to be able to remove entries
+     * n.b. maybe split up MVMap into two again and use the keySets 
+     **/
+    protected final Set<Long> vertexIds = new HashSet<>();
+    protected final Set<Long> edgeIds = new HashSet<>();
     protected final CacheManager cacheManager;
     protected final Cache<Long, SpecializedTinkerVertex> verticesCache;
     protected final Cache<Long, SpecializedTinkerEdge> edgesCache;
@@ -214,6 +215,8 @@ public final class TinkerGraph implements Graph {
           .newEventListenerConfiguration(vertexCacheEventListener, EventType.EVICTED, EventType.REMOVED).synchronous().unordered();
         CacheEventListenerConfigurationBuilder edgeCacheEventListenerConfig = CacheEventListenerConfigurationBuilder
           .newEventListenerConfiguration(edgeCacheEventListener, EventType.EVICTED, EventType.REMOVED).synchronous().unordered();
+        final String verticesCacheName = "verticesCache";
+        final String edgesCacheName = "edgesCache";
         cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
           .withCache(verticesCacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, SpecializedTinkerVertex.class, resourcePools).add(vertexCacheEventListenerConfig))
           .withCache(edgesCacheName, CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, SpecializedTinkerEdge.class, resourcePools).add(edgeCacheEventListenerConfig))

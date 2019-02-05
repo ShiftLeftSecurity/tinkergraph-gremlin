@@ -184,6 +184,8 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         Long id = (Long) this.id();
         this.graph.verticesCache.remove(id);
         this.graph.vertexIds.remove(id);
+        this.graph.vertices.remove(id);
+        this.graph.onDiskElementOverflow.remove(id);
     }
 
     public abstract Map<String, Set<Long>> edgeIdsByLabel(Direction direction);
