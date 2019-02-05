@@ -22,7 +22,6 @@ import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.stream.StreamSupport;
 
@@ -120,7 +119,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
             SpecializedTinkerEdge edge = factory.createEdge(idValue, graph, (long) outVertex.id, (long) inVertex.id);
             ElementHelper.attachProperties(edge, keyValues);
             graph.edgeIds.add(idValue);
-            graph.edgesCache.put(idValue, edge);
+            graph.edgeCache.put(idValue, edge);
 
             // TODO: allow to connect non-specialised vertices with specialised edges and vice versa
             this.addSpecializedOutEdge(edge.label(), (Long) edge.id());
@@ -182,10 +181,10 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     public void remove() {
         super.remove();
         Long id = (Long) this.id();
-        this.graph.verticesCache.remove(id);
+        this.graph.vertexCache.remove(id);
         this.graph.vertexIds.remove(id);
         this.graph.vertices.remove(id);
-        this.graph.onDiskElementOverflow.remove(id);
+        this.graph.onDiskVertexOverflow.remove(id);
     }
 
     public abstract Map<String, Set<Long>> edgeIdsByLabel(Direction direction);
