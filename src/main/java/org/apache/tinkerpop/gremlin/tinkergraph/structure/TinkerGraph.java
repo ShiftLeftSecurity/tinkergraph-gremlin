@@ -188,30 +188,39 @@ public final class TinkerGraph implements Graph {
             if (event.getType().equals(EventType.REMOVED)) {
                 onDiskVertexOverflow.remove(event.getKey());
             } else if (event.getType().equals(EventType.EVICTED)) {
-                Vertex vertex = event.getOldValue();
-                final byte[] serialized;
-                try {
-                    serialized = vertexSerializer.serialize(vertex);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    throw new RuntimeException("unable to serialize " + vertex, e);
+                final SpecializedTinkerVertex vertex = (SpecializedTinkerVertex) event.getOldValue();
+                final Long id = (Long) vertex.id();
+                if (!onDiskVertexOverflow.containsKey(id) || vertex.isModifiedSinceLastSerialization()) {
+                    final byte[] serialized;
+                    try {
+                        serialized = vertexSerializer.serialize(vertex);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        throw new RuntimeException("unable to serialize " + vertex, e);
+                    }
+                    vertex.setModifiedSinceLastSerialization(false);
+                    onDiskVertexOverflow.put(id, serialized);
                 }
-                onDiskVertexOverflow.put((Long) vertex.id(), serialized);
+
             }
         };
         CacheEventListener<Long, Edge> edgeCacheEventListener = event -> {
             if (event.getType().equals(EventType.REMOVED)) {
                 onDiskEdgeOverflow.remove(event.getKey());
             } else if (event.getType().equals(EventType.EVICTED)) {
-                Edge edge = event.getOldValue();
-                final byte[] serialized;
-                try {
-                    serialized = edgeSerializer.serialize((SpecializedTinkerEdge) edge);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    throw new RuntimeException("unable to serialize " + edge, e);
+                final SpecializedTinkerEdge edge = (SpecializedTinkerEdge) event.getOldValue();
+                final Long id = (Long) edge.id();
+                if (!onDiskVertexOverflow.containsKey(id) || edge.isModifiedSinceLastSerialization()) {
+                    final byte[] serialized;
+                    try {
+                        serialized = edgeSerializer.serialize((SpecializedTinkerEdge) edge);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        throw new RuntimeException("unable to serialize " + edge, e);
+                    }
+                    edge.setModifiedSinceLastSerialization(false);
+                    onDiskEdgeOverflow.put(id, serialized);
                 }
-                onDiskEdgeOverflow.put((Long) edge.id(), serialized);
             }
         };
 

@@ -29,6 +29,9 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     private final Set<String> specificKeys;
 
+    /** `dirty` flag for serialization to avoid superfluous serialization */
+    private boolean modifiedSinceLastSerialization = true;
+
     protected SpecializedTinkerVertex(long id, String label, TinkerGraph graph, Set<String> specificKeys) {
         super(id, label, graph);
         this.specificKeys = specificKeys;
@@ -80,6 +83,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     @Override
     public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality, String key, V value, Object... keyValues) {
+        this.modifiedSinceLastSerialization = true;
         if (this.removed) throw elementAlreadyRemoved(Vertex.class, id);
         ElementHelper.legalPropertyKeyValueArray(keyValues);
         ElementHelper.validateProperty(key, value);
@@ -93,6 +97,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... keyValues) {
+        this.modifiedSinceLastSerialization = true;
         if (null == vertex) {
             throw Graph.Exceptions.argumentCanNotBeNull("inVertex");
         }
@@ -185,7 +190,17 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         this.graph.vertexIds.remove(id);
         this.graph.vertices.remove(id);
         this.graph.onDiskVertexOverflow.remove(id);
+        this.modifiedSinceLastSerialization = true;
     }
 
     public abstract Map<String, Set<Long>> edgeIdsByLabel(Direction direction);
+
+    public boolean isModifiedSinceLastSerialization() {
+        return modifiedSinceLastSerialization;
+    }
+
+    public void setModifiedSinceLastSerialization(boolean modifiedSinceLastSerialization) {
+        this.modifiedSinceLastSerialization = modifiedSinceLastSerialization;
+    }
+
 }

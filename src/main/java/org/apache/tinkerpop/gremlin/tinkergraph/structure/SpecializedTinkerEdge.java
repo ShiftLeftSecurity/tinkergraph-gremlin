@@ -26,6 +26,9 @@ import java.util.*;
 
 public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
+  /** `dirty` flag for serialization to avoid superfluous serialization */
+    private boolean modifiedSinceLastSerialization = true;
+
     private final Set<String> specificKeys;
 
     //using ids instead of hard references, so we can use disk storage
@@ -67,6 +70,7 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     @Override
     public <V> Property<V> property(String key, V value) {
+        modifiedSinceLastSerialization = true;
         if (this.removed) throw elementAlreadyRemoved(Edge.class, id);
         ElementHelper.validateProperty(key, value);
         final Property oldProperty = super.property(key);
@@ -98,6 +102,7 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
         ((TinkerGraph) this.graph()).edgeCache.remove(id);
         this.properties = null;
         this.removed = true;
+        modifiedSinceLastSerialization = true;
     }
 
     @Override
@@ -116,4 +121,11 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
         return graph.vertexById(this.inVertexId);
     }
 
+    public void setModifiedSinceLastSerialization(boolean modifiedSinceLastSerialization) {
+      this.modifiedSinceLastSerialization = modifiedSinceLastSerialization;
+    }
+
+    public boolean isModifiedSinceLastSerialization() {
+      return modifiedSinceLastSerialization;
+    }
 }

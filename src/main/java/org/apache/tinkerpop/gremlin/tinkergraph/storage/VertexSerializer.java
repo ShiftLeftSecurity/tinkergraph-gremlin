@@ -121,6 +121,7 @@ public class VertexSerializer extends Serializer<Vertex> {
       }
     });
 
+    vertex.setModifiedSinceLastSerialization(false);
     return vertex;
   }
 

@@ -64,6 +64,7 @@ public class EdgeSerializer extends Serializer<SpecializedTinkerEdge> {
     SpecializedTinkerEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexId, inVertexId);
     ElementHelper.attachProperties(edge, keyValues);
 
+    edge.setModifiedSinceLastSerialization(false);
     return edge;
   }
 }
