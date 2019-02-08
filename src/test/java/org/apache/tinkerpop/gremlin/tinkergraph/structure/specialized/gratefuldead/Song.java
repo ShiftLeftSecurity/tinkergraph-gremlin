@@ -85,6 +85,20 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
         return property(key);
     }
 
+
+    @Override
+    protected void removeSpecificProperty(String key) {
+        if (NAME.equals(key)) {
+            this.name = null;
+        } else if (SONG_TYPE.equals(key)) {
+            this.songType = null;
+        } else if (PERFORMANCES.equals(key)) {
+            this.performances = null;
+        } else {
+            throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
+        }
+    }
+
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
     protected Iterator<Long> specificEdges(Direction direction, String... edgeLabels) {

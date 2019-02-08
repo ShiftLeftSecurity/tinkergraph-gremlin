@@ -60,6 +60,15 @@ public class FollowedBy extends SpecializedTinkerEdge {
         return property(key);
     }
 
+    @Override
+    protected void removeSpecificProperty(String key) {
+        if (WEIGHT.equals(key)) {
+            this.weight = null;
+        } else {
+            throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
+        }
+    }
+
     public static SpecializedElementFactory.ForEdge<FollowedBy> factory = new SpecializedElementFactory.ForEdge<FollowedBy>() {
         @Override
         public String forLabel() {

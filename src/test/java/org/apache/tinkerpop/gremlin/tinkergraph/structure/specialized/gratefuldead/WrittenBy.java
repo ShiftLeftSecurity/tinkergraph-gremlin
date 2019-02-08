@@ -46,6 +46,11 @@ public class WrittenBy extends SpecializedTinkerEdge implements Serializable {
         throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
     }
 
+    @Override
+    protected void removeSpecificProperty(String key) {
+        throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
+    }
+
     public static SpecializedElementFactory.ForEdge<WrittenBy> factory = new SpecializedElementFactory.ForEdge<WrittenBy>() {
         @Override
         public String forLabel() {

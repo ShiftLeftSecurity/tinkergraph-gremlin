@@ -46,6 +46,11 @@ public class SungBy extends SpecializedTinkerEdge implements Serializable {
         throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
     }
 
+    @Override
+    protected void removeSpecificProperty(String key) {
+        throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
+    }
+
     public static SpecializedElementFactory.ForEdge<SungBy> factory = new SpecializedElementFactory.ForEdge<SungBy>() {
         @Override
         public String forLabel() {
