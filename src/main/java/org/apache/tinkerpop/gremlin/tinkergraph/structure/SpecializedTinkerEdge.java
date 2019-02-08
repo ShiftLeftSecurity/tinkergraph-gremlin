@@ -81,7 +81,12 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     protected abstract <V> Property<V> updateSpecificProperty(String key, V value);
 
-    public abstract void removeSpecificProperty(String key);
+    public void removeProperty(String key) {
+        modifiedSinceLastSerialization = true;
+        removeSpecificProperty(key);
+    }
+
+    protected abstract void removeSpecificProperty(String key);
 
     @Override
     public Graph graph() {

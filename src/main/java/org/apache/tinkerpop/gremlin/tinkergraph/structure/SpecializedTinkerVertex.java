@@ -95,7 +95,12 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     protected abstract <V> VertexProperty<V> updateSpecificProperty(
       VertexProperty.Cardinality cardinality, String key, V value);
 
-    public abstract void removeSpecificProperty(String key);
+    public void removeProperty(String key) {
+        modifiedSinceLastSerialization = true;
+        removeSpecificProperty(key);
+    }
+
+    protected abstract void removeSpecificProperty(String key);
 
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... keyValues) {
