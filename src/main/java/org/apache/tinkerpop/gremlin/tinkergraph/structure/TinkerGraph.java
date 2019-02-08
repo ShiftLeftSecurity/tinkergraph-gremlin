@@ -18,6 +18,9 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
+import gnu.trove.iterator.TLongIterator;
+import gnu.trove.set.TLongSet;
+import gnu.trove.set.hash.TLongHashSet;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
@@ -129,8 +132,8 @@ public final class TinkerGraph implements Graph {
      * n.b. bloom filters don't help, because we need to be able to remove entries
      * n.b. tried spliting up MVMap into two again and use the keySets - doesn't work because Ehcache doesn't allow to retrieve it's keyset :(
      **/
-    protected final Set<Long> vertexIds = new HashSet<>();
-    protected final Set<Long> edgeIds = new HashSet<>();
+    protected final TLongSet vertexIds = new TLongHashSet(100000);
+    protected final TLongSet edgeIds = new TLongHashSet(100000);
     protected final CacheManager cacheManager;
     protected final Cache<Long, SpecializedTinkerVertex> vertexCache;
     protected final Cache<Long, SpecializedTinkerEdge> edgeCache;
@@ -485,34 +488,42 @@ public final class TinkerGraph implements Graph {
 
     /** would have been nice to share the implementation with `createElementIterator` and just pass a transform Function, but that didn't work out... */
     private <T extends Element> Iterator<T> createElementIteratorForCached(final Class<T> clazz,
-                                                                           final Set<Long> allElementIds,
+                                                                           final TLongSet allElementIds,
                                                                            final Cache<Long, ? extends T> cache,
                                                                            final MVMap<Long, byte[]> onDiskElementOverflow,
                                                                            final Serializer<? extends T> serializer,
                                                                            final Object... ids) {
-      final Collection<Object> idList;
       if (0 == ids.length) {
-          // TODO really, is that the way to do this in java?
-          idList = Arrays.asList(allElementIds.stream().map(l -> (Object) l).toArray());
+          TLongIterator allIdsIter = allElementIds.iterator();
+          return new Iterator<T>() {
+              @Override
+              public boolean hasNext() {
+                  return allIdsIter.hasNext();
+              }
+              @Override
+              public T next() {
+                  long id = allIdsIter.next();
+                  return getElement(id, cache, onDiskElementOverflow, serializer);
+              }
+          };
       } else {
-          idList = Arrays.asList(ids);
+          return Arrays.asList(ids).stream().map(obj -> {
+              if (clazz.isInstance(obj)) {
+                  return (T) obj;
+              } else {
+                  final Long id;
+                  // for whatever reason the passed objects can either be elements or their ids... :(
+                  if (obj instanceof Integer) {
+                      id = ((Integer) obj).longValue();
+                  } else {
+                      id = (Long) obj;
+                  }
+                  T element = getElement(id, cache, onDiskElementOverflow, serializer);
+                  return element;
+              }
+          }).iterator();
       }
 
-      return idList.stream().map(obj -> {
-          if (clazz.isInstance(obj)) {
-              return (T) obj;
-          } else {
-              final Long id;
-              // for whatever reason the passed objects can either be elements or their ids... :(
-              if (obj instanceof Integer) {
-                  id = ((Integer) obj).longValue();
-              } else {
-                  id = (Long) obj;
-              }
-              T element = getElement(id, cache, onDiskElementOverflow, serializer);
-              return element;
-          }
-      }).iterator();
     }
 
   /** check for element in cache, otherwise read from `onDiskOverflow`, deserialize and put back in cache */

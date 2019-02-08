@@ -18,6 +18,9 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
+import gnu.trove.iterator.TLongIterator;
+import gnu.trove.set.TLongSet;
+import gnu.trove.set.hash.TLongHashSet;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
@@ -25,6 +28,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -34,7 +38,7 @@ import java.util.stream.StreamSupport;
  */
 final class TinkerIndex<T extends Element> {
 
-    protected Map<String, Map<Object, Set<Long>>> index = new ConcurrentHashMap<>();
+    protected Map<String, Map<Object, TLongSet>> index = new ConcurrentHashMap<>();
     protected final Class<T> indexClass;
     private final Set<String> indexedKeys = new HashSet<>();
     private final TinkerGraph graph;
@@ -45,46 +49,51 @@ final class TinkerIndex<T extends Element> {
     }
 
     protected void put(final String key, final Object value, final long id) {
-        Map<Object, Set<Long>> keyMap = this.index.get(key);
+        Map<Object, TLongSet> keyMap = this.index.get(key);
         if (null == keyMap) {
             this.index.putIfAbsent(key, new ConcurrentHashMap<>());
             keyMap = this.index.get(key);
         }
-        Set<Long> ids = keyMap.get(value);
+        TLongSet ids = keyMap.get(value);
         if (null == ids) {
-            keyMap.putIfAbsent(value, ConcurrentHashMap.newKeySet());
+            keyMap.putIfAbsent(value, new TLongHashSet());
             ids = keyMap.get(value);
         }
         ids.add(id);
     }
 
     public List<T> get(final String key, final Object value) {
-        final Map<Object, Set<Long>> keyMap = this.index.get(key);
+        final Map<Object, TLongSet> keyMap = this.index.get(key);
         if (null == keyMap) {
             return Collections.emptyList();
         } else {
-            Set<Long> ids = keyMap.get(value);
+            TLongSet ids = keyMap.get(value);
             if (null == ids)
                 return Collections.emptyList();
             else {
-                final Set<T> elements;
+                TLongIterator idsIter = ids.iterator();
+                final List<T> elements = new ArrayList<>(ids.size());
                 if (Vertex.class.isAssignableFrom(this.indexClass)) {
-                    elements = ids.stream().map(id -> (T) graph.vertexById(id)).collect(Collectors.toSet());
+                    while (idsIter.hasNext()) {
+                        elements.add((T) graph.vertexById(idsIter.next()));
+                    }
                 } else {
-                    elements = ids.stream().map(id -> (T) graph.edgeById(id)).collect(Collectors.toSet());
+                    while (idsIter.hasNext()) {
+                        elements.add((T) graph.edgeById(idsIter.next()));
+                    }
                 }
-                return new ArrayList<>(elements);
+                return elements;
             }
 
         }
     }
 
     public long count(final String key, final Object value) {
-        final Map<Object, Set<Long>> keyMap = this.index.get(key);
+        final Map<Object, TLongSet> keyMap = this.index.get(key);
         if (null == keyMap) {
             return 0;
         } else {
-            Set<Long> set = keyMap.get(value);
+            TLongSet set = keyMap.get(value);
             if (null == set)
                 return 0;
             else
@@ -93,9 +102,9 @@ final class TinkerIndex<T extends Element> {
     }
 
     public void remove(final String key, final Object value, final long id) {
-        final Map<Object, Set<Long>> keyMap = this.index.get(key);
+        final Map<Object, TLongSet> keyMap = this.index.get(key);
         if (null != keyMap) {
-            Set<Long> ids = keyMap.get(value);
+            TLongSet ids = keyMap.get(value);
             if (null != ids) {
                 ids.remove(id);
                 if (ids.size() == 0) {
@@ -107,9 +116,9 @@ final class TinkerIndex<T extends Element> {
 
     public void removeElement(final T element) {
         if (this.indexClass.isAssignableFrom(element.getClass())) {
-            for (Map<Object, Set<Long>> map : index.values()) {
-                for (Set<Long> set : map.values()) {
-                    set.remove(element.id());
+            for (Map<Object, TLongSet> map : index.values()) {
+                for (TLongSet set : map.values()) {
+                    set.remove((Long) element.id());
                 }
             }
         }
