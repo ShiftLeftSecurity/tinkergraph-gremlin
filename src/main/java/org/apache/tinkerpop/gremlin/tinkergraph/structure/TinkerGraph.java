@@ -216,7 +216,7 @@ public final class TinkerGraph implements Graph {
                 if (!onDiskVertexOverflow.containsKey(id) || edge.isModifiedSinceLastSerialization()) {
                     final byte[] serialized;
                     try {
-                        serialized = edgeSerializer.serialize((SpecializedTinkerEdge) edge);
+                        serialized = edgeSerializer.serialize(edge);
                     } catch (IOException e) {
                         e.printStackTrace();
                         throw new RuntimeException("unable to serialize " + edge, e);

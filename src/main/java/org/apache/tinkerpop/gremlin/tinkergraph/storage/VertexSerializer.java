@@ -48,10 +48,12 @@ public class VertexSerializer extends Serializer<Vertex> {
   @Override
   public byte[] serialize(Vertex vertex) throws IOException {
     MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
+    ((SpecializedTinkerVertex) vertex).acquireModificationLock();
     packer.packLong((Long) vertex.id());
     packer.packString(vertex.label());
     packProperties(packer, vertex.properties());
     packEdgeIds(packer, vertex);
+    ((SpecializedTinkerVertex) vertex).releaseModificationLock();
 
     return packer.toByteArray();
   }

@@ -23,6 +23,7 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
+import java.util.concurrent.Semaphore;
 import java.util.stream.StreamSupport;
 
 public abstract class SpecializedTinkerVertex extends TinkerVertex {
@@ -31,6 +32,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     /** `dirty` flag for serialization to avoid superfluous serialization */
     private boolean modifiedSinceLastSerialization = true;
+    private Semaphore modificationSemaphore = new Semaphore(1);
 
     protected SpecializedTinkerVertex(long id, String label, TinkerGraph graph, Set<String> specificKeys) {
         super(id, label, graph);
@@ -83,12 +85,14 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     @Override
     public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality, String key, V value, Object... keyValues) {
-        this.modifiedSinceLastSerialization = true;
         if (this.removed) throw elementAlreadyRemoved(Vertex.class, id);
         ElementHelper.legalPropertyKeyValueArray(keyValues);
         ElementHelper.validateProperty(key, value);
+        acquireModificationLock();
+        this.modifiedSinceLastSerialization = true;
         final VertexProperty<V> vp = updateSpecificProperty(cardinality, key, value);
         TinkerHelper.autoUpdateIndex(this, key, value, null);
+        releaseModificationLock();
         return vp;
     }
 
@@ -96,15 +100,16 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
       VertexProperty.Cardinality cardinality, String key, V value);
 
     public void removeProperty(String key) {
+        acquireModificationLock();
         modifiedSinceLastSerialization = true;
         removeSpecificProperty(key);
+        releaseModificationLock();
     }
 
     protected abstract void removeSpecificProperty(String key);
 
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... keyValues) {
-        this.modifiedSinceLastSerialization = true;
         if (null == vertex) {
             throw Graph.Exceptions.argumentCanNotBeNull("inVertex");
         }
@@ -133,9 +138,11 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
             graph.edgeIds.add(idValue);
             graph.edgeCache.put(idValue, edge);
 
-            // TODO: allow to connect non-specialised vertices with specialised edges and vice versa
+            acquireModificationLock();
             this.addSpecializedOutEdge(edge.label(), (Long) edge.id());
             ((SpecializedTinkerVertex) inVertex).addSpecializedInEdge(edge.label(), (Long) edge.id());
+            releaseModificationLock();
+            this.modifiedSinceLastSerialization = true;
             return edge;
         } else { // edge label not registered for a specialized factory, treating as generic edge
             if (graph.usesSpecializedElements) {
@@ -192,12 +199,14 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     @Override
     public void remove() {
         super.remove();
+        acquireModificationLock();
         Long id = (Long) this.id();
         this.graph.vertexCache.remove(id);
         this.graph.vertexIds.remove(id);
         this.graph.vertices.remove(id);
         this.graph.onDiskVertexOverflow.remove(id);
         this.modifiedSinceLastSerialization = true;
+        releaseModificationLock();
     }
 
     public abstract Map<String, Set<Long>> edgeIdsByLabel(Direction direction);
@@ -210,4 +219,15 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         this.modifiedSinceLastSerialization = modifiedSinceLastSerialization;
     }
 
+    public void acquireModificationLock() {
+        try {
+            modificationSemaphore.acquire();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void releaseModificationLock() {
+        modificationSemaphore.release();
+    }
 }

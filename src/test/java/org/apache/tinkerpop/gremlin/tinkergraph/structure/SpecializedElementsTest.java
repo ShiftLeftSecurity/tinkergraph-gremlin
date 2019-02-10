@@ -24,7 +24,6 @@ import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSo
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.*;
 import org.apache.tinkerpop.gremlin.util.TimeUtil;
@@ -32,7 +31,6 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.__;
 import static org.junit.Assert.*;
@@ -40,7 +38,7 @@ import static org.junit.Assert.*;
 public class SpecializedElementsTest {
 
     @Test
-    public void simplisticTest() {
+    public void simpleTest() {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
 
         Vertex v0 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 1");

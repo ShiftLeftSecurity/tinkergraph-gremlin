@@ -23,11 +23,13 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
+import java.util.concurrent.Semaphore;
 
 public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
-  /** `dirty` flag for serialization to avoid superfluous serialization */
+    /** `dirty` flag for serialization to avoid superfluous serialization */
     private boolean modifiedSinceLastSerialization = true;
+    private Semaphore modificationSemaphore = new Semaphore(1);
 
     private final Set<String> specificKeys;
 
@@ -70,20 +72,24 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     @Override
     public <V> Property<V> property(String key, V value) {
-        modifiedSinceLastSerialization = true;
         if (this.removed) throw elementAlreadyRemoved(Edge.class, id);
         ElementHelper.validateProperty(key, value);
         final Property oldProperty = super.property(key);
+        acquireModificationLock();
+        modifiedSinceLastSerialization = true;
         final Property<V> p = updateSpecificProperty(key, value);
         TinkerHelper.autoUpdateIndex(this, key, value, oldProperty.isPresent() ? oldProperty.value() : null);
+        releaseModificationLock();
         return p;
     }
 
     protected abstract <V> Property<V> updateSpecificProperty(String key, V value);
 
     public void removeProperty(String key) {
+        acquireModificationLock();
         modifiedSinceLastSerialization = true;
         removeSpecificProperty(key);
+        releaseModificationLock();
     }
 
     protected abstract void removeSpecificProperty(String key);
@@ -95,6 +101,7 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     @Override
     public void remove() {
+        acquireModificationLock();
         final SpecializedTinkerVertex outVertex = (SpecializedTinkerVertex) this.outVertex();
         final SpecializedTinkerVertex inVertex = (SpecializedTinkerVertex) this.inVertex();
 
@@ -110,6 +117,7 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
         this.properties = null;
         this.removed = true;
         modifiedSinceLastSerialization = true;
+        releaseModificationLock();
     }
 
     @Override
@@ -134,5 +142,17 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     public boolean isModifiedSinceLastSerialization() {
       return modifiedSinceLastSerialization;
+    }
+
+    public void acquireModificationLock() {
+      try {
+        modificationSemaphore.acquire();
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    public void releaseModificationLock() {
+      modificationSemaphore.release();
     }
 }
