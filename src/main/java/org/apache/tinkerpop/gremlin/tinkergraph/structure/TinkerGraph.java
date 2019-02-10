@@ -183,9 +183,9 @@ public final class TinkerGraph implements Graph {
 
         // initialize cache (on-heap, overflow to disk)
         float maxMemory = Runtime.getRuntime().maxMemory();
-        long cacheMaxHeapBytes = (long) (maxMemory / 100f * configuration.getFloat(GREMLIN_TINKERGRAPH_CACHE_MAX_HEAP_PERCENTAGE));
-        System.out.println("initializing cache with cacheMaxHeapBytes=" + cacheMaxHeapBytes);
-        ResourcePools resourcePools = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(cacheMaxHeapBytes, MemoryUnit.B).build();
+        long cacheMaxHeapMegabytes = (long) (maxMemory / 100f * configuration.getFloat(GREMLIN_TINKERGRAPH_CACHE_MAX_HEAP_PERCENTAGE) / 1024f / 1024f);
+        System.out.println("using " + cacheMaxHeapMegabytes + "m for element cache (anything above will be serialized to disk)");
+        ResourcePools resourcePools = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(cacheMaxHeapMegabytes, MemoryUnit.MB).build();
 
         CacheEventListener<Long, Vertex> vertexCacheEventListener = event -> {
             if (event.getType().equals(EventType.REMOVED)) {
