@@ -164,8 +164,9 @@ public final class TinkerGraph implements Graph {
         final File mvstoreVerticesFile;
         final File mvstoreEdgesFile;
         try {
-            mvstoreVerticesFile = File.createTempFile("mvstoreVertices", ".bin");
-            mvstoreEdgesFile = File.createTempFile("mvstoreEdges", ".bin");
+            File cacheParentDir = graphLocation != null ? new File(graphLocation) : null;
+            mvstoreVerticesFile = File.createTempFile("mvstoreVertices", ".bin", cacheParentDir);
+            mvstoreEdgesFile = File.createTempFile("mvstoreEdges", ".bin", cacheParentDir);
             mvstoreVerticesFile.deleteOnExit();
             mvstoreEdgesFile.deleteOnExit();
             System.out.println("on-disk cache overflow files: " + mvstoreVerticesFile + ", " + mvstoreVerticesFile);
