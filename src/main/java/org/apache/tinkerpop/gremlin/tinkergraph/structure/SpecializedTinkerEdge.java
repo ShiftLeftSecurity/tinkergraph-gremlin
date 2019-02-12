@@ -110,10 +110,13 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
         inVertex.removeInEdge(id);
 
         TinkerHelper.removeElementIndex(this);
-        ((TinkerGraph) this.graph()).edges.remove(id);
-        ((TinkerGraph) this.graph()).edgeIds.remove(id);
-        ((TinkerGraph) this.graph()).onDiskEdgeOverflow.remove(id);
-        ((TinkerGraph) this.graph()).edgeCache.remove(id);
+        graph.edges.remove(id);
+        if (graph.ondiskOverflowEnabled) {
+            graph.edgeIds.remove(id);
+            graph.onDiskEdgeOverflow.remove(id);
+            graph.edgeCache.remove(id);
+        }
+
         this.properties = null;
         this.removed = true;
         modifiedSinceLastSerialization = true;

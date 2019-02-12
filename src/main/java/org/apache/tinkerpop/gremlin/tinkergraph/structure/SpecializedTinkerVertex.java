@@ -122,7 +122,8 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
             Long idValue = (Long) graph.edgeIdManager.convert(ElementHelper.getIdValue(keyValues).orElse(null));
             if (null != idValue) {
-                if (graph.edgeIds.contains(idValue)) {
+                if ((graph.ondiskOverflowEnabled && graph.edgeIds.contains(idValue)) ||
+                  (!graph.ondiskOverflowEnabled && graph.edges.containsKey(idValue))) {
                     throw Graph.Exceptions.edgeWithIdAlreadyExists(idValue);
                 }
             } else {
@@ -135,8 +136,12 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
             TinkerVertex outVertex = this;
             SpecializedTinkerEdge edge = factory.createEdge(idValue, graph, (long) outVertex.id, (long) inVertex.id);
             ElementHelper.attachProperties(edge, keyValues);
-            graph.edgeIds.add(idValue);
-            graph.edgeCache.put(idValue, edge);
+            if (graph.ondiskOverflowEnabled) {
+                graph.edgeIds.add(idValue);
+                graph.edgeCache.put(idValue, edge);
+            } else {
+                graph.edges.put(idValue, edge);
+            }
 
             acquireModificationLock();
             this.addSpecializedOutEdge(edge.label(), (Long) edge.id());
@@ -178,7 +183,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         } else if (direction == Direction.OUT) {
             return IteratorUtils.map(edges, Edge::inVertex);
         } else if (direction == Direction.BOTH) {
-            return IteratorUtils.concat(vertices(Direction.IN), vertices(Direction.OUT));
+            return IteratorUtils.concat(vertices(Direction.IN, edgeLabels), vertices(Direction.OUT, edgeLabels));
         } else {
             return Collections.emptyIterator();
         }
@@ -201,10 +206,14 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         super.remove();
         acquireModificationLock();
         Long id = (Long) this.id();
-        this.graph.vertexCache.remove(id);
-        this.graph.vertexIds.remove(id);
+
+        if (graph.ondiskOverflowEnabled) {
+            this.graph.vertexCache.remove(id);
+            this.graph.vertexIds.remove(id);
+            this.graph.onDiskVertexOverflow.remove(id);
+        }
         this.graph.vertices.remove(id);
-        this.graph.onDiskVertexOverflow.remove(id);
+
         this.modifiedSinceLastSerialization = true;
         releaseModificationLock();
     }
