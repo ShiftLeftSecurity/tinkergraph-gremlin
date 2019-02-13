@@ -95,8 +95,10 @@ public final class TinkerGraph implements Graph {
     public static final String GREMLIN_TINKERGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY = "gremlin.tinkergraph.defaultVertexPropertyCardinality";
     public static final String GREMLIN_TINKERGRAPH_GRAPH_LOCATION = "gremlin.tinkergraph.graphLocation";
     public static final String GREMLIN_TINKERGRAPH_GRAPH_FORMAT = "gremlin.tinkergraph.graphFormat";
-    public static final String GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED = "gremlin.tinkergraph.ondiskOverflowEnabled";
+    public static final String GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED = "gremlin.tinkergraph.ondiskOverflow.enabled";
     public static final String GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_CACHE_MAX_HEAP_PERCENTAGE = "gremlin.tinkergraph.ondiskOverflow.cacheMaxHeapPercentage";
+    public static final String GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR = "gremlin.tinkergraph.ondiskOverflow.rootDir";
+
 
     private final TinkerGraphFeatures features = new TinkerGraphFeatures();
 
@@ -167,7 +169,8 @@ public final class TinkerGraph implements Graph {
         final File mvstoreVerticesFile;
         final File mvstoreEdgesFile;
         try {
-            File cacheParentDir = graphLocation != null ? new File(graphLocation) : null;
+            String ondiskOverflowRootDir = configuration.getString(GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR);
+            File cacheParentDir = ondiskOverflowRootDir != null ? new File(ondiskOverflowRootDir) : null;
             mvstoreVerticesFile = File.createTempFile("mvstoreVertices", ".bin", cacheParentDir);
             mvstoreEdgesFile = File.createTempFile("mvstoreEdges", ".bin", cacheParentDir);
             mvstoreVerticesFile.deleteOnExit();
