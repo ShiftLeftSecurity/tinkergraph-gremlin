@@ -167,7 +167,7 @@ public class SpecializedElementsTest {
 
     @Test
     public void shouldUseIndices() throws IOException {
-        int loops = 100;
+        int loops = 1000;
         Double avgTimeWithIndex = null;
         Double avgTimeWithoutIndex = null;
 
