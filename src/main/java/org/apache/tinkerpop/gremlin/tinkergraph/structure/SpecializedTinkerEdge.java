@@ -18,20 +18,29 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Property;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
+import java.util.concurrent.Semaphore;
 
-public abstract class SpecializedTinkerEdge<IdType> extends TinkerEdge {
+public abstract class SpecializedTinkerEdge extends TinkerEdge {
+
+    /** `dirty` flag for serialization to avoid superfluous serialization */
+    private boolean modifiedSinceLastSerialization = true;
+    private Semaphore modificationSemaphore = new Semaphore(1);
 
     private final Set<String> specificKeys;
 
-    protected SpecializedTinkerEdge(IdType id, Vertex outVertex, String label, Vertex inVertex, Set<String> specificKeys) {
-        super(id, outVertex, label, inVertex);
+    //using ids instead of hard references, so we can use disk storage
+    public final long outVertexId;
+    public final long inVertexId;
+
+    protected SpecializedTinkerEdge(TinkerGraph graph, Long id, long outVertexId, String label, long inVertexId, Set<String> specificKeys) {
+        super(graph, id, null, label, null);
+        this.outVertexId = outVertexId;
+        this.inVertexId = inVertexId;
         this.specificKeys = specificKeys;
     }
 
@@ -66,25 +75,87 @@ public abstract class SpecializedTinkerEdge<IdType> extends TinkerEdge {
         if (this.removed) throw elementAlreadyRemoved(Edge.class, id);
         ElementHelper.validateProperty(key, value);
         final Property oldProperty = super.property(key);
+        acquireModificationLock();
+        modifiedSinceLastSerialization = true;
         final Property<V> p = updateSpecificProperty(key, value);
         TinkerHelper.autoUpdateIndex(this, key, value, oldProperty.isPresent() ? oldProperty.value() : null);
+        releaseModificationLock();
         return p;
     }
 
     protected abstract <V> Property<V> updateSpecificProperty(String key, V value);
 
-    @Override
-    public void remove() {
-        final SpecializedTinkerVertex<Long> outVertex = (SpecializedTinkerVertex<Long>) this.outVertex;
-        final SpecializedTinkerVertex<Long> inVertex = (SpecializedTinkerVertex<Long>) this.inVertex;
-
-        outVertex.removeOutEdge(this);
-        inVertex.removeInEdge(this);
-
-        TinkerHelper.removeElementIndex(this);
-        ((TinkerGraph) this.graph()).edges.remove(this.id());
-        this.properties = null;
-        this.removed = true;
+    public void removeProperty(String key) {
+        acquireModificationLock();
+        modifiedSinceLastSerialization = true;
+        removeSpecificProperty(key);
+        releaseModificationLock();
     }
 
+    protected abstract void removeSpecificProperty(String key);
+
+    @Override
+    public Graph graph() {
+        return this.graph;
+    }
+
+    @Override
+    public void remove() {
+        acquireModificationLock();
+        final SpecializedTinkerVertex outVertex = (SpecializedTinkerVertex) this.outVertex();
+        final SpecializedTinkerVertex inVertex = (SpecializedTinkerVertex) this.inVertex();
+
+        Long id = (Long) this.id();
+        outVertex.removeOutEdge(id);
+        inVertex.removeInEdge(id);
+
+        TinkerHelper.removeElementIndex(this);
+        graph.edges.remove(id);
+        if (graph.ondiskOverflowEnabled) {
+            graph.edgeIds.remove(id);
+            graph.onDiskEdgeOverflow.remove(id);
+            graph.edgeCache.remove(id);
+        }
+
+        this.properties = null;
+        this.removed = true;
+        modifiedSinceLastSerialization = true;
+        releaseModificationLock();
+    }
+
+    @Override
+    /** adaptation of `StringFactory.edgeString` to cover the fact that we hold the IDs rather than hard references */
+    public String toString() {
+        return "e[" + id() + "]" + "[" + outVertexId + "-" + label + "->" + inVertexId + "]";
+    }
+
+    @Override
+    public Vertex outVertex() {
+        return graph.vertexById(this.outVertexId);
+    }
+
+    @Override
+    public Vertex inVertex() {
+        return graph.vertexById(this.inVertexId);
+    }
+
+    public void setModifiedSinceLastSerialization(boolean modifiedSinceLastSerialization) {
+      this.modifiedSinceLastSerialization = modifiedSinceLastSerialization;
+    }
+
+    public boolean isModifiedSinceLastSerialization() {
+      return modifiedSinceLastSerialization;
+    }
+
+    public void acquireModificationLock() {
+      try {
+        modificationSemaphore.acquire();
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    public void releaseModificationLock() {
+      modificationSemaphore.release();
+    }
 }

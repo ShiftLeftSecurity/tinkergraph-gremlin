@@ -22,11 +22,13 @@ import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerProperty;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class FollowedBy extends SpecializedTinkerEdge<String> {
+public class FollowedBy extends SpecializedTinkerEdge {
     public static final String label = "followedBy";
 
     public static final String WEIGHT = "weight";
@@ -34,8 +36,8 @@ public class FollowedBy extends SpecializedTinkerEdge<String> {
 
     private Integer weight;
 
-    public FollowedBy(String id, Vertex outVertex, Vertex inVertex) {
-        super(id, outVertex, label, inVertex, SPECIFIC_KEYS);
+    public FollowedBy(TinkerGraph graph, long id, long outVertexId, long inVertexId) {
+        super(graph, id, outVertexId, label, inVertexId, SPECIFIC_KEYS);
     }
 
     @Override
@@ -58,15 +60,24 @@ public class FollowedBy extends SpecializedTinkerEdge<String> {
         return property(key);
     }
 
-    public static SpecializedElementFactory.ForEdge<FollowedBy, String> factory = new SpecializedElementFactory.ForEdge<FollowedBy, String>() {
+    @Override
+    protected void removeSpecificProperty(String key) {
+        if (WEIGHT.equals(key)) {
+            this.weight = null;
+        } else {
+            throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
+        }
+    }
+
+    public static SpecializedElementFactory.ForEdge<FollowedBy> factory = new SpecializedElementFactory.ForEdge<FollowedBy>() {
         @Override
         public String forLabel() {
             return FollowedBy.label;
         }
 
         @Override
-        public FollowedBy createEdge(String id, Vertex outVertex, Vertex inVertex) {
-            return new FollowedBy(id, outVertex, inVertex);
+        public FollowedBy createEdge(Long id, TinkerGraph graph, Long outVertexId, Long inVertexId) {
+            return new FollowedBy(graph, id, outVertexId, inVertexId);
         }
     };
 }

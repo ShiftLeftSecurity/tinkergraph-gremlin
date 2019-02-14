@@ -23,13 +23,18 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.*;
+import java.util.concurrent.Semaphore;
 import java.util.stream.StreamSupport;
 
-public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
+public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     private final Set<String> specificKeys;
 
-    protected SpecializedTinkerVertex(IdType id, String label, TinkerGraph graph, Set<String> specificKeys) {
+    /** `dirty` flag for serialization to avoid superfluous serialization */
+    private boolean modifiedSinceLastSerialization = true;
+    private Semaphore modificationSemaphore = new Semaphore(1);
+
+    protected SpecializedTinkerVertex(long id, String label, TinkerGraph graph, Set<String> specificKeys) {
         super(id, label, graph);
         this.specificKeys = specificKeys;
     }
@@ -83,13 +88,25 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
         if (this.removed) throw elementAlreadyRemoved(Vertex.class, id);
         ElementHelper.legalPropertyKeyValueArray(keyValues);
         ElementHelper.validateProperty(key, value);
+        acquireModificationLock();
+        this.modifiedSinceLastSerialization = true;
         final VertexProperty<V> vp = updateSpecificProperty(cardinality, key, value);
         TinkerHelper.autoUpdateIndex(this, key, value, null);
+        releaseModificationLock();
         return vp;
     }
 
     protected abstract <V> VertexProperty<V> updateSpecificProperty(
       VertexProperty.Cardinality cardinality, String key, V value);
+
+    public void removeProperty(String key) {
+        acquireModificationLock();
+        modifiedSinceLastSerialization = true;
+        removeSpecificProperty(key);
+        releaseModificationLock();
+    }
+
+    protected abstract void removeSpecificProperty(String key);
 
     @Override
     public Edge addEdge(String label, Vertex vertex, Object... keyValues) {
@@ -102,25 +119,35 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
 
         if (graph.specializedEdgeFactoryByLabel.containsKey(label)) {
             SpecializedElementFactory.ForEdge factory = graph.specializedEdgeFactoryByLabel.get(label);
-            Object idValue = graph.edgeIdManager.convert(ElementHelper.getIdValue(keyValues).orElse(null));
+
+            Long idValue = (Long) graph.edgeIdManager.convert(ElementHelper.getIdValue(keyValues).orElse(null));
             if (null != idValue) {
-                if (graph.edges.containsKey(idValue)) {
+                if ((graph.ondiskOverflowEnabled && graph.edgeIds.contains(idValue)) ||
+                  (!graph.ondiskOverflowEnabled && graph.edges.containsKey(idValue))) {
                     throw Graph.Exceptions.edgeWithIdAlreadyExists(idValue);
                 }
             } else {
-                idValue = graph.edgeIdManager.getNextId(graph);
+                idValue = (Long) graph.edgeIdManager.getNextId(graph);
             }
+            graph.currentId.set(Long.max(idValue, graph.currentId.get()));
 
             ElementHelper.legalPropertyKeyValueArray(keyValues);
             TinkerVertex inVertex = (TinkerVertex) vertex;
             TinkerVertex outVertex = this;
-            SpecializedTinkerEdge edge = factory.createEdge(idValue, outVertex, inVertex);
+            SpecializedTinkerEdge edge = factory.createEdge(idValue, graph, (long) outVertex.id, (long) inVertex.id);
             ElementHelper.attachProperties(edge, keyValues);
-            graph.edges.put(idValue, edge);
+            if (graph.ondiskOverflowEnabled) {
+                graph.edgeIds.add(idValue);
+                graph.edgeCache.put(idValue, edge);
+            } else {
+                graph.edges.put(idValue, edge);
+            }
 
-            // TODO: allow to connect non-specialised vertices with specialised edges and vice versa
-            this.addSpecializedOutEdge(edge);
-            ((SpecializedTinkerVertex) inVertex).addSpecializedInEdge(edge);
+            acquireModificationLock();
+            this.addSpecializedOutEdge(edge.label(), (Long) edge.id());
+            ((SpecializedTinkerVertex) inVertex).addSpecializedInEdge(edge.label(), (Long) edge.id());
+            releaseModificationLock();
+            this.modifiedSinceLastSerialization = true;
             return edge;
         } else { // edge label not registered for a specialized factory, treating as generic edge
             if (graph.usesSpecializedElements) {
@@ -132,41 +159,84 @@ public abstract class SpecializedTinkerVertex<IdType> extends TinkerVertex {
         }
     }
 
-    protected abstract void addSpecializedOutEdge(Edge edge);
+    /** do not call directly (other than from deserializer)
+     *  I whish there was an easy way to forbid this in java */
+    public abstract void addSpecializedOutEdge(String edgeLabel, long edgeId);
 
-    protected abstract void addSpecializedInEdge(Edge edge);
+    /** do not call directly (other than from deserializer)
+     *  I whish there was an easy way to forbid this in java */
+    public abstract void addSpecializedInEdge(String edgeLabel, long edgeId);
 
     @Override
     public Iterator<Edge> edges(final Direction direction, final String... edgeLabels) {
-        return specificEdges(direction, edgeLabels);
+        return graph.edgesById(specificEdges(direction, edgeLabels));
     }
 
     /* implement in concrete specialised instance to avoid using generic HashMaps */
-    protected abstract Iterator<Edge> specificEdges(final Direction direction, final String... edgeLabels);
+    protected abstract Iterator<Long> specificEdges(final Direction direction, final String... edgeLabels);
 
     @Override
     public Iterator<Vertex> vertices(final Direction direction, final String... edgeLabels) {
-        Iterator<Edge> edges = specificEdges(direction, edgeLabels);
+        Iterator<Edge> edges = edges(direction, edgeLabels);
         if (direction == Direction.IN) {
             return IteratorUtils.map(edges, Edge::outVertex);
         } else if (direction == Direction.OUT) {
             return IteratorUtils.map(edges, Edge::inVertex);
         } else if (direction == Direction.BOTH) {
-            return IteratorUtils.flatMap(edges, Edge::bothVertices);
+            return IteratorUtils.concat(vertices(Direction.IN, edgeLabels), vertices(Direction.OUT, edgeLabels));
         } else {
             return Collections.emptyIterator();
         }
     }
 
-    public void removeOutEdge(Edge edge) {
-        removeSpecificOutEdge(edge);
+    public void removeOutEdge(Long edgeId) {
+        removeSpecificOutEdge(edgeId);
     }
 
-    protected abstract void removeSpecificOutEdge(Edge edge);
+    protected abstract void removeSpecificOutEdge(Long edgeId);
 
-    public void removeInEdge(Edge edge) {
-        removeSpecificInEdge(edge);
+    public void removeInEdge(Long edgeId) {
+        removeSpecificInEdge(edgeId);
     }
 
-    protected abstract void removeSpecificInEdge(Edge edge);
+    protected abstract void removeSpecificInEdge(Long edgeId);
+
+    @Override
+    public void remove() {
+        super.remove();
+        acquireModificationLock();
+        Long id = (Long) this.id();
+
+        if (graph.ondiskOverflowEnabled) {
+            this.graph.vertexCache.remove(id);
+            this.graph.vertexIds.remove(id);
+            this.graph.onDiskVertexOverflow.remove(id);
+        }
+        this.graph.vertices.remove(id);
+
+        this.modifiedSinceLastSerialization = true;
+        releaseModificationLock();
+    }
+
+    public abstract Map<String, Set<Long>> edgeIdsByLabel(Direction direction);
+
+    public boolean isModifiedSinceLastSerialization() {
+        return modifiedSinceLastSerialization;
+    }
+
+    public void setModifiedSinceLastSerialization(boolean modifiedSinceLastSerialization) {
+        this.modifiedSinceLastSerialization = modifiedSinceLastSerialization;
+    }
+
+    public void acquireModificationLock() {
+        try {
+            modificationSemaphore.acquire();
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void releaseModificationLock() {
+        modificationSemaphore.release();
+    }
 }

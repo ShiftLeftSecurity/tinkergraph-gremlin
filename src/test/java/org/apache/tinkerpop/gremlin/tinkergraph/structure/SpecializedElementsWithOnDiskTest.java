@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
+import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
 import org.apache.tinkerpop.gremlin.structure.Edge;
@@ -29,12 +30,17 @@ import org.apache.tinkerpop.gremlin.util.TimeUtil;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.__;
 import static org.junit.Assert.*;
 
-public class SpecializedElementsTest {
+/** copy of `SpecializedElementsTest`, only difference being that an on disk cache is used
+ * TODO refactor for code reuse */
+public class SpecializedElementsWithOnDiskTest {
 
     @Test
     public void simpleTest() {
@@ -55,6 +61,31 @@ public class SpecializedElementsTest {
     @Test
     public void gratefulDeadGraph() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
+
+        List<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toList();
+        assertEquals(garcias.size(), 1);
+        Artist garcia = (Artist) garcias.get(0); //it's actually of type `Artist`, not (only) `Vertex`
+        assertEquals("Garcia", garcia.getName());
+        graph.close();
+    }
+
+    //    @Test
+    // only test manually since the settings depends on the local machine
+    public void withTinyCache() throws IOException {
+        // setting cache to ~100k bytes - calculating percentage for current jvm's heap
+        float maxMemory = Runtime.getRuntime().maxMemory();
+        float heap100kPercentage = 100000000f / maxMemory * 100;
+
+        Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
+        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
+        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_CACHE_MAX_HEAP_PERCENTAGE, heap100kPercentage);
+
+        TinkerGraph graph = TinkerGraph.open(
+          configuration,
+          Arrays.asList(Song.factory, Artist.factory),
+          Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
+        );
+        loadGraphMl(graph);
 
         List<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toList();
         assertEquals(garcias.size(), 1);
@@ -167,7 +198,7 @@ public class SpecializedElementsTest {
 
     @Test
     public void shouldUseIndices() throws IOException {
-        int loops = 1000;
+        int loops = 100;
         Double avgTimeWithIndex = null;
         Double avgTimeWithoutIndex = null;
 
@@ -316,7 +347,10 @@ public class SpecializedElementsTest {
     }
 
     private TinkerGraph newGratefulDeadGraphWithSpecializedElements() {
+        Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
+        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
         return TinkerGraph.open(
+            configuration,
             Arrays.asList(Song.factory, Artist.factory),
             Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
         );

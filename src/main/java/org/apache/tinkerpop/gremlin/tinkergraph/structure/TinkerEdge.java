@@ -27,6 +27,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,11 +42,13 @@ import java.util.stream.Collectors;
 public class TinkerEdge extends TinkerElement implements Edge {
 
     protected Map<String, Property> properties;
+    final protected TinkerGraph graph;
     protected final Vertex inVertex;
     protected final Vertex outVertex;
 
-    protected TinkerEdge(final Object id, final Vertex outVertex, final String label, final Vertex inVertex) {
+    protected TinkerEdge(final TinkerGraph graph, final Object id, final Vertex outVertex, final String label, final Vertex inVertex) {
         super(id, label);
+        this.graph = graph;
         this.outVertex = outVertex;
         this.inVertex = inVertex;
         TinkerHelper.autoUpdateIndex(this, T.label.getAccessor(), this.label, null);
@@ -117,11 +120,11 @@ public class TinkerEdge extends TinkerElement implements Edge {
         if (removed) return Collections.emptyIterator();
         switch (direction) {
             case OUT:
-                return IteratorUtils.of(this.outVertex);
+                return IteratorUtils.of(this.outVertex());
             case IN:
-                return IteratorUtils.of(this.inVertex);
+                return IteratorUtils.of(this.inVertex());
             default:
-                return IteratorUtils.of(this.outVertex, this.inVertex);
+                return IteratorUtils.of(this.outVertex(), this.inVertex());
         }
     }
 

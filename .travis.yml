@@ -7,7 +7,9 @@ env:
   - secure: "EHFR32uQ+IdZDHo3vb2ha+ow0c7UH1EYWofT7PUIZ8HRcQxXm/fFrmm00Z1tZaC8bTcI//Lrdd6k7lBnNGpb80y+LfxR4ZMD06qoqzTKULYxWEInNsjLSk89T/SUcwnfqJIRgi+LT/vx7OYEKGsDL0mLG8fns47ScGAJO+Kpk2pcAgHn2z1N5o1leD0ZhvmoD3i8C9Rd/N0MgZ0Em/+ERHN2Gioz9s/g7hRMbdHPwhGcxUK0F9z3xGuSxswVPsMAMakJJ0gKHm6cD6mtkyq501+3G8JufCqZ4xR+H60ePOMWPmKDD4ome4v5/8nnm/AwMCQKVLCJuYAs1eZK3fvgqt8WIw8AF2RZbVA9H2bS+n/4xE5yWiEYnNkm5kiTmduzW/F+jjIidIRp8UGSyAJkjWvIZc+9H/hFcH1xurvGRKXQbtWtzV/55bfonvdjYGKNftJsVtisYaFI95qdjP1+xoq9PbIy/SDjx5MD6khOYn6gqllM6BFWNobvzQcwyLr9uMsyzINR3Cq+Ny1PYY17aXiyagMN4EjznadbRxToqnY+bY5M8KLtnAN6oXUKzeLia9uZq/GixzTPL6FfuJkztOMLiIdlP6rO0wx2bi3fl6TnVZiuj7VhdCqnYdjr4ciAz2ZnR45k+s2ZmAOwLX8tYyjK+w56uE/ViJnN8zVyJzU="
 
 install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
-script: mvn test -B
+script: mvn -Dtest=SpecializedElementsTest test
+# TODO reenable standard tests
+#script: mvn test -B
 
 cache:
   directories:
