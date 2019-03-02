@@ -27,7 +27,6 @@ import org.apache.commons.configuration.Configuration;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
-import org.apache.tinkerpop.gremlin.process.traversal.util.FastNoSuchElementException;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -48,6 +47,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optim
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.EdgeSerializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.Serializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexSerializer;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.org.apache.tinkerpop.gremlin.util.iterator.TLongMultiIterator;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
@@ -468,59 +468,12 @@ public final class TinkerGraph implements Graph {
             final TLongIterator idsIterator;
 
             if (ids.length == 0) {
-                // TODO extract for reuse and conciseness: org.apache.tinkerpop.gremlin.util.iterator.TLongMultiIterator
-                // flatMap would have been nice... :(
                 // warning: this may be problematic in conjunction with concurrent modification... test
                 List<TLongIterator> iterators = new ArrayList(vertexIdsByLabel.size());
                 for (TLongSet set : vertexIdsByLabel.values()) {
                     iterators.add(set.iterator());
                 }
-                idsIterator = new TLongIterator() {
-                    private int current = 0;
-
-                    @Override
-                    public boolean hasNext() {
-                        if (this.current >= iterators.size())
-                            return false;
-
-                        TLongIterator currentIterator = iterators.get(this.current);
-
-                        while (true) {
-                            if (currentIterator.hasNext()) {
-                                return true;
-                            } else {
-                                this.current++;
-                                if (this.current >= iterators.size())
-                                    break;
-                                currentIterator = iterators.get(this.current);
-                            }
-                        }
-                        return false;
-                    }
-
-                    @Override
-                    public long next() {
-                        if (iterators.isEmpty()) throw FastNoSuchElementException.instance();
-
-                        TLongIterator currentIterator = iterators.get(this.current);
-                        while (true) {
-                            if (currentIterator.hasNext()) {
-                                return currentIterator.next();
-                            } else {
-                                this.current++;
-                                if (this.current >= iterators.size())
-                                    break;
-                                currentIterator = iterators.get(current);
-                            }
-                        }
-                        throw FastNoSuchElementException.instance();
-                    }
-
-                    @Override
-                    public void remove() {
-                        throw new NotImplementedException("");
-                    }
-                };
+                idsIterator = new TLongMultiIterator(iterators);
             } else {
                 // TODO extract for reuse and conciseness
                 idsIterator = new TLongIterator() {
