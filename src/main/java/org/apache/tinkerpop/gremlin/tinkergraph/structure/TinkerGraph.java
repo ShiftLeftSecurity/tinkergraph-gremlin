@@ -19,12 +19,15 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import gnu.trove.iterator.TLongIterator;
+import gnu.trove.map.hash.THashMap;
 import gnu.trove.set.TLongSet;
 import gnu.trove.set.hash.TLongHashSet;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
+import org.apache.tinkerpop.gremlin.process.traversal.util.FastNoSuchElementException;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -68,7 +71,11 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
- * A modified version of the in-memory reference implementation TinkerGraph
+ * A fork of the in-memory reference implementation TinkerGraph featuring:
+ * - using ~70% less memory (depending on your domain)
+ * - strict schema enforcement (optional)
+ * - on-disk overflow, i.e. elements are serialized to disk if (and only if) they don't fit into memory (optional)
+ *
  * TODO MP: remove complexity in implementation by removing option to use standard elements
  */
 @Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
@@ -126,8 +133,8 @@ public final class TinkerGraph implements Graph {
 
     /* overflow to disk: elements are serialized on eviction from on-heap cache - off by default */
     public final boolean ondiskOverflowEnabled;
-    protected TLongSet vertexIds;
     protected TLongSet edgeIds;
+    protected THashMap<String, TLongSet> vertexIdsByLabel;
     protected CacheManager cacheManager;
     protected Cache<Long, SpecializedTinkerVertex> vertexCache;
     protected Cache<Long, SpecializedTinkerEdge> edgeCache;
@@ -163,8 +170,8 @@ public final class TinkerGraph implements Graph {
     }
 
     private void initializeOnDiskOverflow() {
-        vertexIds = new TLongHashSet(100000);
         edgeIds = new TLongHashSet(100000);
+        vertexIdsByLabel = new THashMap<>(100);
 
         final File mvstoreVerticesFile;
         final File mvstoreEdgesFile;
@@ -329,10 +336,8 @@ public final class TinkerGraph implements Graph {
         final String label = ElementHelper.getLabelValue(keyValues).orElse(Vertex.DEFAULT_LABEL);
 
         if (null != idValue) {
-            if ((ondiskOverflowEnabled && vertexIds.contains(idValue)) ||
-              (!ondiskOverflowEnabled && vertices.containsKey(idValue))) {
+            if (vertexIdAlreadyExists(idValue))
                 throw Exceptions.vertexWithIdAlreadyExists(idValue);
-            }
         } else {
             idValue = (Long) vertexIdManager.getNextId(this);
         }
@@ -343,7 +348,7 @@ public final class TinkerGraph implements Graph {
             SpecializedTinkerVertex vertex = factory.createVertex(idValue, this);
             ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
             if (ondiskOverflowEnabled) {
-                vertexIds.add(idValue);
+                getVertexIdsByLabel(label).add(idValue);
                 vertexCache.put(idValue, vertex);
             } else {
                 vertices.put(idValue, vertex);
@@ -359,6 +364,19 @@ public final class TinkerGraph implements Graph {
             this.vertices.put(vertex.id(), vertex);
             ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
             return vertex;
+        }
+    }
+
+    private boolean vertexIdAlreadyExists(Long idValue) {
+        if (!ondiskOverflowEnabled) {
+            return vertices.containsKey(idValue);
+        } else {
+            for (TLongSet ids : vertexIdsByLabel.values()) {
+                if (ids.contains(idValue.longValue())) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -393,12 +411,22 @@ public final class TinkerGraph implements Graph {
 
     @Override
     public String toString() {
-        return StringFactory.graphString(this, "vertices: " + vertexIds.size() + ", edges: " + edgeIds.size());
+        final int vertexCount;
+        if (usesSpecializedElements && ondiskOverflowEnabled) {
+            int sum = 0;
+            for (TLongSet ids : vertexIdsByLabel.values()) {
+                sum += ids.size();
+            }
+            vertexCount = sum;
+        } else {
+            vertexCount = vertices.size();
+        }
+        return StringFactory.graphString(this, "vertices: " + vertexCount + ", edges: " + edgeIds.size());
     }
 
     public void clear() {
         this.vertices.clear();
-        this.vertexIds.clear();
+        this.vertexIdsByLabel.clear();
         this.edges.clear();
         this.edgeIds.clear();
         this.onDiskVertexOverflow.clear();
@@ -435,18 +463,110 @@ public final class TinkerGraph implements Graph {
     }
 
     @Override
-    public Iterator<Vertex> vertices(final Object... vertexIds) {
+    public Iterator<Vertex> vertices(final Object... ids) {
         if (usesSpecializedElements && ondiskOverflowEnabled) {
-          return createElementIteratorForCached(Vertex.class, this.vertexIds, vertexCache, onDiskVertexOverflow, vertexSerializer, vertexIds);
+            final TLongIterator idsIterator;
+
+            if (ids.length == 0) {
+                // TODO extract for reuse and conciseness: org.apache.tinkerpop.gremlin.util.iterator.TLongMultiIterator
+                // flatMap would have been nice... :(
+                // warning: this may be problematic in conjunction with concurrent modification... test
+                List<TLongIterator> iterators = new ArrayList(vertexIdsByLabel.size());
+                for (TLongSet set : vertexIdsByLabel.values()) {
+                    iterators.add(set.iterator());
+                }
+                idsIterator = new TLongIterator() {
+                    private int current = 0;
+
+                    @Override
+                    public boolean hasNext() {
+                        if (this.current >= iterators.size())
+                            return false;
+
+                        TLongIterator currentIterator = iterators.get(this.current);
+
+                        while (true) {
+                            if (currentIterator.hasNext()) {
+                                return true;
+                            } else {
+                                this.current++;
+                                if (this.current >= iterators.size())
+                                    break;
+                                currentIterator = iterators.get(this.current);
+                            }
+                        }
+                        return false;
+                    }
+
+                    @Override
+                    public long next() {
+                        if (iterators.isEmpty()) throw FastNoSuchElementException.instance();
+
+                        TLongIterator currentIterator = iterators.get(this.current);
+                        while (true) {
+                            if (currentIterator.hasNext()) {
+                                return currentIterator.next();
+                            } else {
+                                this.current++;
+                                if (this.current >= iterators.size())
+                                    break;
+                                currentIterator = iterators.get(current);
+                            }
+                        }
+                        throw FastNoSuchElementException.instance();
+                    }
+
+                    @Override
+                    public void remove() {
+                        throw new NotImplementedException("");
+                    }
+                };
+            } else {
+                // TODO extract for reuse and conciseness
+                idsIterator = new TLongIterator() {
+                    private int cursor = 0;
+
+                    @Override
+                    public boolean hasNext() {
+                        return ids.length > cursor;
+                    }
+
+                    @Override
+                    public long next() {
+                        return (Long) ids[cursor++];
+                    }
+
+                    @Override
+                    public void remove() {
+                        throw new NotImplementedException("");
+                    }
+                };
+            }
+          return createElementIteratorForCached(vertexCache, onDiskVertexOverflow, vertexSerializer, idsIterator);
         } else {
-          return createElementIterator(Vertex.class, vertices, vertexIdManager, vertexIds);
+          return createElementIterator(Vertex.class, vertices, vertexIdManager, ids);
+        }
+    }
+
+    protected TLongSet getVertexIdsByLabel(final String label) {
+        if (!vertexIdsByLabel.containsKey(label))
+            vertexIdsByLabel.put(label, new TLongHashSet(100000));
+        return vertexIdsByLabel.get(label);
+    }
+
+    public Iterator<Vertex> verticesByLabel(final String label) {
+        if (usesSpecializedElements && ondiskOverflowEnabled) {
+            return createElementIteratorForCached(vertexCache, onDiskVertexOverflow, vertexSerializer, getVertexIdsByLabel(label).iterator());
+        } else {
+            throw new NotImplementedException("verticesWithLabel only implemented for specialized elements with ondisk overflow");
         }
     }
 
     @Override
-    public Iterator<Edge> edges(final Object... edgeIds) {
+    public Iterator<Edge> edges(final Object... ids) {
       if (usesSpecializedElements && ondiskOverflowEnabled) {
-        return createElementIteratorForCached(Edge.class, this.edgeIds, edgeCache, onDiskEdgeOverflow, edgeSerializer, edgeIds);
+          throw new NotImplementedException("");
+//          return createElementIteratorForCached(Edge.class, edgeIds, edgeCache, onDiskEdgeOverflow, edgeSerializer, ids);
       } else {
         return createElementIterator(Edge.class, edges, edgeIdManager, edgeIds);
       }
@@ -500,44 +620,21 @@ public final class TinkerGraph implements Graph {
     }
 
 
-    /** would have been nice to share the implementation with `createElementIterator` and just pass a transform Function, but that didn't work out... */
-    private <T extends Element> Iterator<T> createElementIteratorForCached(final Class<T> clazz,
-                                                                           final TLongSet allElementIds,
-                                                                           final Cache<Long, ? extends T> cache,
+    private <T extends Element> Iterator<T> createElementIteratorForCached(final Cache<Long, ? extends T> cache,
                                                                            final MVMap<Long, byte[]> onDiskElementOverflow,
                                                                            final Serializer<? extends T> serializer,
-                                                                           final Object... ids) {
-      if (0 == ids.length) {
-          TLongIterator allIdsIter = allElementIds.iterator();
+                                                                           final TLongIterator idsIterator) {
           return new Iterator<T>() {
               @Override
               public boolean hasNext() {
-                  return allIdsIter.hasNext();
+                  return idsIterator.hasNext();
               }
               @Override
               public T next() {
-                  long id = allIdsIter.next();
+                  long id = idsIterator.next();
                   return getElementFromCache(id, cache, onDiskElementOverflow, serializer);
               }
           };
-      } else {
-          return Arrays.asList(ids).stream().map(obj -> {
-              if (clazz.isInstance(obj)) {
-                  return (T) obj;
-              } else {
-                  final Long id;
-                  // for whatever reason the passed objects can either be elements or their ids... :(
-                  if (obj instanceof Integer) {
-                      id = ((Integer) obj).longValue();
-                  } else {
-                      id = (Long) obj;
-                  }
-                  T element = getElementFromCache(id, cache, onDiskElementOverflow, serializer);
-                  return element;
-              }
-          }).iterator();
-      }
-
     }
 
   /** check for element in cache, otherwise read from `onDiskOverflow`, deserialize and put back in cache */
@@ -560,7 +657,8 @@ public final class TinkerGraph implements Graph {
       }
     }
 
-    private <T extends Element> Iterator<T> createElementIterator(final Class<T> clazz, final Map<Object, T> elements,
+    private <T extends Element> Iterator<T> createElementIterator(final Class<T> clazz,
+                                                                  final Map<Object, T> elements,
                                                                   final IdManager idManager,
                                                                   final Object... ids) {
         final Iterator<T> iterator;

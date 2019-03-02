@@ -209,7 +209,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
         if (graph.ondiskOverflowEnabled) {
             this.graph.vertexCache.remove(id);
-            this.graph.vertexIds.remove(id);
+            this.graph.vertexIdsByLabel.get(label()).remove(id);
             this.graph.onDiskVertexOverflow.remove(id);
         }
         this.graph.vertices.remove(id);

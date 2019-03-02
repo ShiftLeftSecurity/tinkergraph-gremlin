@@ -26,18 +26,14 @@ import org.apache.tinkerpop.gremlin.process.traversal.step.util.HasContainer;
 import org.apache.tinkerpop.gremlin.process.traversal.util.AndP;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -78,16 +74,29 @@ public final class TinkerGraphStep<S, E extends Element> extends GraphStep<S, E>
     private Iterator<? extends Vertex> vertices() {
         final TinkerGraph graph = (TinkerGraph) this.getTraversal().getGraph().get();
         final HasContainer indexedContainer = getIndexKey(Vertex.class);
+        final Optional<HasContainer> hasLabelContainer = findHasLabelStep();
         // ids are present, filter on them first
         if (null == this.ids)
             return Collections.emptyIterator();
         else if (this.ids.length > 0)
             return this.iteratorList(graph.vertices(this.ids));
-        else
+        else if (hasLabelContainer.isPresent()) {
+            String label = (String) hasLabelContainer.get().getPredicate().getValue();
+            return graph.verticesByLabel(label);
+        } else
             return null == indexedContainer ?
                     this.iteratorList(graph.vertices()) :
                     IteratorUtils.filter(TinkerHelper.queryVertexIndex(graph, indexedContainer.getKey(), indexedContainer.getPredicate().getValue()).iterator(),
                             vertex -> HasContainer.testAll(vertex, this.hasContainers));
+    }
+
+    private Optional<HasContainer> findHasLabelStep() {
+        for (HasContainer hasContainer : hasContainers) {
+            if (T.label.getAccessor().equals(hasContainer.getKey())) {
+                return Optional.of(hasContainer);
+            }
+        }
+        return Optional.empty();
     }
 
     private HasContainer getIndexKey(final Class<? extends Element> indexedClass) {
@@ -96,7 +105,6 @@ public final class TinkerGraphStep<S, E extends Element> extends GraphStep<S, E>
         final Iterator<HasContainer> itty = IteratorUtils.filter(hasContainers.iterator(),
                 c -> c.getPredicate().getBiPredicate() == Compare.eq && indexedKeys.contains(c.getKey()));
         return itty.hasNext() ? itty.next() : null;
-
     }
 
     @Override

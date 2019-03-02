@@ -346,6 +346,15 @@ public class SpecializedElementsWithOnDiskTest {
         graph.close();
     }
 
+
+    @Test
+    public void shouldUseLabelStrategy() throws IOException {
+        // TODO factor out in separate test
+        // TODO test in conjunction with more steps
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
+        System.out.println("returned " + graph.traversal().V().hasLabel(Song.label).toList().size() + " elements");
+    }
+
     private TinkerGraph newGratefulDeadGraphWithSpecializedElements() {
         Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
         configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
