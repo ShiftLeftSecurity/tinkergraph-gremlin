@@ -47,6 +47,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optim
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.EdgeSerializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.Serializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexSerializer;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.org.apache.tinkerpop.gremlin.util.iterator.ArrayBackedTLongIterator;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.org.apache.tinkerpop.gremlin.util.iterator.TLongMultiIterator;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.ehcache.Cache;
@@ -475,25 +476,7 @@ public final class TinkerGraph implements Graph {
                 }
                 idsIterator = new TLongMultiIterator(iterators);
             } else {
-                // TODO extract for reuse and conciseness
-                idsIterator = new TLongIterator() {
-                    private int cursor = 0;
-
-                    @Override
-                    public boolean hasNext() {
-                        return ids.length > cursor;
-                    }
-
-                    @Override
-                    public long next() {
-                        return (Long) ids[cursor++];
-                    }
-
-                    @Override
-                    public void remove() {
-                        throw new NotImplementedException("");
-                    }
-                };
+                idsIterator = new ArrayBackedTLongIterator((Long[]) ids);
             }
           return createElementIteratorForCached(vertexCache, onDiskVertexOverflow, vertexSerializer, idsIterator);
         } else {
