@@ -90,10 +90,12 @@ public final class TinkerGraphStep<S, E extends Element> extends GraphStep<S, E>
                             vertex -> HasContainer.testAll(vertex, this.hasContainers));
     }
 
+    // only optimize if hasLabel is the _only_ hasContainer, since that's the simplest case
+    // TODO implement other cases as well, e.g. for `g.V.hasLabel(lbl).has(k,v)`
     private Optional<HasContainer> findHasLabelStep() {
-        for (HasContainer hasContainer : hasContainers) {
-            if (T.label.getAccessor().equals(hasContainer.getKey())) {
-                return Optional.of(hasContainer);
+        if (hasContainers.size() == 1) {
+            if (T.label.getAccessor().equals(hasContainers.get(0).getKey())) {
+                return Optional.of(hasContainers.get(0));
             }
         }
         return Optional.empty();

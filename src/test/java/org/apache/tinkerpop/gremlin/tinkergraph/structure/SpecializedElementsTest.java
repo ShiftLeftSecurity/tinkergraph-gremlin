@@ -103,6 +103,8 @@ public class SpecializedElementsTest {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
 
         assertEquals(584, graph.traversal().V().hasLabel(Song.label).toList().size());
+        assertEquals(142, graph.traversal().V().has(Song.PERFORMANCES, 1).toList().size());
+        assertEquals(142, graph.traversal().V().hasLabel(Song.label).has(Song.PERFORMANCES, 1).toList().size());
 
         graph.close();
     }
