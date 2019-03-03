@@ -93,6 +93,17 @@ public class SpecializedElementsTest {
         List<Vertex> songBoth = __(song).both(WrittenBy.label).toList();
         assertEquals(1, songBoth.size());
         assertEquals(garcia, songBoth.get(0));
+
+        graph.close();
+    }
+
+    @Test
+    /* ensure these are identical for both ondisk overflow enabled/disabled */
+    public void optimizationStrategyAffectedSteps() throws IOException {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
+
+        assertEquals(584, graph.traversal().V().hasLabel(Song.label).toList().size());
+
         graph.close();
     }
 

@@ -59,6 +59,16 @@ public class SpecializedElementsWithOnDiskTest {
     }
 
     @Test
+    /* ensure these are identical for both ondisk overflow enabled/disabled */
+    public void optimizationStrategyAffectedSteps() throws IOException {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
+
+        assertEquals(584, graph.traversal().V().hasLabel(Song.label).toList().size());
+
+        graph.close();
+    }
+
+    @Test
     public void gratefulDeadGraph() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
 
@@ -344,15 +354,6 @@ public class SpecializedElementsWithOnDiskTest {
         }
 
         graph.close();
-    }
-
-
-    @Test
-    public void shouldUseLabelStrategy() throws IOException {
-        // TODO factor out in separate test
-        // TODO test in conjunction with more steps
-        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
-        System.out.println("returned " + graph.traversal().V().hasLabel(Song.label).toList().size() + " elements");
     }
 
     private TinkerGraph newGratefulDeadGraphWithSpecializedElements() {

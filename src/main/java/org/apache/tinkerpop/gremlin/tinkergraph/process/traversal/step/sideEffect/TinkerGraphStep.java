@@ -80,7 +80,7 @@ public final class TinkerGraphStep<S, E extends Element> extends GraphStep<S, E>
             return Collections.emptyIterator();
         else if (this.ids.length > 0)
             return this.iteratorList(graph.vertices(this.ids));
-        else if (hasLabelContainer.isPresent()) {
+        else if (graph.ondiskOverflowEnabled && hasLabelContainer.isPresent()) {
             String label = (String) hasLabelContainer.get().getPredicate().getValue();
             return graph.verticesByLabel(label);
         } else
