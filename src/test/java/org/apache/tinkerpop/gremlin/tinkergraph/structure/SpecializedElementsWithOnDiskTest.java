@@ -256,7 +256,8 @@ public class SpecializedElementsWithOnDiskTest {
             avgTimeWithIndex < avgTimeWithoutIndex);
     }
     
-    @Test
+    // @Test
+    // only run manually since the timings vary depending on the environment
     public void shouldUseIndicesCreatedBeforeLoadingData() throws IOException {
         int loops = 100;
         Double avgTimeWithIndex = null;
