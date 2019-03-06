@@ -135,8 +135,8 @@ public final class TinkerGraph implements Graph {
 
     /* overflow to disk: elements are serialized on eviction from on-heap cache - off by default */
     public final boolean ondiskOverflowEnabled;
-    protected TLongSet edgeIds;
     protected THashMap<String, TLongSet> vertexIdsByLabel;
+    protected THashMap<String, TLongSet> edgeIdsByLabel;
     protected CacheManager cacheManager;
     protected Cache<Long, SpecializedTinkerVertex> vertexCache;
     protected Cache<Long, SpecializedTinkerEdge> edgeCache;
@@ -172,8 +172,8 @@ public final class TinkerGraph implements Graph {
     }
 
     private void initializeOnDiskOverflow() {
-        edgeIds = new TLongHashSet(100000);
         vertexIdsByLabel = new THashMap<>(100);
+        edgeIdsByLabel = new THashMap<>(100);
 
         final File mvstoreVerticesFile;
         final File mvstoreEdgesFile;
@@ -350,7 +350,7 @@ public final class TinkerGraph implements Graph {
             SpecializedTinkerVertex vertex = factory.createVertex(idValue, this);
             ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
             if (ondiskOverflowEnabled) {
-                getVertexIdsByLabel(label).add(idValue);
+                getElementIdsByLabel(vertexIdsByLabel, label).add(idValue);
                 vertexCache.put(idValue, vertex);
             } else {
                 vertices.put(idValue, vertex);
@@ -414,23 +414,28 @@ public final class TinkerGraph implements Graph {
     @Override
     public String toString() {
         final int vertexCount;
+        final int edgeCount;
         if (usesSpecializedElements && ondiskOverflowEnabled) {
-            int sum = 0;
-            for (TLongSet ids : vertexIdsByLabel.values()) {
-                sum += ids.size();
-            }
-            vertexCount = sum;
+            int vSum = 0;
+            int eSum = 0;
+            for (TLongSet ids : vertexIdsByLabel.values())
+                vSum += ids.size();
+            for (TLongSet ids : edgeIdsByLabel.values())
+                eSum += ids.size();
+            vertexCount = vSum;
+            edgeCount = eSum;
         } else {
             vertexCount = vertices.size();
+            edgeCount = edges.size();
         }
-        return StringFactory.graphString(this, "vertices: " + vertexCount + ", edges: " + edgeIds.size());
+        return StringFactory.graphString(this, "vertices: " + vertexCount + ", edges: " + edgeCount);
     }
 
     public void clear() {
         this.vertices.clear();
         this.vertexIdsByLabel.clear();
         this.edges.clear();
-        this.edgeIds.clear();
+        this.edgeIdsByLabel.clear();
         this.onDiskVertexOverflow.clear();
         this.onDiskEdgeOverflow.clear();
         this.variables = null;
@@ -467,46 +472,10 @@ public final class TinkerGraph implements Graph {
     @Override
     public Iterator<Vertex> vertices(final Object... ids) {
         if (usesSpecializedElements && ondiskOverflowEnabled) {
-            final TLongIterator idsIterator;
-
-            if (ids.length == 0) {
-                // warning: this may be problematic in conjunction with concurrent modification... test
-                List<TLongIterator> iterators = new ArrayList(vertexIdsByLabel.size());
-                for (TLongSet set : vertexIdsByLabel.values()) {
-                    iterators.add(set.iterator());
-                }
-                idsIterator = new TLongMultiIterator(iterators);
-            } else {
-                // unfortunately because the TP api allows for any type of id (and even elements instead of ids) we have to copy the whole array...
-                // unfortunately `arraycopy` fails if `ids` contains Integers, so gotta go the slow way
-//                Long[] longIds = new Long[ids.length];
-//                System.arraycopy(ids, 0, longIds, 0, ids.length);
-                long[] longIds = new long[ids.length];
-                for (int i = 0; i < ids.length; i++) {
-                    Object id = ids[i];
-                    final long longId;
-                    if (id instanceof Long) {
-                        longId = ((Long) id).longValue();
-                    } else if (id instanceof Integer) {
-                        longId = ((Integer) id).longValue();
-                    } else {
-                        throw new AssertionError("provided ID=" + id + " must be a long (or integer) value, but is a " + id.getClass());
-                    }
-                    longIds[i] = longId;
-                }
-
-                idsIterator = new ArrayBackedTLongIterator(longIds);
-            }
-          return createElementIteratorForCached(vertexCache, onDiskVertexOverflow, vertexSerializer, idsIterator);
+          return createElementIteratorForCached(vertexCache, onDiskVertexOverflow, vertexSerializer, idsIterator(vertexIdsByLabel, ids));
         } else {
           return createElementIterator(Vertex.class, vertices, vertexIdManager, ids);
         }
-    }
-
-    protected TLongSet getVertexIdsByLabel(final String label) {
-        if (!vertexIdsByLabel.containsKey(label))
-            vertexIdsByLabel.put(label, new TLongHashSet(100000));
-        return vertexIdsByLabel.get(label);
     }
 
     public Iterator<Vertex> verticesByLabel(final P<String> labelPredicate) {
@@ -518,7 +487,31 @@ public final class TinkerGraph implements Graph {
         }
     }
 
-    private TLongIterator elementIdsByLabel(final THashMap<String, TLongSet> elementIdsByLabel, final P<String> labelPredicate) {
+    @Override
+    public Iterator<Edge> edges(final Object... ids) {
+      if (usesSpecializedElements && ondiskOverflowEnabled) {
+          return createElementIteratorForCached(edgeCache, onDiskEdgeOverflow, edgeSerializer, idsIterator(edgeIdsByLabel, ids));
+      } else {
+        return createElementIterator(Edge.class, edges, edgeIdManager, ids);
+      }
+    }
+
+    public Iterator<Edge> edgesByLabel(final P<String> labelPredicate) {
+        if (usesSpecializedElements && ondiskOverflowEnabled) {
+            TLongIterator idsIterator = elementIdsByLabel(edgeIdsByLabel, labelPredicate);
+            return createElementIteratorForCached(edgeCache, onDiskEdgeOverflow, edgeSerializer, idsIterator);
+        } else {
+            throw new NotImplementedException("edgesWithLabel only implemented for specialized elements with ondisk overflow");
+        }
+    }
+
+    protected TLongSet getElementIdsByLabel(final THashMap<String, TLongSet> elementIdsByLabel, final String label) {
+        if (!elementIdsByLabel.containsKey(label))
+            elementIdsByLabel.put(label, new TLongHashSet(100000));
+        return elementIdsByLabel.get(label);
+    }
+
+    protected TLongIterator elementIdsByLabel(final THashMap<String, TLongSet> elementIdsByLabel, final P<String> labelPredicate) {
         List<TLongIterator> iterators = new ArrayList(elementIdsByLabel.size());
         for (String label : elementIdsByLabel.keySet()) {
             if (labelPredicate.test(label)) {
@@ -528,14 +521,38 @@ public final class TinkerGraph implements Graph {
         return new TLongMultiIterator(iterators);
     }
 
-    @Override
-    public Iterator<Edge> edges(final Object... ids) {
-      if (usesSpecializedElements && ondiskOverflowEnabled) {
-          throw new NotImplementedException("");
-//          return createElementIteratorForCached(Edge.class, edgeIds, edgeCache, onDiskEdgeOverflow, edgeSerializer, ids);
-      } else {
-        return createElementIterator(Edge.class, edges, edgeIdManager, edgeIds);
-      }
+    protected TLongIterator idsIterator(THashMap<String, TLongSet> elementIdsByLabel, Object... ids) {
+        final TLongIterator idsIterator;
+
+        if (ids.length == 0) {
+            // warning: this may be problematic in conjunction with concurrent modification... test
+            List<TLongIterator> iterators = new ArrayList(elementIdsByLabel.size());
+            for (TLongSet set : elementIdsByLabel.values()) {
+                iterators.add(set.iterator());
+            }
+            idsIterator = new TLongMultiIterator(iterators);
+        } else {
+            // unfortunately because the TP api allows for any type of id (and even elements instead of ids) we have to copy the whole array...
+            // unfortunately `arraycopy` fails if `ids` contains Integers, so gotta go the slow way
+//                Long[] longIds = new Long[ids.length];
+//                System.arraycopy(ids, 0, longIds, 0, ids.length);
+            long[] longIds = new long[ids.length];
+            for (int i = 0; i < ids.length; i++) {
+                Object id = ids[i];
+                final long longId;
+                if (id instanceof Long) {
+                    longId = ((Long) id).longValue();
+                } else if (id instanceof Integer) {
+                    longId = ((Integer) id).longValue();
+                } else {
+                    throw new AssertionError("provided ID=" + id + " must be a long (or integer) value, but is a " + id.getClass());
+                }
+                longIds[i] = longId;
+            }
+
+            idsIterator = new ArrayBackedTLongIterator(longIds);
+        }
+        return idsIterator;
     }
 
     private void loadGraph() {

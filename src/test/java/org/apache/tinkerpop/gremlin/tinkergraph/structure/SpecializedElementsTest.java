@@ -102,17 +102,28 @@ public class SpecializedElementsTest {
     public void optimizationStrategyAffectedSteps() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
 
+        // using `g.V().hasLabel(lbl)` optimization
         assertEquals(584, graph.traversal().V().hasLabel(Song.label).toList().size());
         assertEquals(142, graph.traversal().V().has(Song.PERFORMANCES, 1).toList().size());
         assertEquals(142, graph.traversal().V().has(Song.PERFORMANCES, 1).hasLabel(Song.label).toList().size());
         assertEquals(142, graph.traversal().V().hasLabel(Song.label).has(Song.PERFORMANCES, 1).toList().size());
         assertEquals(7047, graph.traversal().V().out().hasLabel(Song.label).toList().size());
-        assertEquals(1, graph.traversal().V(800).hasLabel(Song.label).toList().size());
-        assertEquals(5, graph.traversal().V(1).out().hasLabel(Song.label).toList().size());
+        assertEquals(1, graph.traversal().V(800l).hasLabel(Song.label).toList().size());
+        assertEquals(5, graph.traversal().V(1l).out().hasLabel(Song.label).toList().size());
         assertEquals(0, graph.traversal().V().hasLabel(Song.label).hasLabel(Artist.label).toList().size());
         assertEquals(808, graph.traversal().V().hasLabel(Song.label, Artist.label).toList().size());
         assertEquals(501, graph.traversal().V().outE().hasLabel(WrittenBy.label).toList().size());
         assertEquals(501, graph.traversal().V().hasLabel(Song.label).outE().hasLabel(WrittenBy.label).toList().size());
+
+        // using `g.E().hasLabel(lbl)` optimization
+        assertEquals(8049, graph.traversal().E().toList().size());
+        assertEquals(7047, graph.traversal().E().hasLabel(FollowedBy.label).toList().size());
+        assertEquals(3564, graph.traversal().E().has(FollowedBy.WEIGHT, 1).toList().size());
+        assertEquals(3564, graph.traversal().E().hasLabel(FollowedBy.label).has(FollowedBy.WEIGHT, 1).toList().size());
+        assertEquals(3564, graph.traversal().E().has(FollowedBy.WEIGHT, 1).hasLabel(FollowedBy.label).toList().size());
+        assertEquals(7047, graph.traversal().E().hasLabel(FollowedBy.label).outV().hasLabel(Song.label).toList().size());
+        assertEquals(1, graph.traversal().E(0l).hasLabel(FollowedBy.label).toList().size());
+        assertEquals(7548, graph.traversal().E().hasLabel(FollowedBy.label, SungBy.label).toList().size());
 
         graph.close();
     }
@@ -214,7 +225,7 @@ public class SpecializedElementsTest {
         assertTrue("avg time with index should be (significantly) less than without index",
             avgTimeWithIndex < avgTimeWithoutIndex);
     }
-    
+
     @Test
     public void shouldUseIndicesCreatedBeforeLoadingData() throws IOException {
         int loops = 100;
@@ -342,7 +353,7 @@ public class SpecializedElementsTest {
             Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
         );
     }
-    
+
     private TinkerGraph newGratefulDeadGraphWithSpecializedElementsWithData() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
         loadGraphMl(graph);
