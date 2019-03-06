@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
+import gnu.trove.set.TLongSet;
 import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -122,10 +123,8 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
             Long idValue = (Long) graph.edgeIdManager.convert(ElementHelper.getIdValue(keyValues).orElse(null));
             if (null != idValue) {
-                if ((graph.ondiskOverflowEnabled && graph.edgeIds.contains(idValue)) ||
-                  (!graph.ondiskOverflowEnabled && graph.edges.containsKey(idValue))) {
+                if (edgeIdAlreadyExists(idValue))
                     throw Graph.Exceptions.edgeWithIdAlreadyExists(idValue);
-                }
             } else {
                 idValue = (Long) graph.edgeIdManager.getNextId(graph);
             }
@@ -137,7 +136,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
             SpecializedTinkerEdge edge = factory.createEdge(idValue, graph, (long) outVertex.id, (long) inVertex.id);
             ElementHelper.attachProperties(edge, keyValues);
             if (graph.ondiskOverflowEnabled) {
-                graph.edgeIds.add(idValue);
+                graph.getElementIdsByLabel(graph.edgeIdsByLabel, label).add(idValue);
                 graph.edgeCache.put(idValue, edge);
             } else {
                 graph.edges.put(idValue, edge);
@@ -156,6 +155,19 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
                         + ". Mixing specialized and generic elements is not (yet) supported");
             }
             return super.addEdge(label, vertex, keyValues);
+        }
+    }
+
+    private boolean edgeIdAlreadyExists(Long idValue) {
+        if (!graph.ondiskOverflowEnabled) {
+            return graph.edges.containsKey(idValue);
+        } else {
+            for (TLongSet ids : graph.edgeIdsByLabel.values()) {
+                if (ids.contains(idValue.longValue())) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -209,10 +221,11 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
         if (graph.ondiskOverflowEnabled) {
             this.graph.vertexCache.remove(id);
-            this.graph.vertexIds.remove(id);
+            this.graph.vertexIdsByLabel.get(label()).remove(id);
             this.graph.onDiskVertexOverflow.remove(id);
         }
         this.graph.vertices.remove(id);
+        edges(Direction.BOTH).forEachRemaining(Element::remove);
 
         this.modifiedSinceLastSerialization = true;
         releaseModificationLock();

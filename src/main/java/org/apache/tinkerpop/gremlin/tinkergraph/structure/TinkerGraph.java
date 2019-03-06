@@ -19,11 +19,14 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import gnu.trove.iterator.TLongIterator;
+import gnu.trove.map.hash.THashMap;
 import gnu.trove.set.TLongSet;
 import gnu.trove.set.hash.TLongHashSet;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -45,6 +48,8 @@ import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optim
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.EdgeSerializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.Serializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexSerializer;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.org.apache.tinkerpop.gremlin.util.iterator.ArrayBackedTLongIterator;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.org.apache.tinkerpop.gremlin.util.iterator.TLongMultiIterator;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
@@ -68,7 +73,11 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 /**
- * A modified version of the in-memory reference implementation TinkerGraph
+ * A fork of the in-memory reference implementation TinkerGraph featuring:
+ * - using ~70% less memory (depending on your domain)
+ * - strict schema enforcement (optional)
+ * - on-disk overflow, i.e. elements are serialized to disk if (and only if) they don't fit into memory (optional)
+ *
  * TODO MP: remove complexity in implementation by removing option to use standard elements
  */
 @Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_STANDARD)
@@ -126,8 +135,8 @@ public final class TinkerGraph implements Graph {
 
     /* overflow to disk: elements are serialized on eviction from on-heap cache - off by default */
     public final boolean ondiskOverflowEnabled;
-    protected TLongSet vertexIds;
-    protected TLongSet edgeIds;
+    protected THashMap<String, TLongSet> vertexIdsByLabel;
+    protected THashMap<String, TLongSet> edgeIdsByLabel;
     protected CacheManager cacheManager;
     protected Cache<Long, SpecializedTinkerVertex> vertexCache;
     protected Cache<Long, SpecializedTinkerEdge> edgeCache;
@@ -163,8 +172,8 @@ public final class TinkerGraph implements Graph {
     }
 
     private void initializeOnDiskOverflow() {
-        vertexIds = new TLongHashSet(100000);
-        edgeIds = new TLongHashSet(100000);
+        vertexIdsByLabel = new THashMap<>(100);
+        edgeIdsByLabel = new THashMap<>(100);
 
         final File mvstoreVerticesFile;
         final File mvstoreEdgesFile;
@@ -329,10 +338,8 @@ public final class TinkerGraph implements Graph {
         final String label = ElementHelper.getLabelValue(keyValues).orElse(Vertex.DEFAULT_LABEL);
 
         if (null != idValue) {
-            if ((ondiskOverflowEnabled && vertexIds.contains(idValue)) ||
-              (!ondiskOverflowEnabled && vertices.containsKey(idValue))) {
+            if (vertexIdAlreadyExists(idValue))
                 throw Exceptions.vertexWithIdAlreadyExists(idValue);
-            }
         } else {
             idValue = (Long) vertexIdManager.getNextId(this);
         }
@@ -343,7 +350,7 @@ public final class TinkerGraph implements Graph {
             SpecializedTinkerVertex vertex = factory.createVertex(idValue, this);
             ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
             if (ondiskOverflowEnabled) {
-                vertexIds.add(idValue);
+                getElementIdsByLabel(vertexIdsByLabel, label).add(idValue);
                 vertexCache.put(idValue, vertex);
             } else {
                 vertices.put(idValue, vertex);
@@ -359,6 +366,19 @@ public final class TinkerGraph implements Graph {
             this.vertices.put(vertex.id(), vertex);
             ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
             return vertex;
+        }
+    }
+
+    private boolean vertexIdAlreadyExists(Long idValue) {
+        if (!ondiskOverflowEnabled) {
+            return vertices.containsKey(idValue);
+        } else {
+            for (TLongSet ids : vertexIdsByLabel.values()) {
+                if (ids.contains(idValue.longValue())) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -393,14 +413,29 @@ public final class TinkerGraph implements Graph {
 
     @Override
     public String toString() {
-        return StringFactory.graphString(this, "vertices: " + vertexIds.size() + ", edges: " + edgeIds.size());
+        final int vertexCount;
+        final int edgeCount;
+        if (usesSpecializedElements && ondiskOverflowEnabled) {
+            int vSum = 0;
+            int eSum = 0;
+            for (TLongSet ids : vertexIdsByLabel.values())
+                vSum += ids.size();
+            for (TLongSet ids : edgeIdsByLabel.values())
+                eSum += ids.size();
+            vertexCount = vSum;
+            edgeCount = eSum;
+        } else {
+            vertexCount = vertices.size();
+            edgeCount = edges.size();
+        }
+        return StringFactory.graphString(this, "vertices: " + vertexCount + ", edges: " + edgeCount);
     }
 
     public void clear() {
         this.vertices.clear();
-        this.vertexIds.clear();
+        this.vertexIdsByLabel.clear();
         this.edges.clear();
-        this.edgeIds.clear();
+        this.edgeIdsByLabel.clear();
         this.onDiskVertexOverflow.clear();
         this.onDiskEdgeOverflow.clear();
         this.variables = null;
@@ -435,21 +470,89 @@ public final class TinkerGraph implements Graph {
     }
 
     @Override
-    public Iterator<Vertex> vertices(final Object... vertexIds) {
+    public Iterator<Vertex> vertices(final Object... ids) {
         if (usesSpecializedElements && ondiskOverflowEnabled) {
-          return createElementIteratorForCached(Vertex.class, this.vertexIds, vertexCache, onDiskVertexOverflow, vertexSerializer, vertexIds);
+          return createElementIteratorForCached(vertexCache, onDiskVertexOverflow, vertexSerializer, idsIterator(vertexIdsByLabel, ids));
         } else {
-          return createElementIterator(Vertex.class, vertices, vertexIdManager, vertexIds);
+          return createElementIterator(Vertex.class, vertices, vertexIdManager, ids);
+        }
+    }
+
+    public Iterator<Vertex> verticesByLabel(final P<String> labelPredicate) {
+        if (usesSpecializedElements && ondiskOverflowEnabled) {
+            TLongIterator idsIterator = elementIdsByLabel(vertexIdsByLabel, labelPredicate);
+            return createElementIteratorForCached(vertexCache, onDiskVertexOverflow, vertexSerializer, idsIterator);
+        } else {
+            throw new NotImplementedException("verticesWithLabel only implemented for specialized elements with ondisk overflow");
         }
     }
 
     @Override
-    public Iterator<Edge> edges(final Object... edgeIds) {
+    public Iterator<Edge> edges(final Object... ids) {
       if (usesSpecializedElements && ondiskOverflowEnabled) {
-        return createElementIteratorForCached(Edge.class, this.edgeIds, edgeCache, onDiskEdgeOverflow, edgeSerializer, edgeIds);
+          return createElementIteratorForCached(edgeCache, onDiskEdgeOverflow, edgeSerializer, idsIterator(edgeIdsByLabel, ids));
       } else {
-        return createElementIterator(Edge.class, edges, edgeIdManager, edgeIds);
+        return createElementIterator(Edge.class, edges, edgeIdManager, ids);
       }
+    }
+
+    public Iterator<Edge> edgesByLabel(final P<String> labelPredicate) {
+        if (usesSpecializedElements && ondiskOverflowEnabled) {
+            TLongIterator idsIterator = elementIdsByLabel(edgeIdsByLabel, labelPredicate);
+            return createElementIteratorForCached(edgeCache, onDiskEdgeOverflow, edgeSerializer, idsIterator);
+        } else {
+            throw new NotImplementedException("edgesWithLabel only implemented for specialized elements with ondisk overflow");
+        }
+    }
+
+    protected TLongSet getElementIdsByLabel(final THashMap<String, TLongSet> elementIdsByLabel, final String label) {
+        if (!elementIdsByLabel.containsKey(label))
+            elementIdsByLabel.put(label, new TLongHashSet(100000));
+        return elementIdsByLabel.get(label);
+    }
+
+    protected TLongIterator elementIdsByLabel(final THashMap<String, TLongSet> elementIdsByLabel, final P<String> labelPredicate) {
+        List<TLongIterator> iterators = new ArrayList(elementIdsByLabel.size());
+        for (String label : elementIdsByLabel.keySet()) {
+            if (labelPredicate.test(label)) {
+                iterators.add(elementIdsByLabel.get(label).iterator());
+            }
+        }
+        return new TLongMultiIterator(iterators);
+    }
+
+    protected TLongIterator idsIterator(THashMap<String, TLongSet> elementIdsByLabel, Object... ids) {
+        final TLongIterator idsIterator;
+
+        if (ids.length == 0) {
+            // warning: this may be problematic in conjunction with concurrent modification... test
+            List<TLongIterator> iterators = new ArrayList(elementIdsByLabel.size());
+            for (TLongSet set : elementIdsByLabel.values()) {
+                iterators.add(set.iterator());
+            }
+            idsIterator = new TLongMultiIterator(iterators);
+        } else {
+            // unfortunately because the TP api allows for any type of id (and even elements instead of ids) we have to copy the whole array...
+            // unfortunately `arraycopy` fails if `ids` contains Integers, so gotta go the slow way
+//                Long[] longIds = new Long[ids.length];
+//                System.arraycopy(ids, 0, longIds, 0, ids.length);
+            long[] longIds = new long[ids.length];
+            for (int i = 0; i < ids.length; i++) {
+                Object id = ids[i];
+                final long longId;
+                if (id instanceof Long) {
+                    longId = ((Long) id).longValue();
+                } else if (id instanceof Integer) {
+                    longId = ((Integer) id).longValue();
+                } else {
+                    throw new AssertionError("provided ID=" + id + " must be a long (or integer) value, but is a " + id.getClass());
+                }
+                longIds[i] = longId;
+            }
+
+            idsIterator = new ArrayBackedTLongIterator(longIds);
+        }
+        return idsIterator;
     }
 
     private void loadGraph() {
@@ -500,47 +603,25 @@ public final class TinkerGraph implements Graph {
     }
 
 
-    /** would have been nice to share the implementation with `createElementIterator` and just pass a transform Function, but that didn't work out... */
-    private <T extends Element> Iterator<T> createElementIteratorForCached(final Class<T> clazz,
-                                                                           final TLongSet allElementIds,
-                                                                           final Cache<Long, ? extends T> cache,
+    private <T extends Element> Iterator<T> createElementIteratorForCached(final Cache<Long, ? extends T> cache,
                                                                            final MVMap<Long, byte[]> onDiskElementOverflow,
                                                                            final Serializer<? extends T> serializer,
-                                                                           final Object... ids) {
-      if (0 == ids.length) {
-          TLongIterator allIdsIter = allElementIds.iterator();
+                                                                           final TLongIterator idsIterator) {
           return new Iterator<T>() {
               @Override
               public boolean hasNext() {
-                  return allIdsIter.hasNext();
+                  return idsIterator.hasNext();
               }
               @Override
               public T next() {
-                  long id = allIdsIter.next();
+                  long id = idsIterator.next();
                   return getElementFromCache(id, cache, onDiskElementOverflow, serializer);
               }
           };
-      } else {
-          return Arrays.asList(ids).stream().map(obj -> {
-              if (clazz.isInstance(obj)) {
-                  return (T) obj;
-              } else {
-                  final Long id;
-                  // for whatever reason the passed objects can either be elements or their ids... :(
-                  if (obj instanceof Integer) {
-                      id = ((Integer) obj).longValue();
-                  } else {
-                      id = (Long) obj;
-                  }
-                  T element = getElementFromCache(id, cache, onDiskElementOverflow, serializer);
-                  return element;
-              }
-          }).iterator();
-      }
-
     }
 
-  /** check for element in cache, otherwise read from `onDiskOverflow`, deserialize and put back in cache */
+
+    /** check for element in cache, otherwise read from `onDiskOverflow`, deserialize and put back in cache */
     private <T extends Element> T getElementFromCache(final Long id,
                                                       final Cache<Long, ? extends T> cache,
                                                       final MVMap<Long, byte[]> onDiskElementOverflow,
@@ -560,7 +641,8 @@ public final class TinkerGraph implements Graph {
       }
     }
 
-    private <T extends Element> Iterator<T> createElementIterator(final Class<T> clazz, final Map<Object, T> elements,
+    private <T extends Element> Iterator<T> createElementIterator(final Class<T> clazz,
+                                                                  final Map<Object, T> elements,
                                                                   final IdManager idManager,
                                                                   final Object... ids) {
         final Iterator<T> iterator;

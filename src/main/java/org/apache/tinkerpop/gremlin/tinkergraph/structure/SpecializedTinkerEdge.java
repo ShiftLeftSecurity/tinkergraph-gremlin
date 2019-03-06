@@ -112,7 +112,7 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
         TinkerHelper.removeElementIndex(this);
         graph.edges.remove(id);
         if (graph.ondiskOverflowEnabled) {
-            graph.edgeIds.remove(id);
+            graph.edgeIdsByLabel.get(label()).remove(id);
             graph.onDiskEdgeOverflow.remove(id);
             graph.edgeCache.remove(id);
         }
