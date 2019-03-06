@@ -476,7 +476,25 @@ public final class TinkerGraph implements Graph {
                 }
                 idsIterator = new TLongMultiIterator(iterators);
             } else {
-                idsIterator = new ArrayBackedTLongIterator((Long[]) ids);
+                // unfortunately because the TP api allows for any type of id (and even elements instead of ids) we have to copy the whole array...
+                // unfortunately `arraycopy` fails if `ids` contains Integers, so gotta go the slow way
+//                Long[] longIds = new Long[ids.length];
+//                System.arraycopy(ids, 0, longIds, 0, ids.length);
+                long[] longIds = new long[ids.length];
+                for (int i = 0; i < ids.length; i++) {
+                    Object id = ids[i];
+                    final long longId;
+                    if (id instanceof Long) {
+                        longId = ((Long) id).longValue();
+                    } else if (id instanceof Integer) {
+                        longId = ((Integer) id).longValue();
+                    } else {
+                        throw new AssertionError("provided ID=" + id + " must be a long (or integer) value, but is a " + id.getClass());
+                    }
+                    longIds[i] = longId;
+                }
+
+                idsIterator = new ArrayBackedTLongIterator(longIds);
             }
           return createElementIteratorForCached(vertexCache, onDiskVertexOverflow, vertexSerializer, idsIterator);
         } else {

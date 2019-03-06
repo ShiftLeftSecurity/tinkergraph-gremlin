@@ -65,7 +65,13 @@ public class SpecializedElementsWithOnDiskTest {
 
         assertEquals(584, graph.traversal().V().hasLabel(Song.label).toList().size());
         assertEquals(142, graph.traversal().V().has(Song.PERFORMANCES, 1).toList().size());
+        assertEquals(142, graph.traversal().V().has(Song.PERFORMANCES, 1).hasLabel(Song.label).toList().size());
         assertEquals(142, graph.traversal().V().hasLabel(Song.label).has(Song.PERFORMANCES, 1).toList().size());
+        assertEquals(7047, graph.traversal().V().out().hasLabel(Song.label).toList().size());
+        assertEquals(1, graph.traversal().V(800).hasLabel(Song.label).toList().size());
+        assertEquals(5, graph.traversal().V(1).out().hasLabel(Song.label).toList().size());
+        assertEquals(0, graph.traversal().V().hasLabel(Song.label).hasLabel(Artist.label).toList().size());
+        assertEquals(808, graph.traversal().V().hasLabel(Song.label, Artist.label).toList().size());
 
         graph.close();
     }
