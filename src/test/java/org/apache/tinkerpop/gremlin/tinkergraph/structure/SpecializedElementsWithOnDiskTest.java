@@ -58,6 +58,7 @@ public class SpecializedElementsWithOnDiskTest {
         System.out.println("SpecializedElementsTest.simplisticTest " + edges);
     }
 
+
     @Test
     /* ensure these are identical for both ondisk overflow enabled/disabled */
     public void optimizationStrategyAffectedSteps() throws IOException {

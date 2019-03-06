@@ -26,6 +26,7 @@ import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
@@ -508,12 +509,23 @@ public final class TinkerGraph implements Graph {
         return vertexIdsByLabel.get(label);
     }
 
-    public Iterator<Vertex> verticesByLabel(final String label) {
+    public Iterator<Vertex> verticesByLabel(final P<String> labelPredicate) {
         if (usesSpecializedElements && ondiskOverflowEnabled) {
-            return createElementIteratorForCached(vertexCache, onDiskVertexOverflow, vertexSerializer, getVertexIdsByLabel(label).iterator());
+            TLongIterator idsIterator = elementIdsByLabel(vertexIdsByLabel, labelPredicate);
+            return createElementIteratorForCached(vertexCache, onDiskVertexOverflow, vertexSerializer, idsIterator);
         } else {
             throw new NotImplementedException("verticesWithLabel only implemented for specialized elements with ondisk overflow");
         }
+    }
+
+    private TLongIterator elementIdsByLabel(final THashMap<String, TLongSet> elementIdsByLabel, final P<String> labelPredicate) {
+        List<TLongIterator> iterators = new ArrayList(elementIdsByLabel.size());
+        for (String label : elementIdsByLabel.keySet()) {
+            if (labelPredicate.test(label)) {
+                iterators.add(elementIdsByLabel.get(label).iterator());
+            }
+        }
+        return new TLongMultiIterator(iterators);
     }
 
     @Override
@@ -591,7 +603,8 @@ public final class TinkerGraph implements Graph {
           };
     }
 
-  /** check for element in cache, otherwise read from `onDiskOverflow`, deserialize and put back in cache */
+
+    /** check for element in cache, otherwise read from `onDiskOverflow`, deserialize and put back in cache */
     private <T extends Element> T getElementFromCache(final Long id,
                                                       final Cache<Long, ? extends T> cache,
                                                       final MVMap<Long, byte[]> onDiskElementOverflow,
