@@ -18,7 +18,10 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
+import gnu.trove.iterator.TLongIterator;
+import gnu.trove.set.TLongSet;
 import org.apache.commons.collections.IteratorUtils;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -61,29 +64,23 @@ public class VertexSerializer extends Serializer<Vertex> {
   /** format: two `Map<Label, Array<EdgeId>>`, i.e. one Map for `IN` and one for `OUT` edges */
   private void packEdgeIds(MessageBufferPacker packer, Vertex vertex) throws IOException {
     for (Direction direction : new Direction[]{Direction.IN, Direction.OUT}) {
-      final Map<String, Set<Long>> edgeIdsByLabel;
+      final Map<String, TLongSet> edgeIdsByLabel;
       if (vertex instanceof SpecializedTinkerVertex) {
         edgeIdsByLabel = ((SpecializedTinkerVertex) vertex).edgeIdsByLabel(direction);
       } else {
-        edgeIdsByLabel = new HashMap<>();
-        List<Edge> edges = IteratorUtils.toList(vertex.edges(direction));
-        // a simple group by would be nice, but java collections are still very basic apparently
-        Set<String> labels = edges.stream().map(e -> e.label()).collect(Collectors.toSet());
-        for (String label : labels) {
-          Set<Long> edgeIds = edges.stream().filter(e -> e.label().equals(label)).map(e -> (Long) e.id()).collect(Collectors.toSet());
-          edgeIdsByLabel.put(label, edgeIds);
-        }
+        throw new NotImplementedException("");
       }
 
       // a simple group by would be nice, but java collections are still very basic apparently
       packer.packMapHeader(edgeIdsByLabel.size());
       Set<String> labels = edgeIdsByLabel.keySet();
       for (String label : labels) {
+        final TLongSet edgeIds = edgeIdsByLabel.get(label);
+        final TLongIterator iter = edgeIds.iterator();
         packer.packString(label);
-        Set<Long> edgeIds = edgeIdsByLabel.get(label);
         packer.packArrayHeader(edgeIds.size());
-        for (Long edgeId : edgeIds) {
-          packer.packLong(edgeId);
+        while (iter.hasNext()) {
+          packer.packLong(iter.next());
         }
       }
     }

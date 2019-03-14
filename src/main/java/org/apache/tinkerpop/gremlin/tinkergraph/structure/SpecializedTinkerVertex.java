@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
+import gnu.trove.iterator.TLongIterator;
 import gnu.trove.set.TLongSet;
 import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
@@ -185,7 +186,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     }
 
     /* implement in concrete specialised instance to avoid using generic HashMaps */
-    protected abstract Iterator<Long> specificEdges(final Direction direction, final String... edgeLabels);
+    protected abstract TLongIterator specificEdges(final Direction direction, final String... edgeLabels);
 
     @Override
     public Iterator<Vertex> vertices(final Direction direction, final String... edgeLabels) {
@@ -201,13 +202,13 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         }
     }
 
-    public void removeOutEdge(Long edgeId) {
+    public void removeOutEdge(long edgeId) {
         removeSpecificOutEdge(edgeId);
     }
 
     protected abstract void removeSpecificOutEdge(Long edgeId);
 
-    public void removeInEdge(Long edgeId) {
+    public void removeInEdge(long edgeId) {
         removeSpecificInEdge(edgeId);
     }
 
@@ -231,7 +232,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         releaseModificationLock();
     }
 
-    public abstract Map<String, Set<Long>> edgeIdsByLabel(Direction direction);
+    public abstract Map<String, TLongSet> edgeIdsByLabel(Direction direction);
 
     public boolean isModifiedSinceLastSerialization() {
         return modifiedSinceLastSerialization;

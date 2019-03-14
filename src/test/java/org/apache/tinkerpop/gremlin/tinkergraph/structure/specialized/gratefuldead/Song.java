@@ -18,9 +18,14 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
+import gnu.trove.iterator.TLongIterator;
+import gnu.trove.list.TLongList;
+import gnu.trove.set.TLongSet;
+import gnu.trove.set.hash.TLongHashSet;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.org.apache.tinkerpop.gremlin.util.iterator.TLongMultiIterator;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
@@ -45,10 +50,10 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
 
     // edges
     public static final String[] ALL_EDGES = new String[] {FollowedBy.label, WrittenBy.label, SungBy.label};
-    private Set<Long> followedByOut = new HashSet();
-    private Set<Long> followedByIn = new HashSet();
-    private Set<Long> writtenByOut = new HashSet();
-    private Set<Long> sungByOut = new HashSet();
+    private TLongSet followedByOut = new TLongHashSet();
+    private TLongSet followedByIn = new TLongHashSet();
+    private TLongSet writtenByOut = new TLongHashSet();
+    private TLongSet sungByOut = new TLongHashSet();
 
     public Song(Long id, TinkerGraph graph) {
         super(id, Song.label, graph, SPECIFIC_KEYS);
@@ -101,32 +106,31 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
 
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
-    protected Iterator<Long> specificEdges(Direction direction, String... edgeLabels) {
-        List<Iterator<?>> iterators = new LinkedList<>();
+    protected TLongIterator specificEdges(Direction direction, String... edgeLabels) {
+        List<TLongIterator> iterators = new ArrayList<>();
         if (edgeLabels.length == 0) {
             edgeLabels = ALL_EDGES;
         }
         for (String label : edgeLabels) {
             if (label == FollowedBy.label) {
                 if (direction == Direction.IN || direction == Direction.BOTH) {
-                    iterators.add(getFollowedByIn());
+                    iterators.add(followedByIn.iterator());
                 }
                 if (direction == Direction.OUT || direction == Direction.BOTH) {
-                    iterators.add(getFollowedByOut());
+                    iterators.add(followedByOut.iterator());
                 }
             } else if (label == WrittenBy.label) {
                 if (direction == Direction.OUT|| direction == Direction.BOTH) {
-                    iterators.add(getWrittenByOut());
+                    iterators.add(writtenByOut.iterator());
                 }
             } else if (label == SungBy.label) {
                 if (direction == Direction.OUT || direction == Direction.BOTH) {
-                    iterators.add(getSungByOut());
+                    iterators.add(sungByOut.iterator());
                 }
             }
         }
 
-        Iterator<Long>[] iteratorsArray = iterators.toArray(new Iterator[iterators.size()]);
-        return IteratorUtils.concat(iteratorsArray);
+        return new TLongMultiIterator(iterators);
     }
 
     @Override
@@ -142,8 +146,8 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
     }
 
     @Override
-    public Map<String, Set<Long>> edgeIdsByLabel(Direction direction) {
-        final Map<String, Set<Long>> result = new HashMap<>();
+    public Map<String, TLongSet> edgeIdsByLabel(Direction direction) {
+        final Map<String, TLongSet> result = new HashMap<>();
         if (direction.equals(Direction.IN)) {
             result.put(FollowedBy.label, followedByIn);
         } else if (direction.equals(Direction.OUT)) {
@@ -177,21 +181,6 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
         } else {
             throw new IllegalArgumentException("edge type " + edgeLabel + " not supported");
         }
-    }
-
-    private Iterator<Long> getFollowedByOut() {
-        return followedByOut.iterator();
-    }
-
-    private Iterator<Long> getFollowedByIn() {
-        return followedByIn.iterator();
-    }
-
-    private Iterator<Long> getWrittenByOut() {
-        return writtenByOut.iterator();
-    }
-    private Iterator<Long> getSungByOut() {
-        return sungByOut.iterator();
     }
 
     public static SpecializedElementFactory.ForVertex<Song> factory = new SpecializedElementFactory.ForVertex<Song>() {

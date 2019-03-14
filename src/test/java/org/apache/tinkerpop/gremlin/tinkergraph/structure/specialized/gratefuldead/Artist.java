@@ -18,10 +18,14 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
+import gnu.trove.iterator.TLongIterator;
+import gnu.trove.set.TLongSet;
+import gnu.trove.set.hash.TLongHashSet;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.org.apache.tinkerpop.gremlin.util.iterator.TLongMultiIterator;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
@@ -42,8 +46,8 @@ public class Artist extends SpecializedTinkerVertex {
 
     // edges
     public static final String[] ALL_EDGES = new String[] {WrittenBy.label, SungBy.label};
-    private Set<Long> sungByIn = new HashSet<>();
-    private Set<Long> writtenByIn = new HashSet<>();
+    private TLongSet sungByIn = new TLongHashSet();
+    private TLongSet writtenByIn = new TLongHashSet();
 
     public Artist(Long id, TinkerGraph graph) {
         super(id, Artist.label, graph, SPECIFIC_KEYS);
@@ -82,25 +86,24 @@ public class Artist extends SpecializedTinkerVertex {
 
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
-    protected Iterator<Long> specificEdges(Direction direction, String... edgeLabels) {
-        List<Iterator<?>> iterators = new LinkedList<>();
+    protected TLongIterator specificEdges(Direction direction, String... edgeLabels) {
+        List<TLongIterator> iterators = new ArrayList<>();
         if (edgeLabels.length == 0) {
             edgeLabels = ALL_EDGES;
         }
         for (String label : edgeLabels) {
             if (label == WrittenBy.label) {
                 if (direction == Direction.IN || direction == Direction.BOTH) {
-                    iterators.add(getWrittenByIn());
+                    iterators.add(writtenByIn.iterator());
                 }
             } else if (label == SungBy.label) {
                 if (direction == Direction.IN || direction == Direction.BOTH) {
-                    iterators.add(getSungByIn());
+                    iterators.add(sungByIn.iterator());
                 }
             }
         }
 
-        Iterator<Long>[] iteratorsArray = iterators.toArray(new Iterator[iterators.size()]);
-        return IteratorUtils.concat(iteratorsArray);
+        return new TLongMultiIterator(iterators);
     }
 
     @Override
@@ -115,8 +118,8 @@ public class Artist extends SpecializedTinkerVertex {
     }
 
     @Override
-    public Map<String, Set<Long>> edgeIdsByLabel(Direction direction) {
-        final Map<String, Set<Long>> result = new HashMap<>();
+    public Map<String, TLongSet> edgeIdsByLabel(Direction direction) {
+        final Map<String, TLongSet> result = new HashMap<>();
         if (direction.equals(Direction.IN)) {
             result.put(SungBy.label, sungByIn);
             result.put(WrittenBy.label, writtenByIn);
@@ -142,14 +145,6 @@ public class Artist extends SpecializedTinkerVertex {
         } else {
             throw new IllegalArgumentException("edge type " + edgeLabel + " not supported");
         }
-    }
-
-    private Iterator<Long> getWrittenByIn() {
-        return writtenByIn.iterator();
-    }
-
-    private Iterator<Long> getSungByIn() {
-        return sungByIn.iterator();
     }
 
     public static SpecializedElementFactory.ForVertex<Artist> factory = new SpecializedElementFactory.ForVertex<Artist>() {

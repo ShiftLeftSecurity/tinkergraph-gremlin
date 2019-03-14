@@ -301,32 +301,35 @@ public final class TinkerGraph implements Graph {
         return tg;
     }
 
-    public Edge edgeById(Long id) {
+    public Edge edgeById(long id) {
         if (ondiskOverflowEnabled)
             return getElementFromCache(id, edgeCache, onDiskEdgeOverflow, edgeSerializer);
         else
             return edges.get(id);
     }
 
-    public Iterator<Edge> edgesById(Iterator<Long> ids) {
-        Spliterator<Long> spliterator = Spliterators.spliteratorUnknownSize(ids, Spliterator.ORDERED);
-        boolean parallel = false;
-        Stream<Long> stream = StreamSupport.stream(spliterator, parallel);
-        return stream.map(id -> edgeById(id)).iterator();
+    public Iterator<Edge> edgesById(TLongIterator ids) {
+        if (ondiskOverflowEnabled) {
+            return createElementIteratorForCached(edgeCache, onDiskEdgeOverflow, edgeSerializer, ids);
+        } else {
+            return new Iterator<Edge>() {
+                @Override
+                public boolean hasNext() {
+                    return ids.hasNext();
+                }
+                @Override
+                public Edge next() {
+                    return edgeById(ids.next());
+                }
+            };
+        }
     }
 
-    public Vertex vertexById(Long id) {
+    public Vertex vertexById(long id) {
         if (ondiskOverflowEnabled)
             return getElementFromCache(id, vertexCache, onDiskVertexOverflow, vertexSerializer);
         else
             return vertices.get(id);
-    }
-
-    public Iterator<Vertex> verticesById(Iterator<Long> ids) {
-        Spliterator<Long> spliterator = Spliterators.spliteratorUnknownSize(ids, Spliterator.ORDERED);
-        boolean parallel = false;
-        Stream<Long> stream = StreamSupport.stream(spliterator, parallel);
-        return stream.map(id -> vertexById(id)).iterator();
     }
 
     ////////////// STRUCTURE API METHODS //////////////////
