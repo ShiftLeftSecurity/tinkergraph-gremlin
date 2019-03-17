@@ -240,9 +240,9 @@ public final class TinkerGraph implements Graph {
         };
 
         CacheEventListenerConfigurationBuilder vertexCacheEventListenerConfig = CacheEventListenerConfigurationBuilder
-          .newEventListenerConfiguration(vertexCacheEventListener, EventType.EVICTED, EventType.REMOVED).synchronous().unordered();
+          .newEventListenerConfiguration(vertexCacheEventListener, EventType.EVICTED, EventType.REMOVED).asynchronous().unordered();
         CacheEventListenerConfigurationBuilder edgeCacheEventListenerConfig = CacheEventListenerConfigurationBuilder
-          .newEventListenerConfiguration(edgeCacheEventListener, EventType.EVICTED, EventType.REMOVED).synchronous().unordered();
+          .newEventListenerConfiguration(edgeCacheEventListener, EventType.EVICTED, EventType.REMOVED).asynchronous().unordered();
         final String verticesCacheName = "vertexCache";
         final String edgesCacheName = "edgeCache";
         cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
