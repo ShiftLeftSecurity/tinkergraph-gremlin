@@ -27,6 +27,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.*;
 import org.apache.tinkerpop.gremlin.util.TimeUtil;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -228,6 +229,7 @@ public class SpecializedElementsWithOnDiskTest {
     }
 
     @Test
+    @Ignore // only run manually since the timings vary depending on the environment
     public void shouldUseIndices() throws IOException {
         int loops = 100;
         Double avgTimeWithIndex = null;
@@ -256,8 +258,8 @@ public class SpecializedElementsWithOnDiskTest {
             avgTimeWithIndex < avgTimeWithoutIndex);
     }
     
-    // @Test
-    // only run manually since the timings vary depending on the environment
+     @Test
+     @Ignore // only run manually since the timings vary depending on the environment
     public void shouldUseIndicesCreatedBeforeLoadingData() throws IOException {
         int loops = 100;
         Double avgTimeWithIndex = null;
