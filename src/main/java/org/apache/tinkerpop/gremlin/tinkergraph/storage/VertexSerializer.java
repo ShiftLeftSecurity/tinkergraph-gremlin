@@ -36,7 +36,6 @@ import org.msgpack.core.MessageUnpacker;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class VertexSerializer extends Serializer<Vertex> {
 
