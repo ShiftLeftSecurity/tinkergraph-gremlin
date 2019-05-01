@@ -46,7 +46,6 @@ public abstract class TinkerElement implements Element {
         return graph;
     }
 
-
     @Override
     protected void finalize() throws Throwable {
         super.finalize();

@@ -198,8 +198,11 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         final MultiIterator<Edge> multiIterator = new MultiIterator<>();
 
         if (edgeLabels.length == 0) { // follow all labels
-            getOutEdgesByLabel().values().forEach(edges -> multiIterator.addIterator(edges.iterator()));
-            getInEdgesByLabel().values().forEach(edges -> multiIterator.addIterator(edges.iterator()));
+            if (direction == Direction.OUT || direction == Direction.BOTH) {
+                getOutEdgesByLabel().values().forEach(edges -> multiIterator.addIterator(edges.iterator()));
+            } else if (direction == Direction.IN || direction == Direction.BOTH) {
+                getInEdgesByLabel().values().forEach(edges -> multiIterator.addIterator(edges.iterator()));
+            }
         } else {
             for (String label : edgeLabels) {
                 /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
@@ -272,10 +275,6 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     public void remove() {
         super.remove();
         this.modifiedSinceLastSerialization = true;
-    }
-
-    public boolean isModifiedSinceLastSerialization() {
-        return modifiedSinceLastSerialization;
     }
 
     public void setModifiedSinceLastSerialization(boolean modifiedSinceLastSerialization) {

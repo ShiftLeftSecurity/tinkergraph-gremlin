@@ -21,6 +21,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -48,15 +49,26 @@ public class SpecializedElementsWithOndiskTest {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
 
         Vertex v0 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 1");
-        Vertex v1 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 2");
-        v0.addEdge(FollowedBy.label, v1);
+        Vertex v2 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 2");
+        v0.addEdge(FollowedBy.label, v2);
 
         Set<Object> songNames = graph.traversal().V().values(Song.NAME).toSet();
         assertTrue(songNames.contains("Song 1"));
         assertTrue(songNames.contains("Song 2"));
 
-        List<Edge> edges = __(v0).bothE(FollowedBy.label).toList();
-        System.out.println("SpecializedElementsTest.simplisticTest " + edges);
+        assertEquals(1, __(v0).bothE().toList().size());
+        assertEquals(1, __(v0).bothE(FollowedBy.label).toList().size());
+        assertEquals(0, __(v0).bothE("otherLabel").toList().size());
+        assertEquals(1, __(v0).out().toList().size());
+        assertEquals(0, __(v2).out().toList().size());
+        assertEquals(0, __(v0).in().toList().size());
+        assertEquals(1, __(v2).in().toList().size());
+        assertEquals(1, __(v0).both().toList().size());
+        assertEquals(1, __(v2).both().toList().size());
+
+        System.out.println(__(v0).bothE(FollowedBy.label).toList());
+        System.out.println(__(v0).out().toList());
+        System.out.println(__(v0).in().toList());
     }
 
     @Test
