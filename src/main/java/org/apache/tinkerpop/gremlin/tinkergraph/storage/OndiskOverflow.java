@@ -35,6 +35,7 @@ public class OndiskOverflow {
   private final MVStore edgeMVStore;
   protected final MVMap<Long, byte[]> vertexMVMap;
   protected final MVMap<Long, byte[]> edgeMVMap;
+  private boolean closed;
 
   public OndiskOverflow(final String ondiskOverflowRootDir,
                         final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer) {
@@ -60,16 +61,22 @@ public class OndiskOverflow {
   }
 
   public void persist(final TinkerElement finalizedElement) {
-    final Long id = (Long) finalizedElement.id();
-    try {
-      if (finalizedElement instanceof Vertex) {
-        vertexMVMap.put(id, vertexSerializer.serialize((Vertex) finalizedElement));
-      } else {
-        edgeMVMap.put(id, edgeSerializer.serialize((Edge) finalizedElement));
+    if (!closed) {
+      final Long id = (Long) finalizedElement.id();
+      persistedIds.add(id);
+      try {
+        if (finalizedElement instanceof Vertex) {
+          vertexMVMap.put(id, vertexSerializer.serialize((Vertex) finalizedElement));
+        } else if (finalizedElement instanceof Edge) {
+          edgeMVMap.put(id, edgeSerializer.serialize((Edge) finalizedElement));
+        } else {
+          System.out.println("unable to serialize " + finalizedElement + " of type " + finalizedElement.getClass());
+        }
+      } catch (Throwable t) {
+        // TODO use proper logger
+        // note: normally we'd throw a RuntimeException, but since this is typically called from `finalized`, it would be swallowed anyway
+        new RuntimeException("unable to serialize " + finalizedElement, t).printStackTrace();
       }
-    } catch (IOException e) {
-      e.printStackTrace();
-      throw new RuntimeException("unable to serialize " + finalizedElement, e);
     }
   }
 
@@ -83,6 +90,7 @@ public class OndiskOverflow {
   }
 
   public void close() {
+    closed = true;
     vertexMVStore.close();
     edgeMVStore.close();
   }
