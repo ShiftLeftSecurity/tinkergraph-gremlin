@@ -47,13 +47,6 @@ public abstract class TinkerElement implements Element {
     }
 
     @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        if (graph.softReferenceManager != null)
-            graph.softReferenceManager.notifyObjectFinalized(this);
-    }
-
-    @Override
     public int hashCode() {
         return ElementHelper.hashCode(this);
     }
@@ -76,5 +69,9 @@ public abstract class TinkerElement implements Element {
 
     protected static IllegalStateException elementAlreadyRemoved(final Class<? extends Element> clazz, final Object id) {
         return new IllegalStateException(String.format("%s with id %s was removed.", clazz.getSimpleName(), id));
+    }
+
+    public boolean isRemoved() {
+        return removed;
     }
 }

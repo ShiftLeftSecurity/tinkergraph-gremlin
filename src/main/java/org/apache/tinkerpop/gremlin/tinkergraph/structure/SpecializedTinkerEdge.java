@@ -118,4 +118,11 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
     public void releaseModificationLock() {
       modificationSemaphore.release();
     }
+
+    @Override
+    protected void finalize() throws Throwable {
+        super.finalize();
+        if (graph.softReferenceManager != null)
+            graph.softReferenceManager.notifyObjectFinalized(this);
+    }
 }
