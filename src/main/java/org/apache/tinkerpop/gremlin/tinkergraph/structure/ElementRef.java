@@ -90,12 +90,16 @@ public abstract class ElementRef<E extends Element> implements Element {
 
   @Override
   public int hashCode() {
-    return get().hashCode();
+    return id().hashCode();
   }
 
   @Override
   public boolean equals(final Object obj) {
-    return get().equals(obj);
+    if (obj instanceof ElementRef) {
+      return id().equals(((ElementRef) obj).id());
+    } else {
+      return false;
+    }
   }
   // delegate methods end
 
