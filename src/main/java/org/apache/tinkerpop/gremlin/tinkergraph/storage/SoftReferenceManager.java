@@ -64,6 +64,8 @@ public class SoftReferenceManager {
       iterator.next();
       iterator.remove();
     }
-    ondiskOverflow.persist(finalizedElement);
+    if (!finalizedElement.isRemoved()) {
+      ondiskOverflow.persist(finalizedElement);
+    }
   }
 }
