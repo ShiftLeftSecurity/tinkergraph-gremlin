@@ -18,12 +18,10 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import gnu.trove.iterator.TLongIterator;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.set.hash.THashSet;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
@@ -91,16 +89,20 @@ public final class TinkerGraph implements Graph {
     public static final String GREMLIN_TINKERGRAPH_GRAPH_FORMAT = "gremlin.tinkergraph.graphFormat";
     public static final String GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED = "gremlin.tinkergraph.ondiskOverflow.enabled";
     public static final String GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR = "gremlin.tinkergraph.ondiskOverflow.rootDir";
-    public static final String GREMLIN_TINKERGRAPH_ONDISK_MAX_SOFT_REFS = "gremlin.tinkergraph.ondiskOverflow.maxWildSoftReferences";
 
+    /** all elements up to this number will be handled as soft references internally.
+     * anything above that will (additionally) be helt onto as a strong reference, to avoid the garbage collector to clear *all* references at once
+     * i.e. this is a performance optimisation, to avoid unnecessary serialization/deserialization
+     * @see SoftReferenceManager */
+    public static final String GREMLIN_TINKERGRAPH_ONDISK_MAX_SOFT_REFS = "gremlin.tinkergraph.ondiskOverflow.maxWildSoftReferences";
 
     private final TinkerGraphFeatures features = new TinkerGraphFeatures();
 
     protected AtomicLong currentId = new AtomicLong(-1L);
     // TODO: replace with the more memory efficient `TLongHashMap`
     // note: if on-disk overflow enabled, these [Vertex|Edge] values are [VertexRef|ElementRef]
-    protected Map<Object, Vertex> vertices = new ConcurrentHashMap<>();
-    protected Map<Object, Edge> edges = new ConcurrentHashMap<>();
+    protected Map<Object, Vertex> vertices = new THashMap<>();
+    protected Map<Object, Edge> edges = new THashMap<>();
     protected final THashMap<String, Set<Vertex>> verticesByLabel = new THashMap<>(100);
     protected final THashMap<String, Set<Edge>> edgesByLabel = new THashMap<>(100);
 
@@ -126,9 +128,8 @@ public final class TinkerGraph implements Graph {
     // TODO: also allow using for generic elements
     public final boolean ondiskOverflowEnabled;
     protected OndiskOverflow ondiskOverflow;
+    // TODO move into OndiskOverflow
     protected SoftReferenceManager softReferenceManager;
-    protected VertexSerializer vertexSerializer;
-    protected EdgeSerializer edgeSerializer;
 
     /**
      * An empty private constructor that initializes {@link TinkerGraph}.
@@ -150,6 +151,8 @@ public final class TinkerGraph implements Graph {
 
         ondiskOverflowEnabled = configuration.getBoolean(GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, false);
         if (ondiskOverflowEnabled) {
+            VertexSerializer vertexSerializer = new VertexSerializer(this, specializedVertexFactoryByLabel);
+            EdgeSerializer edgeSerializer = new EdgeSerializer(this, specializedEdgeFactoryByLabel);
             this.ondiskOverflow = new OndiskOverflow(configuration.getString(GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR), vertexSerializer, edgeSerializer);
             this.softReferenceManager = new SoftReferenceManager(configuration.getInt(GREMLIN_TINKERGRAPH_ONDISK_MAX_SOFT_REFS), ondiskOverflow);
         }
@@ -199,8 +202,6 @@ public final class TinkerGraph implements Graph {
         TinkerGraph tg =  new TinkerGraph(configuration, usesSpecializedElements);
         vertexFactories.forEach(factory -> tg.specializedVertexFactoryByLabel.put(factory.forLabel(), factory));
         edgeFactories.forEach(factory -> tg.specializedEdgeFactoryByLabel.put(factory.forLabel(), factory));
-        tg.vertexSerializer = new VertexSerializer(tg, tg.specializedVertexFactoryByLabel);
-        tg.edgeSerializer = new EdgeSerializer(tg, tg.specializedEdgeFactoryByLabel);
         return tg;
     }
 
