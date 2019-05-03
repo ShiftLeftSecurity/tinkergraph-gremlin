@@ -55,11 +55,29 @@ public abstract class ElementRef<E extends Element> implements Element {
       return fromSoftRef;
     } else {
       try {
-        final E element = readFromDisk(id);
+        final E element = readFromDisk(id, 5);
         this.softReference = new SoftReference<>(element);
         return element;
-      } catch (IOException e) {
+      } catch (Exception e) {
         throw new RuntimeException(e);
+      }
+    }
+  }
+
+  protected E readFromDisk(long elementId, int maxRetries) throws Exception {
+    final E element = readFromDisk(elementId);
+    if (element != null) {
+      return element;
+    } else {
+      String errorMsg = "Edge case with finalizer invocation order occurred: reference removed before `finalize` " +
+              "was called, i.e. we're unable to read element with id=" + id + "from disk.";
+      if (maxRetries > 0) {
+        System.out.println(errorMsg + " Will sleep 100ms for the GC to call `finalize` and try again. maxRetries=" + maxRetries);
+        // ugly workaround - TODO use callback instead to make this less ugly
+        Thread.sleep(100);
+        return readFromDisk(elementId, maxRetries - 1);
+      } else {
+        throw new RuntimeException(errorMsg + "max retries reached - aborting");
       }
     }
   }
