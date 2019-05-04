@@ -30,7 +30,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerElement;
 public class SoftReferenceManager {
   public final int maxWildSoftReferences;
   protected int observedElementCount = 0;
-  protected final ConcurrentLinkedDeque<TinkerElement> strongRefs = new ConcurrentLinkedDeque<>(); //using LinkedList because `Iterator.remove(Object)` is O(1)
+  protected final ConcurrentLinkedDeque<TinkerElement> strongRefs = new ConcurrentLinkedDeque<>(); // `iterator.remove(Object)` is O(1)
   protected final OndiskOverflow ondiskOverflow;
 
   /**
@@ -47,6 +47,7 @@ public class SoftReferenceManager {
     observedElementCount++;
     if (observedElementCount > maxWildSoftReferences) {
       // hold onto a strong reference to this element, so that it doesn't get cleared by the GC when we're low on memory
+      // element will be added at the *end* of the queue
       strongRefs.add(element);
     }
   }
@@ -62,7 +63,7 @@ public class SoftReferenceManager {
     Iterator<TinkerElement> iterator = strongRefs.iterator();
     if (iterator.hasNext()) {
       iterator.next();
-      iterator.remove();
+      iterator.remove(); // element is removed from the *beginning* of the queue
     }
     if (!finalizedElement.isRemoved()) {
       ondiskOverflow.persist(finalizedElement);

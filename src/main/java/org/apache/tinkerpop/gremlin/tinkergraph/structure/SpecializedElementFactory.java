@@ -25,13 +25,13 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
  * your specialized elements rather than generic ones. */
 public class SpecializedElementFactory {
     public interface ForVertex<T extends SpecializedTinkerVertex> {
-        public abstract String forLabel();
-        public abstract T createVertex(Long id, TinkerGraph graph);
+        String forLabel();
+        T createVertex(Long id, TinkerGraph graph);
     }
 
     public interface ForEdge<T extends SpecializedTinkerEdge> {
-        public abstract String forLabel();
-        public abstract T createEdge(Long id, TinkerGraph graph, Vertex outVertex, Vertex inVertex);
+        String forLabel();
+        T createEdge(Long id, TinkerGraph graph, Vertex outVertex, Vertex inVertex);
     }
 }
 

@@ -51,7 +51,6 @@ import org.apache.tinkerpop.gremlin.util.iterator.MultiIterator;
 
 import java.io.File;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
@@ -77,7 +76,7 @@ public final class TinkerGraph implements Graph {
     public static final Configuration EMPTY_CONFIGURATION() {
         return new BaseConfiguration() {{
             this.setProperty(Graph.GRAPH, TinkerGraph.class.getName());
-            this.setProperty(GREMLIN_TINKERGRAPH_ONDISK_MAX_SOFT_REFS, 500000);
+            this.setProperty(GREMLIN_TINKERGRAPH_ONDISK_MAX_SOFT_REFS, 100000);
         }};
     }
 

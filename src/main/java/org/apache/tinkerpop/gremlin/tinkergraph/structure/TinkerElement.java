@@ -33,8 +33,6 @@ public abstract class TinkerElement implements Element {
         this.id = id;
         this.label = label;
         this.graph = graph;
-        if (graph.softReferenceManager != null)
-            graph.softReferenceManager.register(this);
     }
 
     @Override
