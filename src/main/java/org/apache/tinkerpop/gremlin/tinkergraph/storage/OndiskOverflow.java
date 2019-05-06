@@ -60,6 +60,10 @@ public class OndiskOverflow {
     edgeMVMap = edgeMVStore.openMap("edges");
   }
 
+  // TODO remove
+  long persistCount = 0;
+  java.util.Set<Long> persistedIds = new java.util.HashSet<>();
+
   public void persist(final TinkerElement finalizedElement) {
     if (!closed) {
       final Long id = (Long) finalizedElement.id();
@@ -72,6 +76,12 @@ public class OndiskOverflow {
         } else {
           System.out.println("unable to serialize " + finalizedElement + " of type " + finalizedElement.getClass());
         }
+        // TODO remove
+        persistCount++;
+        if (persistCount % 100000 == 0) {
+          System.out.println("persisted " + persistCount + " finalized elements");
+        }
+
       } catch (Throwable t) {
         // TODO use proper logger
         // note: normally we'd throw a RuntimeException, but since this is typically called from `finalized`, it would be swallowed anyway

@@ -294,9 +294,16 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     public void releaseModificationLock() {
         modificationSemaphore.release();
     }
+
+    // TODO remove
+    public static Set<Long> finalizedIds = new HashSet<>();
+
     @Override
     protected void finalize() throws Throwable {
         super.finalize();
+        // TODO remove
+        finalizedIds.add((Long) id());
+//        System.out.println("SpecializedTinkerVertex.finalize for id=" + id);
         if (graph.softReferenceManager != null)
             graph.softReferenceManager.notifyObjectFinalized(this);
     }

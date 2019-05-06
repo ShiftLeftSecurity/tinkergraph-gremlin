@@ -32,10 +32,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.__;
 import static org.junit.Assert.*;
@@ -352,21 +349,35 @@ public class SpecializedElementsWithOndiskTest {
         System.out.println("performance enhancement of specialized elements = " + diffPercent);
     }
 
-//    @Test
+    @Test
     // only run manually since the timings vary depending on the environment
-    // 1M vertices normally consume 2.5G memory, but you can run this test even with `-Xmx200m` - it'll be much slower then, though
-    public void shouldAllowGiganticGraphs() {
-        int vertexCount = 1000000;
-        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
-        for (long i = 0; i < vertexCount; i++) {
-           if (i % 100000 == 0) {
-               System.out.println(i);
-           }
-           Vertex v = graph.addVertex(Song.label);
-           v.property(Song.NAME, UUID.randomUUID().toString());
-           v.property(Song.SONG_TYPE, UUID.randomUUID().toString());
-        }
+    // without overflow you could hold ~2.3M vertices in 1G memory
+    // with overflow that number should be tremendously larger, because only the reference wrappers are helt in memory
+    // it'll be much slower due to the serialization to disk, but should not crash
+    // important: use all the following vm opts:  `-XX:+UseG1GC -Xms1g -Xmx1g -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+HeapDumpOnOutOfMemoryError`
+    public void shouldAllowGraphsLargerThanMemory() throws InterruptedException {
+        int vertexCount = 5000000;
+//        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+        Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
+//        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, false);
+        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
+        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_MAX_SOFT_REFS, 200000);
+        TinkerGraph graph = TinkerGraph.open(
+                configuration,
+                Arrays.asList(Song.factory, Artist.factory),
+                Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
+        );
 
+        for (long i = 0; i < vertexCount; i++) {
+            if (i % 100000 == 0) {
+                System.out.println(i + " vertices created");
+                Thread.sleep(1000); // in lieu of other application usage
+            }
+            Vertex v = graph.addVertex(Song.label);
+//            v.property(Song.NAME, UUID.randomUUID().toString());
+//            v.property(Song.SONG_TYPE, UUID.randomUUID().toString());
+            v.property(Song.TEST_PROP, new int[200]);
+        }
         graph.close();
     }
 
