@@ -24,23 +24,22 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
 /**
- * Softly referencing element, so that the garbage collector can clear the element if we're running
- * low on heap space. That mechanism only works if there's no strong references to the element
- * elsewhere.
- * @see org.apache.tinkerpop.gremlin.tinkergraph.storage.SoftReferenceManager
+ * Wrapper for an element reference, which may be set to `null` by @ReferenceManager to avoid OutOfMemory errors.
+ * When it's cleared, it will be persisted to an on-disk storage.
  */
-public abstract class ElementRef<E extends Element> implements Element {
+public abstract class ElementRef<E extends TinkerElement> implements Element {
   public final long id;
   public final String label;
 
   protected final TinkerGraph graph;
-  protected SoftReference<E> softReference;
+  protected E reference;
 
   public ElementRef(E element) {
     this.id = (long) element.id();
     this.label = element.label();
     this.graph = (TinkerGraph) element.graph();
-    this.softReference = new SoftReference<>(element);
+    this.reference = element;
+    graph.referenceManager.registerRef(this);
   }
 
   protected ElementRef(final long id, final String label, final TinkerGraph graph) {
@@ -49,35 +48,35 @@ public abstract class ElementRef<E extends Element> implements Element {
     this.graph = graph;
   }
 
+  public boolean isSet() {
+    return reference != null;
+  }
+
+  public boolean isCleared() {
+    return reference == null;
+  }
+
+  /* called by @ReferenceManager */
+  protected void clear() {
+    E ref = reference;
+    if (ref != null) {
+      graph.ondiskOverflow.persist(ref);
+    }
+    reference = null;
+  }
+
   public E get() {
-    final E fromSoftRef = softReference.get();
-    if (fromSoftRef != null) {
-      return fromSoftRef;
+    E ref = reference;
+    if (ref != null) {
+      return ref;
     } else {
       try {
-        final E element = readFromDisk(id, 5);
-        this.softReference = new SoftReference<>(element);
+        final E element = readFromDisk(id);
+        this.reference = element;
+        graph.referenceManager.registerRef(this);
         return element;
       } catch (Exception e) {
         throw new RuntimeException(e);
-      }
-    }
-  }
-
-  protected E readFromDisk(long elementId, int maxRetries) throws Exception {
-    final E element = readFromDisk(elementId);
-    if (element != null) {
-      return element;
-    } else {
-      String errorMsg = "Edge case with finalizer invocation order occurred: reference removed before `finalize` " +
-              "was called, i.e. we're unable to read element with id=" + id + "from disk.";
-      if (maxRetries > 0) {
-        System.out.println(errorMsg + " Will sleep 100ms for the GC to call `finalize` and try again. maxRetries=" + maxRetries);
-        // ugly workaround - TODO use callback instead to make this less ugly
-        Thread.sleep(100);
-        return readFromDisk(elementId, maxRetries - 1);
-      } else {
-        throw new RuntimeException(errorMsg + "max retries reached - aborting");
       }
     }
   }
@@ -119,6 +118,8 @@ public abstract class ElementRef<E extends Element> implements Element {
       return false;
     }
   }
+
+
   // delegate methods end
 
 }

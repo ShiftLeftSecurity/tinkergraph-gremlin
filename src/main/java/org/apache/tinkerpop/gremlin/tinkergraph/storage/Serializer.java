@@ -78,6 +78,8 @@ public abstract class Serializer<A extends Element> {
       } else if (value.getClass() == Double.class) {
         packer.packShort((short) 8);
         packer.packDouble((Double) value);
+      } else if (value.getClass() == int[].class) {
+        //TODO remove this dummy case again
       } else throw new NotImplementedException("value type `" + value.getClass() + "` not yet supported (key=" + property.key() + ")");
     }
   }

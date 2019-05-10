@@ -44,7 +44,6 @@ import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optim
 import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optimization.TinkerGraphStepStrategy;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.EdgeSerializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.OndiskOverflow;
-import org.apache.tinkerpop.gremlin.tinkergraph.storage.SoftReferenceManager;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexSerializer;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.apache.tinkerpop.gremlin.util.iterator.MultiIterator;
@@ -76,7 +75,7 @@ public final class TinkerGraph implements Graph {
     public static final Configuration EMPTY_CONFIGURATION() {
         return new BaseConfiguration() {{
             this.setProperty(Graph.GRAPH, TinkerGraph.class.getName());
-            this.setProperty(GREMLIN_TINKERGRAPH_ONDISK_MAX_SOFT_REFS, 100000);
+            this.setProperty(GREMLIN_TINKERGRAPH_OVERFLOW_HEAP_PERCENTAGE_THRESHOLD, 80);
         }};
     }
 
@@ -89,11 +88,8 @@ public final class TinkerGraph implements Graph {
     public static final String GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED = "gremlin.tinkergraph.ondiskOverflow.enabled";
     public static final String GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR = "gremlin.tinkergraph.ondiskOverflow.rootDir";
 
-    /** all elements up to this number will be handled as soft references internally.
-     * anything above that will (additionally) be helt onto as a strong reference, to avoid the garbage collector to clear *all* references at once
-     * i.e. this is a performance optimisation, to avoid unnecessary serialization/deserialization
-     * @see SoftReferenceManager */
-    public static final String GREMLIN_TINKERGRAPH_ONDISK_MAX_SOFT_REFS = "gremlin.tinkergraph.ondiskOverflow.maxWildSoftReferences";
+    /** when heap (after GC run) is above this threshold (e.g. 80 for 80%), @see ReferenceManager will start to clear some references, i.e. write them to storage and set them to `null` */
+    public static final String GREMLIN_TINKERGRAPH_OVERFLOW_HEAP_PERCENTAGE_THRESHOLD = "gremlin.tinkergraph.ondiskOverflow.heapPercentageThreshold";
 
     private final TinkerGraphFeatures features = new TinkerGraphFeatures();
 
@@ -127,8 +123,7 @@ public final class TinkerGraph implements Graph {
     // TODO: also allow using for generic elements
     public final boolean ondiskOverflowEnabled;
     protected OndiskOverflow ondiskOverflow;
-    // TODO move into OndiskOverflow
-    protected SoftReferenceManager softReferenceManager;
+    protected ReferenceManager referenceManager;
 
     /**
      * An empty private constructor that initializes {@link TinkerGraph}.
@@ -153,7 +148,7 @@ public final class TinkerGraph implements Graph {
             VertexSerializer vertexSerializer = new VertexSerializer(this, specializedVertexFactoryByLabel);
             EdgeSerializer edgeSerializer = new EdgeSerializer(this, specializedEdgeFactoryByLabel);
             this.ondiskOverflow = new OndiskOverflow(configuration.getString(GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR), vertexSerializer, edgeSerializer);
-            this.softReferenceManager = new SoftReferenceManager(configuration.getInt(GREMLIN_TINKERGRAPH_ONDISK_MAX_SOFT_REFS), ondiskOverflow);
+            this.referenceManager = new ReferenceManager(configuration.getInt(GREMLIN_TINKERGRAPH_OVERFLOW_HEAP_PERCENTAGE_THRESHOLD));
         }
 
         if (graphLocation != null) loadGraph();
@@ -227,7 +222,7 @@ public final class TinkerGraph implements Graph {
     }
 
     private Vertex createVertex(final long idValue, final String label, final Object... keyValues) {
-        final Vertex vertex;
+        final TinkerVertex vertex;
         if (specializedVertexFactoryByLabel.containsKey(label)) {
             vertex = specializedVertexFactoryByLabel.get(label).createVertex(idValue, this);
         } else { // vertex label not registered for a specialized factory, treating as generic vertex

@@ -36,8 +36,9 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
     protected SpecializedTinkerEdge(TinkerGraph graph, Long id, Vertex outVertex, String label, Vertex inVertex, Set<String> specificKeys) {
         super(graph, id, outVertex, label, inVertex);
         this.specificKeys = specificKeys;
-        if (graph.softReferenceManager != null)
-            graph.softReferenceManager.register(this);
+        if (graph.ondiskOverflow != null) {
+            graph.ondiskOverflow.applyBackpressureMaybe();
+        }
     }
 
     @Override
@@ -121,10 +122,4 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
       modificationSemaphore.release();
     }
 
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        if (graph.softReferenceManager != null)
-            graph.softReferenceManager.notifyObjectFinalized(this);
-    }
 }

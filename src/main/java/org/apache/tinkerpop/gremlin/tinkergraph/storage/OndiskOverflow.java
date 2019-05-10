@@ -20,7 +20,9 @@ package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerEdge;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerElement;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerVertex;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 
@@ -36,6 +38,9 @@ public class OndiskOverflow {
   protected final MVMap<Long, byte[]> vertexMVMap;
   protected final MVMap<Long, byte[]> edgeMVMap;
   private boolean closed;
+
+  /** used for backpressure when creating new elements */
+  private int instancesAwaitingSerialization = 0;
 
   public OndiskOverflow(final String ondiskOverflowRootDir,
                         final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer) {
@@ -62,19 +67,19 @@ public class OndiskOverflow {
 
   // TODO remove
   long persistCount = 0;
-  java.util.Set<Long> persistedIds = new java.util.HashSet<>();
 
-  public void persist(final TinkerElement finalizedElement) {
+  public void persist(final TinkerElement element) {
     if (!closed) {
-      final Long id = (Long) finalizedElement.id();
-      persistedIds.add(id);
+      final Long id = (Long) element.id();
+      instancesAwaitingSerialization++;
       try {
-        if (finalizedElement instanceof Vertex) {
-          vertexMVMap.put(id, vertexSerializer.serialize((Vertex) finalizedElement));
-        } else if (finalizedElement instanceof Edge) {
-          edgeMVMap.put(id, edgeSerializer.serialize((Edge) finalizedElement));
+
+        if (element instanceof Vertex) {
+          vertexMVMap.put(id, vertexSerializer.serialize((Vertex) element));
+        } else if (element instanceof Edge) {
+          edgeMVMap.put(id, edgeSerializer.serialize((Edge) element));
         } else {
-          System.out.println("unable to serialize " + finalizedElement + " of type " + finalizedElement.getClass());
+          System.out.println("unable to serialize " + element + " of type " + element.getClass());
         }
         // TODO remove
         persistCount++;
@@ -85,17 +90,17 @@ public class OndiskOverflow {
       } catch (Throwable t) {
         // TODO use proper logger
         // note: normally we'd throw a RuntimeException, but since this is typically called from `finalized`, it would be swallowed anyway
-        new RuntimeException("unable to serialize " + finalizedElement, t).printStackTrace();
+        new RuntimeException("unable to serialize " + element, t).printStackTrace();
       }
+      instancesAwaitingSerialization--;
     }
   }
 
-  public Vertex readVertex(final long id) throws IOException {
+  public TinkerVertex readVertex(final long id) throws IOException {
     return vertexSerializer.deserialize(vertexMVMap.get(id));
   }
 
-
-  public Edge readEdge(final long id) throws IOException {
+  public TinkerEdge readEdge(final long id) throws IOException {
     return edgeSerializer.deserialize(edgeMVMap.get(id));
   }
 
@@ -111,5 +116,17 @@ public class OndiskOverflow {
 
   public void removeEdge(final Long id) {
     edgeMVMap.remove(id);
+  }
+
+  /** when we're running low on heap memory we'll serialize some elements to disk. to ensure we're not creating new ones
+   * faster than old ones are serialized away, we're applying some backpressure in those situation */
+  public void applyBackpressureMaybe() {
+    if (instancesAwaitingSerialization > 0) {
+      try {
+        Thread.sleep(100);
+      } catch (InterruptedException e) {
+        throw new RuntimeException(e);
+      }
+    }
   }
 }

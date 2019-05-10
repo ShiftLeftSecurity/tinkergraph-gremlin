@@ -46,8 +46,9 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     protected SpecializedTinkerVertex(long id, String label, TinkerGraph graph) {
         super(id, label, graph);
-        if (graph.softReferenceManager != null)
-            graph.softReferenceManager.register(this);
+        if (graph.ondiskOverflow != null) {
+            graph.ondiskOverflow.applyBackpressureMaybe();
+        }
     }
 
     @Override
@@ -150,7 +151,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
             graph.currentId.set(Long.max(idValue, graph.currentId.get()));
 
             Vertex outVertex = this;
-            Edge edge = factory.createEdge(idValue, graph, outVertex, inVertex);
+            TinkerEdge edge = factory.createEdge(idValue, graph, outVertex, inVertex);
             ElementHelper.attachProperties(edge, keyValues);
             final Edge edgeRef;
             if (graph.ondiskOverflowEnabled) {
@@ -294,18 +295,4 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     public void releaseModificationLock() {
         modificationSemaphore.release();
     }
-
-    // TODO remove
-    public static Set<Long> finalizedIds = new HashSet<>();
-
-    @Override
-    protected void finalize() throws Throwable {
-        super.finalize();
-        // TODO remove
-        finalizedIds.add((Long) id());
-//        System.out.println("SpecializedTinkerVertex.finalize for id=" + id);
-        if (graph.softReferenceManager != null)
-            graph.softReferenceManager.notifyObjectFinalized(this);
-    }
-
 }

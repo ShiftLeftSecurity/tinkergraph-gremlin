@@ -23,9 +23,9 @@ import org.apache.tinkerpop.gremlin.structure.*;
 import java.io.IOException;
 import java.util.Iterator;
 
-public class VertexRef extends ElementRef<Vertex> implements Vertex {
+public class VertexRef extends ElementRef<TinkerVertex> implements Vertex {
 
-  public VertexRef(Vertex vertex) {
+  public VertexRef(TinkerVertex vertex) {
     super(vertex);
   }
 
@@ -34,7 +34,7 @@ public class VertexRef extends ElementRef<Vertex> implements Vertex {
   }
 
   @Override
-  protected Vertex readFromDisk(final long vertexId) throws IOException {
+  protected TinkerVertex readFromDisk(final long vertexId) throws IOException {
     return graph.ondiskOverflow.readVertex(vertexId);
   }
 

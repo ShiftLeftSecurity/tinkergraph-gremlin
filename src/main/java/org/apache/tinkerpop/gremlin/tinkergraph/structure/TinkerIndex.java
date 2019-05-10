@@ -57,10 +57,10 @@ final class TinkerIndex<T extends Element> {
         }
         final T ref;
         if (graph.ondiskOverflowEnabled) {
-            if (element instanceof Vertex) {
-                ref = (T) new VertexRef((Vertex) element);
+            if (element instanceof TinkerVertex) {
+                ref = (T) new VertexRef((TinkerVertex) element);
             } else {
-                ref = (T) new EdgeRef((Edge) element);
+                ref = (T) new EdgeRef((TinkerEdge) element);
             }
         } else {
             ref = element;

@@ -62,10 +62,6 @@ public class SpecializedElementsWithOndiskTest {
         assertEquals(1, __(v2).in().toList().size());
         assertEquals(1, __(v0).both().toList().size());
         assertEquals(1, __(v2).both().toList().size());
-
-        System.out.println(__(v0).bothE(FollowedBy.label).toList());
-        System.out.println(__(v0).out().toList());
-        System.out.println(__(v0).in().toList());
     }
 
     @Test
@@ -354,14 +350,13 @@ public class SpecializedElementsWithOndiskTest {
     // without overflow you could hold ~2.3M vertices in 1G memory
     // with overflow that number should be tremendously larger, because only the reference wrappers are helt in memory
     // it'll be much slower due to the serialization to disk, but should not crash
-    // important: use all the following vm opts:  `-XX:+UseG1GC -Xms1g -Xmx1g -XX:SoftRefLRUPolicyMSPerMB=0 -XX:+HeapDumpOnOutOfMemoryError`
+    // important: use all the following vm opts:  `-XX:+UseG1GC -Xms256m -Xmx256m -XX:+HeapDumpOnOutOfMemoryError`
     public void shouldAllowGraphsLargerThanMemory() throws InterruptedException {
-        int vertexCount = 5000000;
+        int vertexCount = 300000;
 //        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
         Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
 //        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, false);
         configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
-        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_MAX_SOFT_REFS, 200000);
         TinkerGraph graph = TinkerGraph.open(
                 configuration,
                 Arrays.asList(Song.factory, Artist.factory),
@@ -369,7 +364,7 @@ public class SpecializedElementsWithOndiskTest {
         );
 
         for (long i = 0; i < vertexCount; i++) {
-            if (i % 100000 == 0) {
+            if (i % 50000 == 0) {
                 System.out.println(i + " vertices created");
                 Thread.sleep(1000); // in lieu of other application usage
             }
