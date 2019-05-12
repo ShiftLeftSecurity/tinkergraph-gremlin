@@ -24,14 +24,16 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
  * create instances of these factories and register them with TinkerGraph. That way it will instantiate
  * your specialized elements rather than generic ones. */
 public class SpecializedElementFactory {
-    public interface ForVertex<T extends SpecializedTinkerVertex> {
+    public interface ForVertex<V extends SpecializedTinkerVertex> {
         String forLabel();
-        T createVertex(Long id, TinkerGraph graph);
+        V createVertex(Long id, TinkerGraph graph);
+        VertexRef<V> createVertexRef(Long id, TinkerGraph graph);
     }
 
-    public interface ForEdge<T extends SpecializedTinkerEdge> {
+    public interface ForEdge<E extends SpecializedTinkerEdge> {
         String forLabel();
-        T createEdge(Long id, TinkerGraph graph, Vertex outVertex, Vertex inVertex);
+        E createEdge(Long id, TinkerGraph graph, Vertex outVertex, Vertex inVertex);
+        EdgeRef<E> createEdgeRef(Long id, TinkerGraph graph, Vertex outVertex, Vertex inVertex);
     }
 }
 

@@ -20,10 +20,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuld
 
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerProperty;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
 
 import java.io.Serializable;
 import java.util.*;
@@ -78,6 +75,11 @@ public class FollowedBy extends SpecializedTinkerEdge {
         @Override
         public FollowedBy createEdge(Long id, TinkerGraph graph, Vertex outVertex, Vertex inVertex) {
             return new FollowedBy(graph, id, outVertex, inVertex);
+        }
+
+        @Override
+        public EdgeRef<FollowedBy> createEdgeRef(Long id, TinkerGraph graph, Vertex outVertex, Vertex inVertex) {
+            return new EdgeRef<>(createEdge(id, graph, outVertex, inVertex));
         }
     };
 }

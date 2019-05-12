@@ -33,6 +33,7 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
 
   protected final TinkerGraph graph;
   protected E reference;
+  private int serializationCount;
 
   public ElementRef(E element) {
     this.id = (long) element.id();
@@ -56,11 +57,12 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
     return reference == null;
   }
 
-  /* called by @ReferenceManager */
+  /* only called by @ReferenceManager */
   protected void clear() {
     E ref = reference;
     if (ref != null) {
       graph.ondiskOverflow.persist(ref);
+      serializationCount++;
     }
     reference = null;
   }
@@ -79,6 +81,10 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
         throw new RuntimeException(e);
       }
     }
+  }
+
+  public int getSerializationCount() {
+    return serializationCount;
   }
 
   protected abstract E readFromDisk(long elementId) throws IOException;
@@ -118,7 +124,6 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
       return false;
     }
   }
-
 
   // delegate methods end
 

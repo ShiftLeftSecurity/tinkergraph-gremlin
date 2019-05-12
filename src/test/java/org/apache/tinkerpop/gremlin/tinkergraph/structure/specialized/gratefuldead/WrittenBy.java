@@ -20,6 +20,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuld
 
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.EdgeRef;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
@@ -60,6 +61,11 @@ public class WrittenBy extends SpecializedTinkerEdge implements Serializable {
         @Override
         public WrittenBy createEdge(Long id, TinkerGraph graph, Vertex outVertex, Vertex inVertex) {
             return new WrittenBy(graph, id, outVertex, inVertex);
+        }
+
+        @Override
+        public EdgeRef<WrittenBy> createEdgeRef(Long id, TinkerGraph graph, Vertex outVertex, Vertex inVertex) {
+            return new EdgeRef<>(createEdge(id, graph, outVertex, inVertex));
         }
     };
 }

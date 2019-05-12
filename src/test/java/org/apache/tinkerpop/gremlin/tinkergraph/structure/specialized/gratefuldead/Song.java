@@ -152,6 +152,11 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
         public Song createVertex(Long id, TinkerGraph graph) {
             return new Song(id, graph);
         }
+
+        @Override
+        public VertexRef<Song> createVertexRef(Long id, TinkerGraph graph) {
+            return new VertexRef<>(createVertex(id, graph));
+        }
     };
 
 }

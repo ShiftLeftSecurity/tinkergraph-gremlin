@@ -36,8 +36,8 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
     protected SpecializedTinkerEdge(TinkerGraph graph, Long id, Vertex outVertex, String label, Vertex inVertex, Set<String> specificKeys) {
         super(graph, id, outVertex, label, inVertex);
         this.specificKeys = specificKeys;
-        if (graph.ondiskOverflow != null) {
-            graph.ondiskOverflow.applyBackpressureMaybe();
+        if (graph.referenceManager != null) {
+            graph.referenceManager.applyBackpressureMaybe();
         }
     }
 

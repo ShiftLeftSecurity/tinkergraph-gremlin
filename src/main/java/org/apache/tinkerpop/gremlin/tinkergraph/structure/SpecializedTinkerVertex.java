@@ -46,8 +46,8 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     protected SpecializedTinkerVertex(long id, String label, TinkerGraph graph) {
         super(id, label, graph);
-        if (graph.ondiskOverflow != null) {
-            graph.ondiskOverflow.applyBackpressureMaybe();
+        if (graph.referenceManager != null) {
+            graph.referenceManager.applyBackpressureMaybe();
         }
     }
 
@@ -126,7 +126,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
             throw Graph.Exceptions.argumentCanNotBeNull("inVertex");
         }
         if (inVertex instanceof VertexRef) {
-            inVertex = ((VertexRef) inVertex).get();
+            inVertex = ((VertexRef<TinkerVertex>) inVertex).get();
         }
         if (this.removed) {
             throw elementAlreadyRemoved(Vertex.class, this.id);
@@ -151,21 +151,21 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
             graph.currentId.set(Long.max(idValue, graph.currentId.get()));
 
             Vertex outVertex = this;
-            TinkerEdge edge = factory.createEdge(idValue, graph, outVertex, inVertex);
-            ElementHelper.attachProperties(edge, keyValues);
-            final Edge edgeRef;
-            if (graph.ondiskOverflowEnabled) {
-                edgeRef = new EdgeRef(edge);
-            } else {
-                edgeRef = edge;
-            }
-            graph.edges.put(edge.id(), edge);
-            graph.getElementsByLabel(graph.edgesByLabel, label).add(edgeRef);
+            final Edge edge;
 
-            acquireModificationLock();
+            if (graph.ondiskOverflowEnabled) {
+                edge = factory.createEdgeRef(idValue, graph, outVertex, inVertex);
+            } else {
+                edge = factory.createEdge(idValue, graph, outVertex, inVertex);
+            }
+            ElementHelper.attachProperties(edge, keyValues);
+            graph.edges.put(edge.id(), edge);
+            graph.getElementsByLabel(graph.edgesByLabel, label).add(edge);
+
+//            acquireModificationLock();
             storeOutEdge(edge);
             ((SpecializedTinkerVertex) inVertex).storeInEdge(edge);
-            releaseModificationLock();
+//            releaseModificationLock();
             modifiedSinceLastSerialization = true;
             return edge;
         } else { // edge label not registered for a specialized factory, treating as generic edge
@@ -268,7 +268,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
         return edgesByLabel.get(label).stream().map(edge -> {
             if (edge instanceof EdgeRef) {
-                edge = ((EdgeRef) edge).get();
+                edge = ((EdgeRef<E>) edge).get();
             }
             return (E) edge;
         }).collect(Collectors.toList());

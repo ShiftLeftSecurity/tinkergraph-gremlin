@@ -23,9 +23,9 @@ import org.apache.tinkerpop.gremlin.structure.*;
 import java.io.IOException;
 import java.util.Iterator;
 
-public class EdgeRef extends ElementRef<TinkerEdge> implements Edge {
+public class EdgeRef<E extends TinkerEdge> extends ElementRef<E> implements Edge {
 
-  public EdgeRef(TinkerEdge edge) {
+  public EdgeRef(E edge) {
     super(edge);
   }
 
@@ -34,7 +34,7 @@ public class EdgeRef extends ElementRef<TinkerEdge> implements Edge {
   }
 
   @Override
-  protected TinkerEdge readFromDisk(final long edgeId) throws IOException {
+  protected E readFromDisk(final long edgeId) throws IOException {
     return graph.ondiskOverflow.readEdge(edgeId);
   }
 
