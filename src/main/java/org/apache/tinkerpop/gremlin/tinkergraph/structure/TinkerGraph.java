@@ -76,6 +76,7 @@ public final class TinkerGraph implements Graph {
         return new BaseConfiguration() {{
             this.setProperty(Graph.GRAPH, TinkerGraph.class.getName());
             this.setProperty(GREMLIN_TINKERGRAPH_OVERFLOW_HEAP_PERCENTAGE_THRESHOLD, 80);
+            this.setProperty(GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
         }};
     }
 
@@ -143,7 +144,7 @@ public final class TinkerGraph implements Graph {
             throw new IllegalStateException(String.format("The %s and %s must both be specified if either is present",
               GREMLIN_TINKERGRAPH_GRAPH_LOCATION, GREMLIN_TINKERGRAPH_GRAPH_FORMAT));
 
-        ondiskOverflowEnabled = configuration.getBoolean(GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, false);
+        ondiskOverflowEnabled = configuration.getBoolean(GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
         if (ondiskOverflowEnabled) {
             VertexSerializer vertexSerializer = new VertexSerializer(this, specializedVertexFactoryByLabel);
             EdgeSerializer edgeSerializer = new EdgeSerializer(this, specializedEdgeFactoryByLabel);
@@ -222,9 +223,9 @@ public final class TinkerGraph implements Graph {
     }
 
     private Vertex createVertex(final long idValue, final String label, final Object... keyValues) {
-        final TinkerVertex vertex;
+        final Vertex vertex;
         if (specializedVertexFactoryByLabel.containsKey(label)) {
-            vertex = specializedVertexFactoryByLabel.get(label).createVertex(idValue, this);
+            vertex = specializedVertexFactoryByLabel.get(label).createVertexRef(idValue, this);
         } else { // vertex label not registered for a specialized factory, treating as generic vertex
             if (this.usesSpecializedElements) {
                 throw new IllegalArgumentException(
@@ -234,13 +235,7 @@ public final class TinkerGraph implements Graph {
             vertex = new TinkerVertex(idValue, label, this);
         }
         ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
-
-        if (ondiskOverflowEnabled) {
-            // ensure we use soft references that can be cleared when memory is low
-            return new VertexRef(vertex);
-        } else {
-            return vertex;
-        }
+        return vertex;
     }
 
     @Override

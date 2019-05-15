@@ -65,6 +65,19 @@ public class SpecializedElementsWithOndiskTest {
     }
 
     @Test
+    public void shouldReturnElementRefs() {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+
+        Vertex v0 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 1");
+        Vertex v2 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 2");
+        Edge e4 = v0.addEdge(FollowedBy.label, v2);
+        assertTrue(v0 instanceof VertexRef);
+        assertTrue(e4 instanceof EdgeRef);
+        assertTrue(v0.edges(Direction.OUT).next() instanceof EdgeRef);
+        assertTrue(v0.vertices(Direction.OUT).next() instanceof VertexRef);
+    }
+
+    @Test
     /* ensure these are identical for both ondisk overflow enabled/disabled */
     public void optimizationStrategyAffectedSteps() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
@@ -120,7 +133,8 @@ public class SpecializedElementsWithOndiskTest {
         assertEquals(4, __(garcia).in(WrittenBy.label).toList().size());
         List<Vertex> songsWritten = __(garcia).in(WrittenBy.label).has("name", "CREAM PUFF WAR").toList();
         assertEquals(songsWritten.size(), 1);
-        Song song = (Song) songsWritten.get(0); //it's actually of type `Artist`, not (only) `Vertex`
+        VertexRef<Song> songRef = (VertexRef) songsWritten.get(0); //it's actually of type `VertexRef<Song>`, but we can't infer that since it's behind the tinkerpop api
+        Song song = songRef.get();
         assertEquals("CREAM PUFF WAR", song.getName());
 
         // outE
@@ -345,7 +359,7 @@ public class SpecializedElementsWithOndiskTest {
         System.out.println("performance enhancement of specialized elements = " + diffPercent);
     }
 
-    @Test
+//    @Test
     // only run manually since the timings vary depending on the environment
     // without overflow you could hold ~2.3M vertices in 1G memory
     // with overflow that number should be tremendously larger, because only the reference wrappers are helt in memory

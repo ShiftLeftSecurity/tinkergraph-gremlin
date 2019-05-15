@@ -125,8 +125,10 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         if (null == inVertex) {
             throw Graph.Exceptions.argumentCanNotBeNull("inVertex");
         }
+        VertexRef<TinkerVertex> inVertexRef = null;
         if (inVertex instanceof VertexRef) {
-            inVertex = ((VertexRef<TinkerVertex>) inVertex).get();
+            inVertexRef = (VertexRef) inVertex;
+            inVertex = inVertexRef.get();
         }
         if (this.removed) {
             throw elementAlreadyRemoved(Vertex.class, this.id);
@@ -150,13 +152,13 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
             }
             graph.currentId.set(Long.max(idValue, graph.currentId.get()));
 
-            Vertex outVertex = this;
+            // TODO hold link to vertexRef locally so we don't need the following lookup
+            VertexRef<TinkerVertex> outVertexRef = (VertexRef<TinkerVertex>) graph.vertices.get(id);
             final Edge edge;
-
             if (graph.ondiskOverflowEnabled) {
-                edge = factory.createEdgeRef(idValue, graph, outVertex, inVertex);
+                edge = factory.createEdgeRef(idValue, graph, outVertexRef, inVertexRef);
             } else {
-                edge = factory.createEdge(idValue, graph, outVertex, inVertex);
+                edge = factory.createEdge(idValue, graph, outVertexRef, inVertexRef);
             }
             ElementHelper.attachProperties(edge, keyValues);
             graph.edges.put(edge.id(), edge);

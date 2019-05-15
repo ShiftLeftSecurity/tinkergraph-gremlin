@@ -19,6 +19,7 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import org.apache.tinkerpop.gremlin.structure.*;
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -36,6 +37,11 @@ public class EdgeRef<E extends TinkerEdge> extends ElementRef<E> implements Edge
   @Override
   protected E readFromDisk(final long edgeId) throws IOException {
     return graph.ondiskOverflow.readEdge(edgeId);
+  }
+
+  @Override
+  public String toString() {
+    return StringFactory.edgeString(this);
   }
 
   // delegate methods start

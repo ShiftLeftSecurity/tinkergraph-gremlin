@@ -19,6 +19,7 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import org.apache.tinkerpop.gremlin.structure.*;
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -36,6 +37,11 @@ public class VertexRef<V extends TinkerVertex> extends ElementRef<V> implements 
   @Override
   protected V readFromDisk(final long vertexId) throws IOException {
     return graph.ondiskOverflow.readVertex(vertexId);
+  }
+
+  @Override
+  public String toString() {
+    return StringFactory.vertexString(this);
   }
 
   // delegate methods start

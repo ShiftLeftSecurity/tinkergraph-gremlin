@@ -73,12 +73,12 @@ public class FollowedBy extends SpecializedTinkerEdge {
         }
 
         @Override
-        public FollowedBy createEdge(Long id, TinkerGraph graph, Vertex outVertex, Vertex inVertex) {
+        public FollowedBy createEdge(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
             return new FollowedBy(graph, id, outVertex, inVertex);
         }
 
         @Override
-        public EdgeRef<FollowedBy> createEdgeRef(Long id, TinkerGraph graph, Vertex outVertex, Vertex inVertex) {
+        public EdgeRef<FollowedBy> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
             return new EdgeRef<>(createEdge(id, graph, outVertex, inVertex));
         }
     };

@@ -47,23 +47,13 @@ final class TinkerIndex<T extends Element> {
         Map<Object, Set<T>> keyMap = this.index.get(key);
         if (null == keyMap) {
             // TODO use concurrent but memory efficient map
-            this.index.putIfAbsent(key, new ConcurrentHashMap<Object, Set<T>>());
+            this.index.putIfAbsent(key, new ConcurrentHashMap<>());
             keyMap = this.index.get(key);
         }
         Set<T> objects = keyMap.get(value);
         if (null == objects) {
             keyMap.putIfAbsent(value, ConcurrentHashMap.newKeySet());
             objects = keyMap.get(value);
-        }
-        final T ref;
-        if (graph.ondiskOverflowEnabled) {
-            if (element instanceof TinkerVertex) {
-                ref = (T) new VertexRef((TinkerVertex) element);
-            } else {
-                ref = (T) new EdgeRef((TinkerEdge) element);
-            }
-        } else {
-            ref = element;
         }
         objects.add(element);
     }

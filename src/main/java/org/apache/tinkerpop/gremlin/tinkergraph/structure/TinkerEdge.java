@@ -106,7 +106,6 @@ public class TinkerEdge extends TinkerElement implements Edge {
     @Override
     public String toString() {
         return StringFactory.edgeString(this);
-
     }
 
     @Override
