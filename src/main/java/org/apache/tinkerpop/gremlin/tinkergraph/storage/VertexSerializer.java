@@ -97,16 +97,17 @@ public class VertexSerializer extends Serializer<Vertex> {
     Map<String, long[]> outEdgeIdsByLabel = unpackEdges(unpacker);
 
     inEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
+      // TODO remove from serialized format?
       String edgeLabel = entry.getKey();
       for (long edgeId : entry.getValue()) {
-        vertex.storeInEdge(new EdgeRef(edgeId, edgeLabel, graph));
+        vertex.storeInEdge(graph.edge(edgeId));
       }
     });
 
     outEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
       String edgeLabel = entry.getKey();
       for (long edgeId : entry.getValue()) {
-        vertex.storeOutEdge(new EdgeRef(edgeId, edgeLabel, graph));
+        vertex.storeOutEdge(graph.edge(edgeId));
       }
     });
 

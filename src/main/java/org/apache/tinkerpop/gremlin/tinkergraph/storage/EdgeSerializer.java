@@ -60,11 +60,13 @@ public class EdgeSerializer extends Serializer<Edge> {
     String label = unpacker.unpackString();
     Object[] keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
     long outVertexId = unpacker.unpackLong();
+    // TODO remove
     String outVertexLabel = unpacker.unpackString();
     long inVertexId = unpacker.unpackLong();
+    // TODO remove
     String inVertexLabel = unpacker.unpackString();
-    VertexRef outVertexRef = new VertexRef(outVertexId, outVertexLabel, graph);
-    VertexRef inVertexRef = new VertexRef(inVertexId, inVertexLabel, graph);
+    VertexRef outVertexRef = (VertexRef) graph.vertex(outVertexId);
+    VertexRef inVertexRef = (VertexRef) graph.vertex(inVertexId);
 
     // TODO support generic edges too
     SpecializedTinkerEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexRef, inVertexRef);

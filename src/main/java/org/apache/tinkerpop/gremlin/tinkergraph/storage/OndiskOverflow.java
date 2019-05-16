@@ -53,7 +53,7 @@ public class OndiskOverflow {
       mvstoreEdgesFile = File.createTempFile("edgeMVStore", ".bin", cacheParentDir);
       mvstoreVerticesFile.deleteOnExit();
       mvstoreEdgesFile.deleteOnExit();
-      System.out.println("on-disk cache overflow files: " + mvstoreVerticesFile + ", " + mvstoreVerticesFile);
+      System.out.println("on-disk cache overflow files: " + mvstoreVerticesFile + ", " + mvstoreEdgesFile);
     } catch (IOException e) {
       throw new RuntimeException("cannot create tmp file for mvstore", e);
     }

@@ -295,6 +295,10 @@ public final class TinkerGraph implements Graph {
         return configuration;
     }
 
+    public Vertex vertex(final Long id) {
+        return vertices.get(id);
+    }
+
     @Override
     public Iterator<Vertex> vertices(final Object... ids) {
         return createElementIterator(Vertex.class, vertices, vertexIdManager, ids);
@@ -302,6 +306,10 @@ public final class TinkerGraph implements Graph {
 
     public Iterator<Vertex> verticesByLabel(final P<String> labelPredicate) {
         return elementsByLabel(verticesByLabel, labelPredicate);
+    }
+
+    public Edge edge(final Long id) {
+        return edges.get(id);
     }
 
     @Override
