@@ -104,8 +104,8 @@ public final class TinkerGraph implements Graph {
 
     protected TinkerGraphVariables variables = null;
     protected TinkerGraphComputerView graphComputerView = null;
-    protected TinkerIndex<TinkerVertex> vertexIndex = null;
-    protected TinkerIndex<TinkerEdge> edgeIndex = null;
+    protected TinkerIndex<Vertex> vertexIndex = null;
+    protected TinkerIndex<Edge> edgeIndex = null;
 
     protected final IdManager<?> vertexIdManager;
     protected final IdManager<?> edgeIdManager;
@@ -556,10 +556,10 @@ public final class TinkerGraph implements Graph {
      */
     public <E extends Element> void createIndex(final String key, final Class<E> elementClass) {
         if (Vertex.class.isAssignableFrom(elementClass)) {
-            if (null == this.vertexIndex) this.vertexIndex = new TinkerIndex<>(this, TinkerVertex.class);
+            if (null == this.vertexIndex) this.vertexIndex = new TinkerIndex<>(this, Vertex.class);
             this.vertexIndex.createKeyIndex(key);
         } else if (Edge.class.isAssignableFrom(elementClass)) {
-            if (null == this.edgeIndex) this.edgeIndex = new TinkerIndex<>(this, TinkerEdge.class);
+            if (null == this.edgeIndex) this.edgeIndex = new TinkerIndex<>(this, Edge.class);
             this.edgeIndex.createKeyIndex(key);
         } else {
             throw new IllegalArgumentException("Class is not indexable: " + elementClass);

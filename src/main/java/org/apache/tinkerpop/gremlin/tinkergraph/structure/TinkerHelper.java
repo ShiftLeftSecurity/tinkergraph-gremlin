@@ -90,11 +90,11 @@ public final class TinkerHelper {
         edges.add(edge);
     }
 
-    public static List<TinkerVertex> queryVertexIndex(final TinkerGraph graph, final String key, final Object value) {
+    public static List<Vertex> queryVertexIndex(final TinkerGraph graph, final String key, final Object value) {
         return null == graph.vertexIndex ? Collections.emptyList() : graph.vertexIndex.get(key, value);
     }
 
-    public static List<TinkerEdge> queryEdgeIndex(final TinkerGraph graph, final String key, final Object value) {
+    public static List<Edge> queryEdgeIndex(final TinkerGraph graph, final String key, final Object value) {
         return null == graph.edgeIndex ? Collections.emptyList() : graph.edgeIndex.get(key, value);
     }
 
