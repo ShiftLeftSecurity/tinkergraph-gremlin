@@ -53,7 +53,7 @@ public class ManuallyManagedRefs {
 
       long count = id + 1;
       if (count % 10000 == 0) {
-        System.out.println("created " + count + " nodes; backpressureAppliedCount=" + backpressureAppliedCount);
+        System.out.println("lastSerializedTime " + count + " nodes; backpressureAppliedCount=" + backpressureAppliedCount);
         Thread.sleep(100);
       }
     }

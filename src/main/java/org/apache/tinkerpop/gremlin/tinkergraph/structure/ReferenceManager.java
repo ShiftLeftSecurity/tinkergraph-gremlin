@@ -37,8 +37,18 @@ public class ReferenceManager {
   private int totalReleaseCount;
   private boolean clearingInProgress = false;
 
-  /** prioritised by their serializationCount, i.e. elements that have been serialized most often will be serialized last */
-  private final PriorityBlockingQueue<ElementRef> clearableRefs = new PriorityBlockingQueue<>(100000, Comparator.comparingInt(ElementRef::getSerializationCount));
+  /** prioritize references by
+   * 1) serializationCount, i.e. elements that have been serialized more often will be serialized later
+   * 2) lastDeserializationTime, i.e. elements that have more recently been deserialized will be serialized last
+   * */
+  private final Comparator<ElementRef> refComparator = (ref1, ref2) -> {
+    if (ref1.getSerializationCount() != ref2.getSerializationCount()) {
+      return ref1.getSerializationCount() < ref2.getSerializationCount() ? -1 : 1;
+    } else {
+      return ref1.getLastDeserializedTime() < ref2.getLastDeserializedTime() ? -1 : 1;
+    }
+  };
+  private final PriorityBlockingQueue<ElementRef> clearableRefs = new PriorityBlockingQueue<>(100000, refComparator);
 
   public ReferenceManager(int heapPercentageThreshold) {
     this.heapPercentageThreshold = heapPercentageThreshold;

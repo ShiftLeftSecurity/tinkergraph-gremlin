@@ -41,6 +41,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     protected Map<String, List<Edge>> inEdgesByLabel;
 
     /** `dirty` flag for serialization to avoid superfluous serialization */
+    // TODO re-implement/verify this optimization: only re-serialize if element has been changed
     private boolean modifiedSinceLastSerialization = true;
     private Semaphore modificationSemaphore = new Semaphore(1);
 

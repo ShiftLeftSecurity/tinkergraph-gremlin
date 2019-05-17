@@ -34,12 +34,14 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
   protected final TinkerGraph graph;
   protected E reference;
   private int serializationCount;
+  private long lastDeserializedTime;
 
   public ElementRef(E element) {
     this.id = (long) element.id();
     this.label = element.label();
     this.graph = (TinkerGraph) element.graph();
     this.reference = element;
+    this.lastDeserializedTime = System.currentTimeMillis();
     graph.referenceManager.registerRef(this);
   }
 
@@ -75,6 +77,7 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
       try {
         final E element = readFromDisk(id);
         this.reference = element;
+        this.lastDeserializedTime = System.currentTimeMillis();
         graph.referenceManager.registerRef(this);
         return element;
       } catch (Exception e) {
@@ -85,6 +88,10 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
 
   public int getSerializationCount() {
     return serializationCount;
+  }
+
+  public long getLastDeserializedTime() {
+    return lastDeserializedTime;
   }
 
   protected abstract E readFromDisk(long elementId) throws IOException;
@@ -124,7 +131,6 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
       return false;
     }
   }
-
   // delegate methods end
 
 }
