@@ -37,7 +37,6 @@ public class OndiskOverflow {
   private final MVStore edgeMVStore;
   protected final MVMap<Long, byte[]> vertexMVMap;
   protected final MVMap<Long, byte[]> edgeMVMap;
-  protected long totalPersistCount = 0;
   private boolean closed;
 
   public OndiskOverflow(final String ondiskOverflowRootDir,
@@ -75,12 +74,6 @@ public class OndiskOverflow {
         } else {
           System.out.println("unable to serialize " + element + " of type " + element.getClass());
         }
-
-        totalPersistCount++;
-        if (totalPersistCount % 50000 == 0) {
-          System.out.println("persisted " + totalPersistCount + " finalized elements in total");
-        }
-
       } catch (Throwable t) {
         // TODO use proper logger
         // note: normally we'd throw a RuntimeException, but since this is typically called from `finalized`, it would be swallowed anyway

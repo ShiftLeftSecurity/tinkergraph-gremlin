@@ -32,7 +32,7 @@ import java.util.concurrent.PriorityBlockingQueue;
  * it sets some references in the `[Vertex|Edge]Refs` to `null`, to avoid OOM
  * */
 public class ReferenceManager {
-  private final int heapPercentageThreshold;
+  private final float heapUsageThreshold; // 1.0 == 100%
   public final int releaseCount = 100000; //TODO make configurable
   private int totalReleaseCount;
   private boolean clearingInProgress = false;
@@ -51,7 +51,7 @@ public class ReferenceManager {
   private final PriorityBlockingQueue<ElementRef> clearableRefs = new PriorityBlockingQueue<>(100000, refComparator);
 
   public ReferenceManager(int heapPercentageThreshold) {
-    this.heapPercentageThreshold = heapPercentageThreshold;
+    heapUsageThreshold =  (float) heapPercentageThreshold / 100f;
     installGCMonitoring();
   }
 
@@ -71,27 +71,49 @@ public class ReferenceManager {
     }
   }
 
-  protected void safelyClearReferences() {
-    if (clearingInProgress) {
-      System.out.println("ReferenceManager: cleaning currently in progress, not queuing to clear any more");
-    } else if (clearableRefs.isEmpty()) {
-      System.out.println("ReferenceManager: clearableRefs queue is empty - nothing to clear at the moment");
-    } else {
-      try {
-        clearingInProgress = true;
-        clearReferences();
-      } catch (Throwable t) {
-        t.printStackTrace();
-      } finally {
-        clearingInProgress = false;
+  // TODO MP: run this asynchronously to not block the gc notification thread - use executor with one thread and capacity=1, drop `clearingInProgress` flag
+  protected void maybeClearReferences(final float heapUsage) {
+    if (heapUsage > heapUsageThreshold) {
+      if (clearingInProgress) {
+        System.out.println("cleaning currently in progress, not queuing to clear any more");
+      } else if (clearableRefs.isEmpty()) {
+        System.out.println("clearableRefs queue is empty - nothing to clear at the moment");
+      } else {
+        int releaseCount = Integer.min(this.releaseCount, clearableRefs.size());
+        System.out.println("heap usage (after GC) is " + heapUsage + " -> clearing " + releaseCount + " references");
+        final int actualReleaseCount = safelyClearReferences(releaseCount);
+        totalReleaseCount += actualReleaseCount;
+        System.out.println("completed clearing of "+ actualReleaseCount + " references");
+        System.out.println("current clearable queue size: " + clearableRefs.size());
+        System.out.println("references cleared in total: " + totalReleaseCount);
       }
     }
   }
 
-  protected void clearReferences() {
+  /**
+   * clear references, ensuring no exception is raised
+   *
+   * @param releaseCount
+   * @return number of references cleared
+   */
+  protected int safelyClearReferences(final int releaseCount) {
+    try {
+      clearingInProgress = true;
+      return clearReferences(releaseCount);
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      clearingInProgress = false;
+    }
+    return 0;
+  }
+
+  /**
+   * @param releaseCount
+   * @return number of references cleared
+   */
+  protected int clearReferences(int releaseCount) {
     ElementRef ref = clearableRefs.poll();
-    int releaseCount = Integer.min(this.releaseCount, clearableRefs.size());
-    System.out.println("ReferenceManager: clearing " + releaseCount + " references");
     int actualReleaseCount = 0;
     while (ref != null && releaseCount > 0) {
       if (ref.isSet()) {
@@ -101,8 +123,7 @@ public class ReferenceManager {
       }
       ref = clearableRefs.poll();
     }
-    totalReleaseCount += actualReleaseCount;
-    System.out.println("ReferenceManager: completed clearing of "+ actualReleaseCount + " references (" + totalReleaseCount + " in total).");
+    return actualReleaseCount;
   }
 
   /** monitor GC, and should the heap grow above 80% usage, clear some strong references */
@@ -128,12 +149,8 @@ public class ReferenceManager {
               totalMemMax += detail.getMax();
             }
           }
-          float heapUsageBefore = (float) totalMemUsed / (float) totalMemMax;
-          float threshold = (float) heapPercentageThreshold / 100f;
-          if (heapUsageBefore > threshold) {
-            System.out.println("heap usage (after GC) is " + heapUsageBefore);
-            safelyClearReferences();
-          }
+          float heapUsage = (float) totalMemUsed / (float) totalMemMax;
+          maybeClearReferences(heapUsage);
         }
       };
       NotificationEmitter emitter = (NotificationEmitter) gcbean;
