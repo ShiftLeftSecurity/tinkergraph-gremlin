@@ -60,7 +60,7 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
   }
 
   /* only called by @ReferenceManager */
-  protected void clear() {
+  protected void clear() throws IOException {
     E ref = reference;
     if (ref != null) {
       graph.ondiskOverflow.persist(ref);

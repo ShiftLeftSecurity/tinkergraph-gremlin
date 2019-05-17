@@ -19,20 +19,23 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import com.sun.management.GarbageCollectionNotificationInfo;
-
 import javax.management.NotificationEmitter;
 import javax.management.NotificationListener;
 import javax.management.openmbean.CompositeData;
+import java.io.IOException;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.MemoryUsage;
 import java.util.*;
 import java.util.concurrent.PriorityBlockingQueue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** watches GC activity, and when we're low on available heap space,
  * it sets some references in the `[Vertex|Edge]Refs` to `null`, to avoid OOM
  * */
 public class ReferenceManager {
-  private final float heapUsageThreshold; // 1.0 == 100%
+  private final Logger logger = LoggerFactory.getLogger(getClass());
+  private final float heapUsageThreshold; // range 0.0 - 1.0
   public final int releaseCount = 100000; //TODO make configurable
   private int totalReleaseCount;
   private boolean clearingInProgress = false;
@@ -51,6 +54,9 @@ public class ReferenceManager {
   private final PriorityBlockingQueue<ElementRef> clearableRefs = new PriorityBlockingQueue<>(100000, refComparator);
 
   public ReferenceManager(int heapPercentageThreshold) {
+    if (heapPercentageThreshold < 0 || heapPercentageThreshold > 100) {
+      throw new IllegalArgumentException("heapPercentageThreshold must be between 0 and 100, but is " + heapPercentageThreshold);
+    }
     heapUsageThreshold =  (float) heapPercentageThreshold / 100f;
     installGCMonitoring();
   }
@@ -75,17 +81,17 @@ public class ReferenceManager {
   protected void maybeClearReferences(final float heapUsage) {
     if (heapUsage > heapUsageThreshold) {
       if (clearingInProgress) {
-        System.out.println("cleaning currently in progress, not queuing to clear any more");
+        logger.debug("cleaning currently in progress, not queuing to clear any more");
       } else if (clearableRefs.isEmpty()) {
-        System.out.println("clearableRefs queue is empty - nothing to clear at the moment");
+        logger.debug("clearableRefs queue is empty - nothing to clear at the moment");
       } else {
         int releaseCount = Integer.min(this.releaseCount, clearableRefs.size());
-        System.out.println("heap usage (after GC) is " + heapUsage + " -> clearing " + releaseCount + " references");
+        logger.info("heap usage (after GC) is " + heapUsage + " -> clearing " + releaseCount + " references");
         final int actualReleaseCount = safelyClearReferences(releaseCount);
         totalReleaseCount += actualReleaseCount;
-        System.out.println("completed clearing of "+ actualReleaseCount + " references");
-        System.out.println("current clearable queue size: " + clearableRefs.size());
-        System.out.println("references cleared in total: " + totalReleaseCount);
+        logger.info("completed clearing of "+ actualReleaseCount + " references");
+        logger.debug("current clearable queue size: " + clearableRefs.size());
+        logger.debug("references cleared in total: " + totalReleaseCount);
       }
     }
   }
@@ -101,7 +107,7 @@ public class ReferenceManager {
       clearingInProgress = true;
       return clearReferences(releaseCount);
     } catch (Exception e) {
-      e.printStackTrace();
+      logger.error("error while trying to clear " + releaseCount + " references", e);
     } finally {
       clearingInProgress = false;
     }
@@ -112,7 +118,7 @@ public class ReferenceManager {
    * @param releaseCount
    * @return number of references cleared
    */
-  protected int clearReferences(int releaseCount) {
+  protected int clearReferences(int releaseCount) throws IOException {
     ElementRef ref = clearableRefs.poll();
     int actualReleaseCount = 0;
     while (ref != null && releaseCount > 0) {
@@ -128,10 +134,7 @@ public class ReferenceManager {
 
   /** monitor GC, and should the heap grow above 80% usage, clear some strong references */
   protected void installGCMonitoring() {
-    // TODO use logging lib
-    System.out.println("ReferenceManager.installGCMonitoring");
     Set<String> ignoredMemoryAreas = new HashSet<>(Arrays.asList("Code Cache", "Compressed Class Space", "Metaspace"));
-
     List<GarbageCollectorMXBean> gcbeans = java.lang.management.ManagementFactory.getGarbageCollectorMXBeans();
     for (GarbageCollectorMXBean gcbean : gcbeans) {
       NotificationListener listener = (notification, handback) -> {
@@ -155,6 +158,7 @@ public class ReferenceManager {
       };
       NotificationEmitter emitter = (NotificationEmitter) gcbean;
       emitter.addNotificationListener(listener, null, null);
+      logger.debug("installed GC monitor");
     }
   }
 

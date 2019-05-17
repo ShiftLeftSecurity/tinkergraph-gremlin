@@ -25,12 +25,14 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerElement;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerVertex;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
 
 public class OndiskOverflow {
-
+  private final Logger logger = LoggerFactory.getLogger(getClass());
   protected final VertexSerializer vertexSerializer;
   protected final EdgeSerializer edgeSerializer;
   private final MVStore vertexMVStore;
@@ -52,7 +54,7 @@ public class OndiskOverflow {
       mvstoreEdgesFile = File.createTempFile("edgeMVStore", ".bin", cacheParentDir);
       mvstoreVerticesFile.deleteOnExit();
       mvstoreEdgesFile.deleteOnExit();
-      System.out.println("on-disk cache overflow files: " + mvstoreVerticesFile + ", " + mvstoreEdgesFile);
+      logger.debug("on-disk cache overflow files: " + mvstoreVerticesFile + ", " + mvstoreEdgesFile);
     } catch (IOException e) {
       throw new RuntimeException("cannot create tmp file for mvstore", e);
     }
@@ -62,22 +64,15 @@ public class OndiskOverflow {
     edgeMVMap = edgeMVStore.openMap("edges");
   }
 
-  public void persist(final TinkerElement element) {
+  public void persist(final TinkerElement element) throws IOException {
     if (!closed) {
       final Long id = (Long) element.id();
-      try {
-
-        if (element instanceof Vertex) {
-          vertexMVMap.put(id, vertexSerializer.serialize((Vertex) element));
-        } else if (element instanceof Edge) {
-          edgeMVMap.put(id, edgeSerializer.serialize((Edge) element));
-        } else {
-          System.out.println("unable to serialize " + element + " of type " + element.getClass());
-        }
-      } catch (Throwable t) {
-        // TODO use proper logger
-        // note: normally we'd throw a RuntimeException, but since this is typically called from `finalized`, it would be swallowed anyway
-        new RuntimeException("unable to serialize " + element, t).printStackTrace();
+      if (element instanceof Vertex) {
+        vertexMVMap.put(id, vertexSerializer.serialize((Vertex) element));
+      } else if (element instanceof Edge) {
+        edgeMVMap.put(id, edgeSerializer.serialize((Edge) element));
+      } else {
+        new RuntimeException("unable to serialize " + element + " of type " + element.getClass());
       }
     }
   }
