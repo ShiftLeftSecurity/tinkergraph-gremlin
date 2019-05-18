@@ -28,15 +28,19 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
 import org.msgpack.core.MessageBufferPacker;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class VertexSerializer extends Serializer<Vertex> {
-
+  private final Logger logger = LoggerFactory.getLogger(getClass());
   protected final TinkerGraph graph;
   protected final Map<String, SpecializedElementFactory.ForVertex> vertexFactoryByLabel;
+  private int serializedCount = 0;
+  private int deserializedCount = 0;
 
   public VertexSerializer(TinkerGraph graph, Map<String, SpecializedElementFactory.ForVertex> vertexFactoryByLabel) {
     this.graph = graph;
@@ -53,6 +57,10 @@ public class VertexSerializer extends Serializer<Vertex> {
     packEdgeIds(packer, vertex);
 //    ((SpecializedTinkerVertex) vertex).releaseModificationLock();
 
+    serializedCount++;
+    if (serializedCount % 100000 == 0) {
+      logger.debug("stats: serialized " + serializedCount + " vertices in total");
+    }
     return packer.toByteArray();
   }
 
@@ -97,7 +105,7 @@ public class VertexSerializer extends Serializer<Vertex> {
     Map<String, long[]> outEdgeIdsByLabel = unpackEdges(unpacker);
 
     inEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
-      // TODO remove from serialized format?
+      // TODO remove label from serialized format?
       String edgeLabel = entry.getKey();
       for (long edgeId : entry.getValue()) {
         vertex.storeInEdge(graph.edge(edgeId));
@@ -112,6 +120,11 @@ public class VertexSerializer extends Serializer<Vertex> {
     });
 
     vertex.setModifiedSinceLastSerialization(false);
+
+    deserializedCount++;
+    if (deserializedCount % 100000 == 0) {
+      logger.debug("stats: deserialized " + deserializedCount + " vertices in total");
+    }
     return vertex;
   }
 

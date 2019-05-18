@@ -24,15 +24,19 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
 import org.msgpack.core.MessageBufferPacker;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
 
 public class EdgeSerializer extends Serializer<Edge> {
-
+  private final Logger logger = LoggerFactory.getLogger(getClass());
   protected final TinkerGraph graph;
   protected final Map<String, SpecializedElementFactory.ForEdge> edgeFactoryByLabel;
-
+  private int serializedCount = 0;
+  private int deserializedCount = 0;
+  
   public EdgeSerializer(TinkerGraph graph, Map<String, SpecializedElementFactory.ForEdge> edgeFactoryByLabel) {
     this.graph = graph;
     this.edgeFactoryByLabel = edgeFactoryByLabel;
@@ -49,6 +53,10 @@ public class EdgeSerializer extends Serializer<Edge> {
     packer.packLong((Long) edge.inVertex().id());
     packer.packString(edge.inVertex().label());
 
+    serializedCount++;
+    if (serializedCount % 100000 == 0) {
+      logger.debug("stats: serialized " + serializedCount + " edges in total");
+    }
     return packer.toByteArray();
   }
 
@@ -73,6 +81,11 @@ public class EdgeSerializer extends Serializer<Edge> {
     ElementHelper.attachProperties(edge, keyValues);
 
     edge.setModifiedSinceLastSerialization(false);
+
+    deserializedCount++;
+    if (deserializedCount % 100000 == 0) {
+      logger.debug("stats: deserialized " + deserializedCount + " edges in total");
+    }
     return edge;
   }
 }
