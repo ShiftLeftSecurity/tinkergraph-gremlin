@@ -36,7 +36,7 @@ public class EdgeSerializer extends Serializer<Edge> {
   protected final Map<String, SpecializedElementFactory.ForEdge> edgeFactoryByLabel;
   private int serializedCount = 0;
   private int deserializedCount = 0;
-  
+
   public EdgeSerializer(TinkerGraph graph, Map<String, SpecializedElementFactory.ForEdge> edgeFactoryByLabel) {
     this.graph = graph;
     this.edgeFactoryByLabel = edgeFactoryByLabel;
