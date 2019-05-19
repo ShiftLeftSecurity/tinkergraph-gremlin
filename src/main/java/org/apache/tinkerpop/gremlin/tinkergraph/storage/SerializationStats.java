@@ -40,4 +40,11 @@ public class SerializationStats {
     return edgeSerializationGroupCount;
   }
 
+  @Override
+  public String toString() {
+    return "SerializationStats{" +
+        "vertexSerializationGroupCount=" + vertexSerializationGroupCount +
+        ", edgeSerializationGroupCount=" + edgeSerializationGroupCount +
+        '}';
+  }
 }

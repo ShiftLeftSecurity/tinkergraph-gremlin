@@ -48,6 +48,8 @@ import org.apache.tinkerpop.gremlin.tinkergraph.storage.SerializationStats;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexSerializer;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.apache.tinkerpop.gremlin.util.iterator.MultiIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.*;
@@ -66,6 +68,7 @@ import java.util.stream.Stream;
 @Graph.OptIn(Graph.OptIn.SUITE_STRUCTURE_INTEGRATE)
 @Graph.OptIn(Graph.OptIn.SUITE_PROCESS_STANDARD)
 public final class TinkerGraph implements Graph {
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     static {
         TraversalStrategies.GlobalCache.registerStrategies(TinkerGraph.class, TraversalStrategies.GlobalCache.getStrategies(Graph.class).clone().addStrategies(
@@ -298,6 +301,9 @@ public final class TinkerGraph implements Graph {
     public void close() {
         if (graphLocation != null) saveGraph();
         if (ondiskOverflowEnabled) {
+            if (logger.isDebugEnabled()) {
+                logger.debug(getSerializationStats().toString());
+            }
             ondiskOverflow.close();
         }
     }
