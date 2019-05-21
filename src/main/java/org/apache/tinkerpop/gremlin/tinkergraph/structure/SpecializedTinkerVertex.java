@@ -47,7 +47,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     protected SpecializedTinkerVertex(long id, String label, TinkerGraph graph) {
         super(id, label, graph);
-        if (graph.referenceManager != null) {
+        if (graph != null && graph.referenceManager != null) {
             graph.referenceManager.applyBackpressureMaybe();
         }
     }
