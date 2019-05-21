@@ -20,9 +20,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuld
 
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
 
 import java.io.Serializable;
 import java.util.*;
@@ -32,8 +30,8 @@ public class WrittenBy extends SpecializedTinkerEdge implements Serializable {
 
     public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList());
 
-    public WrittenBy(TinkerGraph graph, long id, long outVertexId, long inVertexId) {
-        super(graph, id, outVertexId, label, inVertexId, SPECIFIC_KEYS);
+    public WrittenBy(TinkerGraph graph, long id, Vertex outVertex, Vertex inVertex) {
+        super(graph, id, outVertex, label, inVertex, SPECIFIC_KEYS);
     }
 
     @Override
@@ -58,8 +56,13 @@ public class WrittenBy extends SpecializedTinkerEdge implements Serializable {
         }
 
         @Override
-        public WrittenBy createEdge(Long id, TinkerGraph graph, Long outVertexId, Long inVertexId) {
-            return new WrittenBy(graph, id, outVertexId, inVertexId);
+        public WrittenBy createEdge(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
+            return new WrittenBy(graph, id, outVertex, inVertex);
+        }
+
+        @Override
+        public EdgeRef<WrittenBy> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
+            return new EdgeRef<>(createEdge(id, graph, outVertex, inVertex));
         }
     };
 }

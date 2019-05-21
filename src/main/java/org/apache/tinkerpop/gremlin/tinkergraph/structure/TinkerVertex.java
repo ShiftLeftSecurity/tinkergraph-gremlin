@@ -26,7 +26,6 @@ import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,7 +48,7 @@ public class TinkerVertex extends TinkerElement implements Vertex {
     final protected TinkerGraph graph;
 
     protected TinkerVertex(final Object id, final String label, final TinkerGraph graph) {
-        super(id, label);
+        super(id, label, graph);
         this.graph = graph;
     }
 
@@ -130,10 +129,21 @@ public class TinkerVertex extends TinkerElement implements Vertex {
     public void remove() {
         final List<Edge> edges = new ArrayList<>();
         this.edges(Direction.BOTH).forEachRemaining(edges::add);
-        edges.stream().filter(edge -> !((TinkerEdge) edge).removed).forEach(Edge::remove);
+        edges.stream().filter(edge -> {
+            if (edge instanceof ElementRef) {
+                return !((ElementRef<TinkerEdge>) edge).isRemoved();
+            } else {
+                return !((TinkerEdge) edge).removed;
+            }
+        }).forEach(Edge::remove);
         this.properties = null;
         TinkerHelper.removeElementIndex(this);
-        this.graph.vertices.remove(this.id);
+        graph.vertices.remove(id());
+        graph.getElementsByLabel(graph.verticesByLabel, label).remove(this);
+
+        if (graph.ondiskOverflowEnabled) {
+            graph.ondiskOverflow.removeVertex((Long) id);
+        }
         this.removed = true;
     }
 

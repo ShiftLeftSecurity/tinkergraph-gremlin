@@ -42,15 +42,26 @@ public class SpecializedElementsTest {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
 
         Vertex v0 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 1");
-        Vertex v1 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 2");
-        v0.addEdge(FollowedBy.label, v1);
+        Vertex v2 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 2");
+        v0.addEdge(FollowedBy.label, v2);
 
         Set<Object> songNames = graph.traversal().V().values(Song.NAME).toSet();
         assertTrue(songNames.contains("Song 1"));
         assertTrue(songNames.contains("Song 2"));
 
-        List<Edge> edges = __(v0).bothE(FollowedBy.label).toList();
-        System.out.println("SpecializedElementsTest.simplisticTest " + edges);
+        assertEquals(1, __(v0).bothE().toList().size());
+        assertEquals(1, __(v0).bothE(FollowedBy.label).toList().size());
+        assertEquals(0, __(v0).bothE("otherLabel").toList().size());
+        assertEquals(1, __(v0).out().toList().size());
+        assertEquals(0, __(v2).out().toList().size());
+        assertEquals(0, __(v0).in().toList().size());
+        assertEquals(1, __(v2).in().toList().size());
+        assertEquals(1, __(v0).both().toList().size());
+        assertEquals(1, __(v2).both().toList().size());
+
+        System.out.println(__(v0).bothE(FollowedBy.label).toList());
+        System.out.println(__(v0).out().toList());
+        System.out.println(__(v0).in().toList());
     }
 
     @Test

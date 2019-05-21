@@ -18,30 +18,29 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
-import gnu.trove.iterator.TLongIterator;
-import gnu.trove.set.TLongSet;
 import org.apache.commons.collections.IteratorUtils;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
 import org.msgpack.core.MessageBufferPacker;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class VertexSerializer extends Serializer<Vertex> {
-
+  private final Logger logger = LoggerFactory.getLogger(getClass());
   protected final TinkerGraph graph;
   protected final Map<String, SpecializedElementFactory.ForVertex> vertexFactoryByLabel;
+  private int serializedCount = 0;
+  private int deserializedCount = 0;
 
   public VertexSerializer(TinkerGraph graph, Map<String, SpecializedElementFactory.ForVertex> vertexFactoryByLabel) {
     this.graph = graph;
@@ -51,43 +50,42 @@ public class VertexSerializer extends Serializer<Vertex> {
   @Override
   public byte[] serialize(Vertex vertex) throws IOException {
     MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
-    ((SpecializedTinkerVertex) vertex).acquireModificationLock();
+//    ((SpecializedTinkerVertex) vertex).acquireModificationLock();
     packer.packLong((Long) vertex.id());
     packer.packString(vertex.label());
     packProperties(packer, vertex.properties());
     packEdgeIds(packer, vertex);
-    ((SpecializedTinkerVertex) vertex).releaseModificationLock();
+//    ((SpecializedTinkerVertex) vertex).releaseModificationLock();
 
+    serializedCount++;
+    if (serializedCount % 100000 == 0) {
+      logger.debug("stats: serialized " + serializedCount + " vertices in total");
+    }
     return packer.toByteArray();
   }
 
   /** format: two `Map<Label, Array<EdgeId>>`, i.e. one Map for `IN` and one for `OUT` edges */
   private void packEdgeIds(MessageBufferPacker packer, Vertex vertex) throws IOException {
     for (Direction direction : new Direction[]{Direction.IN, Direction.OUT}) {
-      final Map<String, TLongSet> edgeIdsByLabel;
-      if (vertex instanceof SpecializedTinkerVertex) {
-        edgeIdsByLabel = ((SpecializedTinkerVertex) vertex).edgeIdsByLabel(direction);
-      } else {
-        throw new NotImplementedException("");
-      }
-
+      // note: this doesn't invoke edge deserialization, because both `id` and `label` are available in `EdgeRef`
+      List<Edge> edges = IteratorUtils.toList(vertex.edges(direction));
       // a simple group by would be nice, but java collections are still very basic apparently
-      packer.packMapHeader(edgeIdsByLabel.size());
-      Set<String> labels = edgeIdsByLabel.keySet();
+      Set<String> labels = edges.stream().map(e -> e.label()).collect(Collectors.toSet());
+      packer.packMapHeader(labels.size());
+
       for (String label : labels) {
-        final TLongSet edgeIds = edgeIdsByLabel.get(label);
-        final TLongIterator iter = edgeIds.iterator();
         packer.packString(label);
+        Set<Long> edgeIds = edges.stream().filter(e -> e.label().equals(label)).map(e -> (Long) e.id()).collect(Collectors.toSet());
         packer.packArrayHeader(edgeIds.size());
-        while (iter.hasNext()) {
-          packer.packLong(iter.next());
+        for (Long edgeId : edgeIds) {
+          packer.packLong(edgeId);
         }
       }
     }
   }
 
   @Override
-  public SpecializedTinkerVertex deserialize(byte[] bytes) throws IOException {
+  public TinkerVertex deserialize(byte[] bytes) throws IOException {
     if (null == bytes)
       return null;
 
@@ -107,20 +105,26 @@ public class VertexSerializer extends Serializer<Vertex> {
     Map<String, long[]> outEdgeIdsByLabel = unpackEdges(unpacker);
 
     inEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
+      // TODO remove label from serialized format?
       String edgeLabel = entry.getKey();
       for (long edgeId : entry.getValue()) {
-        vertex.addSpecializedInEdge(edgeLabel, edgeId);
+        vertex.storeInEdge(graph.edge(edgeId));
       }
     });
 
     outEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
       String edgeLabel = entry.getKey();
       for (long edgeId : entry.getValue()) {
-        vertex.addSpecializedOutEdge(edgeLabel, edgeId);
+        vertex.storeOutEdge(graph.edge(edgeId));
       }
     });
 
     vertex.setModifiedSinceLastSerialization(false);
+
+    deserializedCount++;
+    if (deserializedCount % 100000 == 0) {
+      logger.debug("stats: deserialized " + deserializedCount + " vertices in total");
+    }
     return vertex;
   }
 

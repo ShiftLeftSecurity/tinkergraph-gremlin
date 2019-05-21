@@ -51,7 +51,7 @@ public class TinkerVertexProperty<V> extends TinkerElement implements VertexProp
      * with {@link TinkerGraphComputerView}.
      */
     public TinkerVertexProperty(final TinkerVertex vertex, final String key, final V value, final Object... propertyKeyValues) {
-        super(((TinkerGraph) vertex.graph()).vertexPropertyIdManager.getNextId((TinkerGraph) vertex.graph()), key);
+        super(vertex.tinkerGraph().vertexPropertyIdManager.getNextId(vertex.tinkerGraph()), key, vertex.tinkerGraph());
         this.vertex = vertex;
         this.key = key;
         this.value = value;
@@ -64,7 +64,7 @@ public class TinkerVertexProperty<V> extends TinkerElement implements VertexProp
      * can be explicitly set and validated against the expected data type.
      */
     public TinkerVertexProperty(final Object id, final TinkerVertex vertex, final String key, final V value, final Object... propertyKeyValues) {
-        super(id, key);
+        super(id, key, vertex.tinkerGraph());
         this.vertex = vertex;
         this.key = key;
         this.value = value;

@@ -18,21 +18,24 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
 import org.msgpack.core.MessageBufferPacker;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Map;
 
-public class EdgeSerializer extends Serializer<SpecializedTinkerEdge> {
-
+public class EdgeSerializer extends Serializer<Edge> {
+  private final Logger logger = LoggerFactory.getLogger(getClass());
   protected final TinkerGraph graph;
   protected final Map<String, SpecializedElementFactory.ForEdge> edgeFactoryByLabel;
+  private int serializedCount = 0;
+  private int deserializedCount = 0;
 
   public EdgeSerializer(TinkerGraph graph, Map<String, SpecializedElementFactory.ForEdge> edgeFactoryByLabel) {
     this.graph = graph;
@@ -40,31 +43,49 @@ public class EdgeSerializer extends Serializer<SpecializedTinkerEdge> {
   }
 
   @Override
-  public byte[] serialize(SpecializedTinkerEdge edge) throws IOException {
+  public byte[] serialize(Edge edge) throws IOException {
     MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
     packer.packLong((Long) edge.id());
     packer.packString(edge.label());
     packProperties(packer, edge.properties());
-    packer.packLong(edge.outVertexId);
-    packer.packLong(edge.inVertexId);
+    packer.packLong((Long) edge.outVertex().id());
+    packer.packString(edge.outVertex().label());
+    packer.packLong((Long) edge.inVertex().id());
+    packer.packString(edge.inVertex().label());
 
+    serializedCount++;
+    if (serializedCount % 100000 == 0) {
+      logger.debug("stats: serialized " + serializedCount + " edges in total");
+    }
     return packer.toByteArray();
   }
 
 
   @Override
-  public SpecializedTinkerEdge deserialize(byte[] bytes) throws IOException {
+  public TinkerEdge deserialize(byte[] bytes) throws IOException {
     MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes);
     Long id = unpacker.unpackLong();
     String label = unpacker.unpackString();
     Object[] keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
     long outVertexId = unpacker.unpackLong();
+    // TODO remove
+    String outVertexLabel = unpacker.unpackString();
     long inVertexId = unpacker.unpackLong();
+    // TODO remove
+    String inVertexLabel = unpacker.unpackString();
+    VertexRef outVertexRef = (VertexRef) graph.vertex(outVertexId);
+    VertexRef inVertexRef = (VertexRef) graph.vertex(inVertexId);
 
-    SpecializedTinkerEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexId, inVertexId);
+    // TODO support generic edges too
+    SpecializedTinkerEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexRef, inVertexRef);
     ElementHelper.attachProperties(edge, keyValues);
 
     edge.setModifiedSinceLastSerialization(false);
+
+    deserializedCount++;
+    if (deserializedCount % 100000 == 0) {
+      logger.debug("stats: deserialized " + deserializedCount + " edges in total");
+    }
     return edge;
   }
 }

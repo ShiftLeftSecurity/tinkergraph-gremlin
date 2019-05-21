@@ -18,16 +18,10 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Property;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
-import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -47,7 +41,7 @@ public class TinkerEdge extends TinkerElement implements Edge {
     protected final Vertex outVertex;
 
     protected TinkerEdge(final TinkerGraph graph, final Object id, final Vertex outVertex, final String label, final Vertex inVertex) {
-        super(id, label);
+        super(id, label, graph);
         this.graph = graph;
         this.outVertex = outVertex;
         this.inVertex = inVertex;
@@ -79,8 +73,18 @@ public class TinkerEdge extends TinkerElement implements Edge {
 
     @Override
     public void remove() {
-        final TinkerVertex outVertex = (TinkerVertex) this.outVertex;
-        final TinkerVertex inVertex = (TinkerVertex) this.inVertex;
+        final TinkerVertex outVertex;
+        final TinkerVertex inVertex;
+        if (this.outVertex instanceof ElementRef) {
+            outVertex = ((ElementRef<TinkerVertex>) this.outVertex).get();
+        } else {
+            outVertex = (TinkerVertex) this.outVertex;
+        }
+        if (this.inVertex instanceof ElementRef) {
+            inVertex = ((ElementRef<TinkerVertex>) this.inVertex).get();
+        } else {
+            inVertex = (TinkerVertex) this.inVertex;
+        }
 
         if (null != outVertex && null != outVertex.outEdges) {
             final Set<Edge> edges = outVertex.outEdges.get(this.label());
@@ -94,7 +98,12 @@ public class TinkerEdge extends TinkerElement implements Edge {
         }
 
         TinkerHelper.removeElementIndex(this);
-        ((TinkerGraph) this.graph()).edges.remove(this.id());
+        graph.edges.remove(id);
+        graph.getElementsByLabel(graph.edgesByLabel, label).remove(this);
+        if (graph.ondiskOverflowEnabled) {
+            graph.ondiskOverflow.removeEdge((Long) id);
+        }
+
         this.properties = null;
         this.removed = true;
     }
@@ -102,7 +111,6 @@ public class TinkerEdge extends TinkerElement implements Edge {
     @Override
     public String toString() {
         return StringFactory.edgeString(this);
-
     }
 
     @Override

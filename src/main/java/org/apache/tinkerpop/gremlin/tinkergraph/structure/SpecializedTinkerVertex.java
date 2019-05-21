@@ -18,32 +18,43 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import gnu.trove.iterator.TLongIterator;
-import gnu.trove.set.TLongSet;
+import gnu.trove.map.hash.THashMap;
 import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
+import org.apache.tinkerpop.gremlin.util.iterator.MultiIterator;
 
 import java.util.*;
 import java.util.concurrent.Semaphore;
+import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
-    private final Set<String> specificKeys;
+    /** property keys for a specialized vertex  */
+    protected abstract Set<String> specificKeys();
+
+    public abstract Set<String> allowedOutEdgeLabels();
+    public abstract Set<String> allowedInEdgeLabels();
+
+    protected Map<String, List<Edge>> outEdgesByLabel;
+    protected Map<String, List<Edge>> inEdgesByLabel;
 
     /** `dirty` flag for serialization to avoid superfluous serialization */
+    // TODO re-implement/verify this optimization: only re-serialize if element has been changed
     private boolean modifiedSinceLastSerialization = true;
     private Semaphore modificationSemaphore = new Semaphore(1);
 
-    protected SpecializedTinkerVertex(long id, String label, TinkerGraph graph, Set<String> specificKeys) {
+    protected SpecializedTinkerVertex(long id, String label, TinkerGraph graph) {
         super(id, label, graph);
-        this.specificKeys = specificKeys;
+        if (graph != null && graph.referenceManager != null) {
+            graph.referenceManager.applyBackpressureMaybe();
+        }
     }
 
     @Override
     public Set<String> keys() {
-        return specificKeys;
+        return specificKeys();
     }
 
     @Override
@@ -71,7 +82,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
         if (this.removed) return Collections.emptyIterator();
         if (propertyKeys.length == 0) { // return all properties
-            return (Iterator) specificKeys.stream().flatMap(key ->
+            return (Iterator) specificKeys().stream().flatMap(key ->
                 StreamSupport.stream(Spliterators.spliteratorUnknownSize(
                   specificProperties(key), Spliterator.ORDERED),false)
             ).iterator();
@@ -111,43 +122,54 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     protected abstract void removeSpecificProperty(String key);
 
     @Override
-    public Edge addEdge(String label, Vertex vertex, Object... keyValues) {
-        if (null == vertex) {
+    public Edge addEdge(final String label, Vertex inVertex, final Object... keyValues) {
+        if (null == inVertex) {
             throw Graph.Exceptions.argumentCanNotBeNull("inVertex");
+        }
+        VertexRef<TinkerVertex> inVertexRef = null;
+        if (inVertex instanceof VertexRef) {
+            inVertexRef = (VertexRef) inVertex;
+            inVertex = inVertexRef.get();
         }
         if (this.removed) {
             throw elementAlreadyRemoved(Vertex.class, this.id);
         }
+        if (!allowedOutEdgeLabels().contains(label)) {
+            throw new IllegalArgumentException(getClass().getName() + " doesn't allow outgoing edges with label=" + label);
+        }
+        if (!((SpecializedTinkerVertex) inVertex).allowedInEdgeLabels().contains(label)) {
+            throw new IllegalArgumentException(inVertex.getClass().getName() + " doesn't allow incoming edges with label=" + label);
+        }
+        ElementHelper.legalPropertyKeyValueArray(keyValues);
 
         if (graph.specializedEdgeFactoryByLabel.containsKey(label)) {
             SpecializedElementFactory.ForEdge factory = graph.specializedEdgeFactoryByLabel.get(label);
-
             Long idValue = (Long) graph.edgeIdManager.convert(ElementHelper.getIdValue(keyValues).orElse(null));
             if (null != idValue) {
-                if (edgeIdAlreadyExists(idValue))
+                if (graph.edges.containsKey(idValue))
                     throw Graph.Exceptions.edgeWithIdAlreadyExists(idValue);
             } else {
                 idValue = (Long) graph.edgeIdManager.getNextId(graph);
             }
             graph.currentId.set(Long.max(idValue, graph.currentId.get()));
 
-            ElementHelper.legalPropertyKeyValueArray(keyValues);
-            TinkerVertex inVertex = (TinkerVertex) vertex;
-            TinkerVertex outVertex = this;
-            SpecializedTinkerEdge edge = factory.createEdge(idValue, graph, (long) outVertex.id, (long) inVertex.id);
-            ElementHelper.attachProperties(edge, keyValues);
+            // TODO hold link to vertexRef locally so we don't need the following lookup
+            VertexRef<TinkerVertex> outVertexRef = (VertexRef<TinkerVertex>) graph.vertices.get(id);
+            final Edge edge;
             if (graph.ondiskOverflowEnabled) {
-                graph.getElementIdsByLabel(graph.edgeIdsByLabel, label).add(idValue);
-                graph.edgeCache.put(idValue, edge);
+                edge = factory.createEdgeRef(idValue, graph, outVertexRef, inVertexRef);
             } else {
-                graph.edges.put(idValue, edge);
+                edge = factory.createEdge(idValue, graph, outVertexRef, inVertexRef);
             }
+            ElementHelper.attachProperties(edge, keyValues);
+            graph.edges.put(edge.id(), edge);
+            graph.getElementsByLabel(graph.edgesByLabel, label).add(edge);
 
-            acquireModificationLock();
-            this.addSpecializedOutEdge(edge.label(), (Long) edge.id());
-            ((SpecializedTinkerVertex) inVertex).addSpecializedInEdge(edge.label(), (Long) edge.id());
-            releaseModificationLock();
-            this.modifiedSinceLastSerialization = true;
+//            acquireModificationLock();
+            storeOutEdge(edge);
+            ((SpecializedTinkerVertex) inVertex).storeInEdge(edge);
+//            releaseModificationLock();
+            modifiedSinceLastSerialization = true;
             return edge;
         } else { // edge label not registered for a specialized factory, treating as generic edge
             if (graph.usesSpecializedElements) {
@@ -155,38 +177,53 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
                     "this instance of TinkerGraph uses specialized elements, but doesn't have a factory for label " + label
                         + ". Mixing specialized and generic elements is not (yet) supported");
             }
-            return super.addEdge(label, vertex, keyValues);
+            return super.addEdge(label, inVertex, keyValues);
         }
     }
 
-    private boolean edgeIdAlreadyExists(Long idValue) {
-        if (!graph.ondiskOverflowEnabled) {
-            return graph.edges.containsKey(idValue);
-        } else {
-            for (TLongSet ids : graph.edgeIdsByLabel.values()) {
-                if (ids.contains(idValue.longValue())) {
-                    return true;
-                }
-            }
-            return false;
-        }
+    /** do not call directly (other than from deserializer and SpecializedTinkerVertex.addEdge) */
+    public void storeOutEdge(final Edge edge) {
+        storeEdge(edge, getOutEdgesByLabel());
+    }
+    
+    /** do not call directly (other than from deserializer and SpecializedTinkerVertex.addEdge) */
+    public void storeInEdge(final Edge edge) {
+        storeEdge(edge, getInEdgesByLabel());
     }
 
-    /** do not call directly (other than from deserializer)
-     *  I whish there was an easy way to forbid this in java */
-    public abstract void addSpecializedOutEdge(String edgeLabel, long edgeId);
-
-    /** do not call directly (other than from deserializer)
-     *  I whish there was an easy way to forbid this in java */
-    public abstract void addSpecializedInEdge(String edgeLabel, long edgeId);
+    private void storeEdge(final Edge edge, final Map<String, List<Edge>> edgesByLabel) {
+        if (!edgesByLabel.containsKey(edge.label())) {
+            // TODO ArrayLists aren't good for concurrent modification, use memory-light concurrency safe list
+            edgesByLabel.put(edge.label(), new ArrayList<>());
+        }
+        edgesByLabel.get(edge.label()).add(edge);
+    }
 
     @Override
     public Iterator<Edge> edges(final Direction direction, final String... edgeLabels) {
-        return graph.edgesById(specificEdges(direction, edgeLabels));
-    }
+        final MultiIterator<Edge> multiIterator = new MultiIterator<>();
 
-    /* implement in concrete specialised instance to avoid using generic HashMaps */
-    protected abstract TLongIterator specificEdges(final Direction direction, final String... edgeLabels);
+        if (edgeLabels.length == 0) { // follow all labels
+            if (direction == Direction.OUT || direction == Direction.BOTH) {
+                getOutEdgesByLabel().values().forEach(edges -> multiIterator.addIterator(edges.iterator()));
+            }
+            if (direction == Direction.IN || direction == Direction.BOTH) {
+                getInEdgesByLabel().values().forEach(edges -> multiIterator.addIterator(edges.iterator()));
+            }
+        } else {
+            for (String label : edgeLabels) {
+                /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
+                if (direction == Direction.OUT || direction == Direction.BOTH) {
+                    multiIterator.addIterator(getOutEdgesByLabel(label).iterator());
+                }
+                if (direction == Direction.IN || direction == Direction.BOTH) {
+                    multiIterator.addIterator(getInEdgesByLabel(label).iterator());
+                }
+            }
+        }
+        
+        return multiIterator;
+    }
 
     @Override
     public Iterator<Vertex> vertices(final Direction direction, final String... edgeLabels) {
@@ -202,40 +239,51 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         }
     }
 
-    public void removeOutEdge(long edgeId) {
-        removeSpecificOutEdge(edgeId);
+    protected Map<String, List<Edge>> getOutEdgesByLabel() {
+        if (outEdgesByLabel == null) {
+            this.outEdgesByLabel = new THashMap<>();
+        }
+        return outEdgesByLabel;
+    }
+    
+    protected Map<String, List<Edge>> getInEdgesByLabel() {
+        if (inEdgesByLabel == null) {
+            this.inEdgesByLabel = new THashMap<>();
+        }
+        return inEdgesByLabel;
     }
 
-    protected abstract void removeSpecificOutEdge(Long edgeId);
-
-    public void removeInEdge(long edgeId) {
-        removeSpecificInEdge(edgeId);
+    protected List<Edge> getOutEdgesByLabel(String label) {
+        return getOutEdgesByLabel().getOrDefault(label, new ArrayList<>());
     }
 
-    protected abstract void removeSpecificInEdge(Long edgeId);
+    protected List<Edge> getInEdgesByLabel(String label) {
+        return getInEdgesByLabel().getOrDefault(label, new ArrayList<>());
+    }
+
+    protected <E extends SpecializedTinkerEdge> List<E> specializedEdges(final Direction direction, final String label) {
+        final Map<String, List<Edge>> edgesByLabel;
+        if (direction == Direction.OUT) {
+            edgesByLabel = getOutEdgesByLabel();
+        } else if (direction == Direction.IN) {
+            edgesByLabel = getInEdgesByLabel();
+        } else {
+            throw new IllegalArgumentException("not implemented");
+        }
+
+        return edgesByLabel.get(label).stream().map(edge -> {
+            if (edge instanceof EdgeRef) {
+                edge = ((EdgeRef<E>) edge).get();
+            }
+            return (E) edge;
+        }).collect(Collectors.toList());
+    }
 
     @Override
     public void remove() {
         super.remove();
-        acquireModificationLock();
-        Long id = (Long) this.id();
-
-        if (graph.ondiskOverflowEnabled) {
-            this.graph.vertexCache.remove(id);
-            this.graph.vertexIdsByLabel.get(label()).remove(id);
-            this.graph.onDiskVertexOverflow.remove(id);
-        }
-        this.graph.vertices.remove(id);
-        edges(Direction.BOTH).forEachRemaining(Element::remove);
-
+        graph.getElementsByLabel(graph.verticesByLabel, label).remove(this);
         this.modifiedSinceLastSerialization = true;
-        releaseModificationLock();
-    }
-
-    public abstract Map<String, TLongSet> edgeIdsByLabel(Direction direction);
-
-    public boolean isModifiedSinceLastSerialization() {
-        return modifiedSinceLastSerialization;
     }
 
     public void setModifiedSinceLastSerialization(boolean modifiedSinceLastSerialization) {

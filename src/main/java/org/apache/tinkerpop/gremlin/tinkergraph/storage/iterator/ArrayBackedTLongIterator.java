@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.tinkerpop.gremlin.tinkergraph.storage.org.apache.tinkerpop.gremlin.util.iterator;
+package org.apache.tinkerpop.gremlin.tinkergraph.storage.iterator;
 
 import gnu.trove.iterator.TLongIterator;
 import org.apache.commons.lang3.NotImplementedException;

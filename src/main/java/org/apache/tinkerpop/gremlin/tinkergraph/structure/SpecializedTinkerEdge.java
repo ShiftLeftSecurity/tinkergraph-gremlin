@@ -28,20 +28,18 @@ import java.util.concurrent.Semaphore;
 public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     /** `dirty` flag for serialization to avoid superfluous serialization */
+    // TODO re-implement/verify this optimization: only re-serialize if element has been changed
     private boolean modifiedSinceLastSerialization = true;
     private Semaphore modificationSemaphore = new Semaphore(1);
 
     private final Set<String> specificKeys;
 
-    //using ids instead of hard references, so we can use disk storage
-    public final long outVertexId;
-    public final long inVertexId;
-
-    protected SpecializedTinkerEdge(TinkerGraph graph, Long id, long outVertexId, String label, long inVertexId, Set<String> specificKeys) {
-        super(graph, id, null, label, null);
-        this.outVertexId = outVertexId;
-        this.inVertexId = inVertexId;
+    protected SpecializedTinkerEdge(TinkerGraph graph, Long id, Vertex outVertex, String label, Vertex inVertex, Set<String> specificKeys) {
+        super(graph, id, outVertex, label, inVertex);
         this.specificKeys = specificKeys;
+        if (graph.referenceManager != null) {
+            graph.referenceManager.applyBackpressureMaybe();
+        }
     }
 
     @Override
@@ -101,42 +99,9 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     @Override
     public void remove() {
-        acquireModificationLock();
-        final SpecializedTinkerVertex outVertex = (SpecializedTinkerVertex) this.outVertex();
-        final SpecializedTinkerVertex inVertex = (SpecializedTinkerVertex) this.inVertex();
-
-        Long id = (Long) this.id();
-        outVertex.removeOutEdge(id);
-        inVertex.removeInEdge(id);
-
-        TinkerHelper.removeElementIndex(this);
-        graph.edges.remove(id);
-        if (graph.ondiskOverflowEnabled) {
-            graph.edgeIdsByLabel.get(label()).remove(id);
-            graph.onDiskEdgeOverflow.remove(id);
-            graph.edgeCache.remove(id);
-        }
-
-        this.properties = null;
-        this.removed = true;
+        super.remove();
+        graph.getElementsByLabel(graph.edgesByLabel, label).remove(this);
         modifiedSinceLastSerialization = true;
-        releaseModificationLock();
-    }
-
-    @Override
-    /** adaptation of `StringFactory.edgeString` to cover the fact that we hold the IDs rather than hard references */
-    public String toString() {
-        return "e[" + id() + "]" + "[" + outVertexId + "-" + label + "->" + inVertexId + "]";
-    }
-
-    @Override
-    public Vertex outVertex() {
-        return graph.vertexById(this.outVertexId);
-    }
-
-    @Override
-    public Vertex inVertex() {
-        return graph.vertexById(this.inVertexId);
     }
 
     public void setModifiedSinceLastSerialization(boolean modifiedSinceLastSerialization) {
@@ -158,4 +123,5 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
     public void releaseModificationLock() {
       modificationSemaphore.release();
     }
+
 }

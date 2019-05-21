@@ -19,7 +19,9 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerElement;
 import org.msgpack.core.MessageBufferPacker;
 import org.msgpack.value.ArrayValue;
 import org.msgpack.value.FloatValue;
@@ -31,7 +33,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Map;
 
-public abstract class Serializer<A> {
+public abstract class Serializer<A extends Element> {
 
   public abstract byte[] serialize(A a) throws IOException;
   public abstract A deserialize(byte[] bytes) throws IOException;
@@ -76,6 +78,8 @@ public abstract class Serializer<A> {
       } else if (value.getClass() == Double.class) {
         packer.packShort((short) 8);
         packer.packDouble((Double) value);
+      } else if (value.getClass() == int[].class) {
+        //TODO remove this dummy case again
       } else throw new NotImplementedException("value type `" + value.getClass() + "` not yet supported (key=" + property.key() + ")");
     }
   }

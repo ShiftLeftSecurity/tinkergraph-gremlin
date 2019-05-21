@@ -11,7 +11,7 @@ env:
 
 install: mvn install -DskipTests=true -Dmaven.javadoc.skip=true -B -V
 
-script: mvn -Dtest=SpecializedElementsTest,SpecializedElementsWithOnDiskTest test
+script: mvn -Dtest=SpecializedElementsWithOndiskTest test
 # TODO reenable standard tests
 #script: mvn test -B
 

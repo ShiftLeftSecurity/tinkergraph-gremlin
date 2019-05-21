@@ -18,22 +18,30 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 
-/**
- * @author Marko A. Rodriguez (http://markorodriguez.com)
- */
 public abstract class TinkerElement implements Element {
 
-    protected final Object id;
+    protected final Object id; //TODO restrict to `long` only
     protected final String label;
+    protected final TinkerGraph graph;
     protected boolean removed = false;
 
-    protected TinkerElement(final Object id, final String label) {
+    protected TinkerElement(final Object id, final String label, final TinkerGraph graph) {
         this.id = id;
         this.label = label;
+        this.graph = graph;
+    }
+
+    @Override
+    public Graph graph() {
+        return graph;
+    }
+
+    public TinkerGraph tinkerGraph() {
+        return graph;
     }
 
     @Override
@@ -59,5 +67,9 @@ public abstract class TinkerElement implements Element {
 
     protected static IllegalStateException elementAlreadyRemoved(final Class<? extends Element> clazz, final Object id) {
         return new IllegalStateException(String.format("%s with id %s was removed.", clazz.getSimpleName(), id));
+    }
+
+    public boolean isRemoved() {
+        return removed;
     }
 }
