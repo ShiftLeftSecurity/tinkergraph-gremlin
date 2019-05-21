@@ -18,12 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Graph;
-import org.apache.tinkerpop.gremlin.structure.Property;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -78,8 +73,18 @@ public class TinkerEdge extends TinkerElement implements Edge {
 
     @Override
     public void remove() {
-        final TinkerVertex outVertex = (TinkerVertex) this.outVertex;
-        final TinkerVertex inVertex = (TinkerVertex) this.inVertex;
+        final TinkerVertex outVertex;
+        final TinkerVertex inVertex;
+        if (this.outVertex instanceof ElementRef) {
+            outVertex = ((ElementRef<TinkerVertex>) this.outVertex).get();
+        } else {
+            outVertex = (TinkerVertex) this.outVertex;
+        }
+        if (this.inVertex instanceof ElementRef) {
+            inVertex = ((ElementRef<TinkerVertex>) this.inVertex).get();
+        } else {
+            inVertex = (TinkerVertex) this.inVertex;
+        }
 
         if (null != outVertex && null != outVertex.outEdges) {
             final Set<Edge> edges = outVertex.outEdges.get(this.label());

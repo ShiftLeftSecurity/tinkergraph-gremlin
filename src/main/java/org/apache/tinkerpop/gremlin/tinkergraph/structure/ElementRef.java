@@ -35,6 +35,7 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
   protected E reference;
   private int serializationCount;
   private long lastDeserializedTime;
+  private boolean removed = false;
 
   public ElementRef(E element) {
     this.id = (long) element.id();
@@ -57,6 +58,10 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
 
   public boolean isCleared() {
     return reference == null;
+  }
+
+  public boolean isRemoved() {
+    return removed;
   }
 
   /* only called by @ReferenceManager */
@@ -115,6 +120,7 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
 
   @Override
   public void remove() {
+    this.removed = true;
     this.get().remove();
   }
 

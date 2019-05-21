@@ -206,7 +206,8 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         if (edgeLabels.length == 0) { // follow all labels
             if (direction == Direction.OUT || direction == Direction.BOTH) {
                 getOutEdgesByLabel().values().forEach(edges -> multiIterator.addIterator(edges.iterator()));
-            } else if (direction == Direction.IN || direction == Direction.BOTH) {
+            }
+            if (direction == Direction.IN || direction == Direction.BOTH) {
                 getInEdgesByLabel().values().forEach(edges -> multiIterator.addIterator(edges.iterator()));
             }
         } else {
@@ -214,7 +215,8 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
                 /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
                 if (direction == Direction.OUT || direction == Direction.BOTH) {
                     multiIterator.addIterator(getOutEdgesByLabel(label).iterator());
-                } else if (direction == Direction.IN || direction == Direction.BOTH) {
+                }
+                if (direction == Direction.IN || direction == Direction.BOTH) {
                     multiIterator.addIterator(getInEdgesByLabel(label).iterator());
                 }
             }
@@ -280,6 +282,7 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     @Override
     public void remove() {
         super.remove();
+        graph.getElementsByLabel(graph.verticesByLabel, label).remove(this);
         this.modifiedSinceLastSerialization = true;
     }
 

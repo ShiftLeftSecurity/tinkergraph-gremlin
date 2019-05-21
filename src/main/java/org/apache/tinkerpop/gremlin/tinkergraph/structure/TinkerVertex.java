@@ -129,7 +129,13 @@ public class TinkerVertex extends TinkerElement implements Vertex {
     public void remove() {
         final List<Edge> edges = new ArrayList<>();
         this.edges(Direction.BOTH).forEachRemaining(edges::add);
-        edges.stream().filter(edge -> !((TinkerEdge) edge).removed).forEach(Edge::remove);
+        edges.stream().filter(edge -> {
+            if (edge instanceof ElementRef) {
+                return !((ElementRef<TinkerEdge>) edge).isRemoved();
+            } else {
+                return !((TinkerEdge) edge).removed;
+            }
+        }).forEach(Edge::remove);
         this.properties = null;
         TinkerHelper.removeElementIndex(this);
         graph.vertices.remove(id());

@@ -180,8 +180,61 @@ public class SpecializedElementsWithOndiskTest {
     }
 
     @Test
-    @Ignore // TODO fixme
-    public void shouldSupportRemovalOfSpecializedElements() throws IOException {
+    public void shouldSupportEdgeRemoval() {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+        Vertex song1 = graph.addVertex(Song.label);
+        Vertex song2 = graph.addVertex(Song.label);
+        Edge followedBy = song1.addEdge(FollowedBy.label, song2);
+        assertEquals(2, graph.traversal().V().toList().size());
+        assertEquals(1, graph.traversal().E().toList().size());
+
+        followedBy.remove();
+        assertEquals(2, graph.traversal().V().toList().size());
+        assertEquals(0, graph.traversal().E().toList().size());
+
+        graph.close();
+    }
+
+    @Test
+    public void shouldSupportVertexRemoval1() {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+        Vertex song1 = graph.addVertex(Song.label);
+        Vertex song2 = graph.addVertex(Song.label);
+        song1.addEdge(FollowedBy.label, song2);
+        assertEquals(2, graph.traversal().V().toList().size());
+        assertEquals(1, graph.traversal().E().toList().size());
+
+        song1.remove();
+        assertEquals(1, graph.traversal().V().toList().size());
+        assertEquals(0, graph.traversal().E().toList().size());
+
+        song2.remove();
+        assertEquals(0, graph.traversal().V().toList().size());
+
+        graph.close();
+    }
+
+    @Test
+    public void shouldSupportVertexRemoval2() {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+        Vertex song1 = graph.addVertex(Song.label);
+        Vertex song2 = graph.addVertex(Song.label);
+        song1.addEdge(FollowedBy.label, song2);
+        assertEquals(2, graph.traversal().V().toList().size());
+        assertEquals(1, graph.traversal().E().toList().size());
+
+        song2.remove();
+        assertEquals(1, graph.traversal().V().toList().size());
+        assertEquals(0, graph.traversal().E().toList().size());
+
+        song1.remove();
+        assertEquals(0, graph.traversal().V().toList().size());
+
+        graph.close();
+    }
+
+    @Test
+    public void shouldSupportRemovalOfSpecializedElementsInBigDataset() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
         Set<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toSet();
         assertNotEquals(0, garcias.size());

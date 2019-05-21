@@ -100,6 +100,7 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
     @Override
     public void remove() {
         super.remove();
+        graph.getElementsByLabel(graph.edgesByLabel, label).remove(this);
         modifiedSinceLastSerialization = true;
     }
 
