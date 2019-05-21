@@ -2,6 +2,7 @@ language: java
 branches:
   only:
   - master
+  - /^v\d+\..*/
 env:
   global:
   - SONATYPE_USER=shiftleft_davy
