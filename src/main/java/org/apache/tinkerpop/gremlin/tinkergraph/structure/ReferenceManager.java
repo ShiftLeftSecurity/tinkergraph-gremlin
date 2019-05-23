@@ -26,6 +26,8 @@ import java.io.IOException;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.MemoryUsage;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +37,7 @@ import org.slf4j.LoggerFactory;
  * */
 public class ReferenceManager {
   private final Logger logger = LoggerFactory.getLogger(getClass());
+  private ExecutorService singleThreadExecutor = Executors.newSingleThreadExecutor();
   private final float heapUsageThreshold; // range 0.0 - 1.0
   public final int releaseCount = 100000; //TODO make configurable
   private int totalReleaseCount;
@@ -77,23 +80,30 @@ public class ReferenceManager {
     }
   }
 
-  // TODO MP: run this asynchronously to not block the gc notification thread - use executor with one thread and capacity=1, drop `clearingInProgress` flag
   protected void maybeClearReferences(final float heapUsage) {
     if (heapUsage > heapUsageThreshold) {
       if (clearingInProgress) {
-        logger.debug("cleaning currently in progress, not queuing to clear any more");
+        logger.debug("cleaning in progress, will only queue up more references to clear after that's completed");
       } else if (clearableRefs.isEmpty()) {
         logger.debug("clearableRefs queue is empty - nothing to clear at the moment");
       } else {
         int releaseCount = Integer.min(this.releaseCount, clearableRefs.size());
-        logger.info("heap usage (after GC) is " + heapUsage + " -> clearing " + releaseCount + " references");
-        final int actualReleaseCount = safelyClearReferences(releaseCount);
-        totalReleaseCount += actualReleaseCount;
-        logger.info("completed clearing of "+ actualReleaseCount + " references");
-        logger.debug("current clearable queue size: " + clearableRefs.size());
-        logger.debug("references cleared in total: " + totalReleaseCount);
+        logger.info("heap usage (after GC) was " + heapUsage + " -> scheduled to clear " + releaseCount + " references (asynchronously)");
+        asynchronouslyClearReferences(releaseCount);
       }
     }
+  }
+
+  /** run clearing of references asynchronously to not block the gc notification thread
+  *using executor with one thread and capacity=1, drop `clearingInProgress` flag */
+  protected void asynchronouslyClearReferences(final int releaseCount) {
+    singleThreadExecutor.submit(() -> {
+      final int actualReleaseCount = safelyClearReferences(releaseCount);
+      totalReleaseCount += actualReleaseCount;
+      logger.info("completed clearing of "+ actualReleaseCount + " references");
+      logger.debug("current clearable queue size: " + clearableRefs.size());
+      logger.debug("references cleared in total: " + totalReleaseCount);
+    });
   }
 
   /**
@@ -119,6 +129,7 @@ public class ReferenceManager {
    * @return number of references cleared
    */
   protected int clearReferences(int releaseCount) throws IOException {
+    logger.info("attempting to clear "+ releaseCount + " references");
     ElementRef ref = clearableRefs.poll();
     int actualReleaseCount = 0;
     while (ref != null && releaseCount > 0) {
@@ -162,4 +173,7 @@ public class ReferenceManager {
     }
   }
 
+  public void close() {
+    singleThreadExecutor.shutdown();
+  }
 }
