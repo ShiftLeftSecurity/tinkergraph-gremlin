@@ -305,6 +305,7 @@ public final class TinkerGraph implements Graph {
                 logger.debug(getSerializationStats().toString());
             }
             ondiskOverflow.close();
+            referenceManager.close();
         }
     }
 
