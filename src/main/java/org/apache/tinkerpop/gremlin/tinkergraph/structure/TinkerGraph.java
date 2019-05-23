@@ -284,7 +284,7 @@ public final class TinkerGraph implements Graph {
             vertexSerializationGroupCount.put(elementSerializationCount, groupCountBefore + elementSerializationCount);
         });
         Map<Integer, Integer> edgeSerializationGroupCount = new HashMap<>();
-        vertices.values().stream().filter(v -> v instanceof ElementRef).forEach(edge -> {
+        edges.values().stream().filter(e -> e instanceof ElementRef).forEach(edge -> {
             Integer elementSerializationCount = ((ElementRef) edge).getSerializationCount();
             Integer groupCountBefore = edgeSerializationGroupCount.getOrDefault(elementSerializationCount, 0);
             edgeSerializationGroupCount.put(elementSerializationCount, groupCountBefore + elementSerializationCount);
