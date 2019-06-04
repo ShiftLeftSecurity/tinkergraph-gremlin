@@ -66,6 +66,19 @@ public class SpecializedElementsWithOndiskTest {
     }
 
     @Test
+    public void shouldAllowToSpecifyIds() {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+
+        Vertex v10 = graph.addVertex(T.id, 10l, T.label, Song.label, Song.NAME, "Song 10");
+        Vertex v20 = graph.addVertex(T.id, 20l, T.label, Song.label, Song.NAME, "Song 20");
+        v10.addEdge(FollowedBy.label, v20, T.id, 30l, FollowedBy.WEIGHT, 5);
+
+        assertEquals(30l, graph.traversal().V(10l).outE(FollowedBy.label).id().next());
+        assertEquals(5, graph.traversal().V(10l).outE(FollowedBy.label).values(FollowedBy.WEIGHT).next());
+        assertEquals(5, graph.traversal().V(20l).inE(FollowedBy.label).values(FollowedBy.WEIGHT).next());
+    }
+
+    @Test
     public void shouldReturnElementRefs() {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
 
