@@ -39,7 +39,7 @@ public class ReferenceManager {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private ExecutorService singleThreadExecutor = Executors.newSingleThreadExecutor();
   private final float heapUsageThreshold; // range 0.0 - 1.0
-  public final int releaseCount = 100000; //TODO make configurable
+  public final int releaseCount = 100000; //TODO make configurable?
   private int totalReleaseCount;
   private boolean clearingInProgress = false;
 
@@ -73,6 +73,7 @@ public class ReferenceManager {
   public void applyBackpressureMaybe() {
     if (clearingInProgress) {
       try {
+        logger.trace("applying backpressure");
         Thread.sleep(500);
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
@@ -164,12 +165,15 @@ public class ReferenceManager {
             }
           }
           float heapUsage = (float) totalMemUsed / (float) totalMemMax;
+          int heapUsagePercent = (int) Math.floor(heapUsage * 100f);
+          logger.debug("heap usage after GC: " + heapUsagePercent + "%");
           maybeClearReferences(heapUsage);
         }
       };
       NotificationEmitter emitter = (NotificationEmitter) gcbean;
       emitter.addNotificationListener(listener, null, null);
-      logger.debug("installed GC monitor");
+      int heapUsageThresholdPercent = (int) Math.floor(heapUsageThreshold * 100f);
+      logger.info("installed GC monitor. will clear references if heap (after GC) is larger than " + heapUsageThresholdPercent + "%");
     }
   }
 
