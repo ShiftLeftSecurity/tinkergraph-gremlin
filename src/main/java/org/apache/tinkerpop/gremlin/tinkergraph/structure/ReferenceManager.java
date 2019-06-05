@@ -19,6 +19,8 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import com.sun.management.GarbageCollectionNotificationInfo;
+
+import javax.management.ListenerNotFoundException;
 import javax.management.NotificationEmitter;
 import javax.management.NotificationListener;
 import javax.management.openmbean.CompositeData;
@@ -41,7 +43,9 @@ public class ReferenceManager {
   private final float heapUsageThreshold; // range 0.0 - 1.0
   public final int releaseCount = 100000; //TODO make configurable?
   private int totalReleaseCount;
+  private long backpressureAppliedCount = 0;
   private boolean clearingInProgress = false;
+  private Map<NotificationEmitter, NotificationListener> gcNotificationListeners = new HashMap<>(2);
 
   /** prioritize references by
    * 1) serializationCount, i.e. elements that have been serialized more often will be serialized later
@@ -73,8 +77,9 @@ public class ReferenceManager {
   public void applyBackpressureMaybe() {
     if (clearingInProgress) {
       try {
-        logger.trace("applying backpressure");
-        Thread.sleep(500);
+        backpressureAppliedCount++;
+        logger.trace("applying backpressure. count: " + backpressureAppliedCount);
+        Thread.sleep(500);  //TODO make configurable?
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
       }
@@ -146,38 +151,55 @@ public class ReferenceManager {
 
   /** monitor GC, and should the heap grow above 80% usage, clear some strong references */
   protected void installGCMonitoring() {
-    Set<String> ignoredMemoryAreas = new HashSet<>(Arrays.asList("Code Cache", "Compressed Class Space", "Metaspace"));
     List<GarbageCollectorMXBean> gcbeans = java.lang.management.ManagementFactory.getGarbageCollectorMXBeans();
     for (GarbageCollectorMXBean gcbean : gcbeans) {
-      NotificationListener listener = (notification, handback) -> {
-        if (notification.getType().equals(GarbageCollectionNotificationInfo.GARBAGE_COLLECTION_NOTIFICATION)) {
-          GarbageCollectionNotificationInfo info = GarbageCollectionNotificationInfo.from((CompositeData) notification.getUserData());
-
-          //sum up used and max memory across relevant memory areas
-          long totalMemUsed = 0;
-          long totalMemMax = 0;
-          for (Map.Entry<String, MemoryUsage> entry : info.getGcInfo().getMemoryUsageAfterGc().entrySet()) {
-            String name = entry.getKey();
-            if (!ignoredMemoryAreas.contains(name)) {
-              MemoryUsage detail = entry.getValue();
-              totalMemUsed += detail.getUsed();
-              totalMemMax += detail.getMax();
-            }
-          }
-          float heapUsage = (float) totalMemUsed / (float) totalMemMax;
-          int heapUsagePercent = (int) Math.floor(heapUsage * 100f);
-          logger.debug("heap usage after GC: " + heapUsagePercent + "%");
-          maybeClearReferences(heapUsage);
-        }
-      };
+      NotificationListener listener = createNotificationListener();
       NotificationEmitter emitter = (NotificationEmitter) gcbean;
       emitter.addNotificationListener(listener, null, null);
-      int heapUsageThresholdPercent = (int) Math.floor(heapUsageThreshold * 100f);
-      logger.info("installed GC monitor. will clear references if heap (after GC) is larger than " + heapUsageThresholdPercent + "%");
+      gcNotificationListeners.put(emitter, listener);
     }
+    int heapUsageThresholdPercent = (int) Math.floor(heapUsageThreshold * 100f);
+    logger.info("installed GC monitors. will clear references if heap (after GC) is larger than " + heapUsageThresholdPercent + "%");
+  }
+
+  private NotificationListener createNotificationListener() {
+    Set<String> ignoredMemoryAreas = new HashSet<>(Arrays.asList("Code Cache", "Compressed Class Space", "Metaspace"));
+    return (notification, handback) -> {
+          if (notification.getType().equals(GarbageCollectionNotificationInfo.GARBAGE_COLLECTION_NOTIFICATION)) {
+            GarbageCollectionNotificationInfo info = GarbageCollectionNotificationInfo.from((CompositeData) notification.getUserData());
+
+            //sum up used and max memory across relevant memory areas
+            long totalMemUsed = 0;
+            long totalMemMax = 0;
+            for (Map.Entry<String, MemoryUsage> entry : info.getGcInfo().getMemoryUsageAfterGc().entrySet()) {
+              String name = entry.getKey();
+              if (!ignoredMemoryAreas.contains(name)) {
+                MemoryUsage detail = entry.getValue();
+                totalMemUsed += detail.getUsed();
+                totalMemMax += detail.getMax();
+              }
+            }
+            float heapUsage = (float) totalMemUsed / (float) totalMemMax;
+            int heapUsagePercent = (int) Math.floor(heapUsage * 100f);
+            logger.debug("heap usage after GC: " + heapUsagePercent + "%");
+            maybeClearReferences(heapUsage);
+          }
+        };
+  }
+
+  protected void uninstallGCMonitoring() {
+    for (Map.Entry<NotificationEmitter, NotificationListener> entry : gcNotificationListeners.entrySet()) {
+      try {
+        entry.getKey().removeNotificationListener(entry.getValue());
+      } catch (ListenerNotFoundException e) {
+        throw new RuntimeException("unable to remove GC monitor", e);
+      }
+    }
+    logger.info("uninstalled GC monitors.");
   }
 
   public void close() {
+    uninstallGCMonitoring();
     singleThreadExecutor.shutdown();
   }
 }
