@@ -41,6 +41,8 @@ public class VertexSerializer extends Serializer<Vertex> {
   protected final Map<String, SpecializedElementFactory.ForVertex> vertexFactoryByLabel;
   private int serializedCount = 0;
   private int deserializedCount = 0;
+  private long serializationTimeSpentMillis = 0;
+  private long deserializationTimeSpentMillis = 0;
 
   public VertexSerializer(TinkerGraph graph, Map<String, SpecializedElementFactory.ForVertex> vertexFactoryByLabel) {
     this.graph = graph;
@@ -49,6 +51,7 @@ public class VertexSerializer extends Serializer<Vertex> {
 
   @Override
   public byte[] serialize(Vertex vertex) throws IOException {
+    long start = System.currentTimeMillis();
     MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
 //    ((SpecializedTinkerVertex) vertex).acquireModificationLock();
     packer.packLong((Long) vertex.id());
@@ -58,8 +61,10 @@ public class VertexSerializer extends Serializer<Vertex> {
 //    ((SpecializedTinkerVertex) vertex).releaseModificationLock();
 
     serializedCount++;
+    serializationTimeSpentMillis += System.currentTimeMillis() - start;
     if (serializedCount % 100000 == 0) {
-      logger.debug("stats: serialized " + serializedCount + " vertices in total");
+      float avgSerializationTime = serializationTimeSpentMillis / (float) serializedCount;
+      logger.debug("stats: serialized " + serializedCount + " vertices in total (avg time: " + avgSerializationTime + "ms)");
     }
     return packer.toByteArray();
   }
@@ -86,6 +91,7 @@ public class VertexSerializer extends Serializer<Vertex> {
 
   @Override
   public TinkerVertex deserialize(byte[] bytes) throws IOException {
+    long start = System.currentTimeMillis();
     if (null == bytes)
       return null;
 
@@ -105,7 +111,6 @@ public class VertexSerializer extends Serializer<Vertex> {
     Map<String, long[]> outEdgeIdsByLabel = unpackEdges(unpacker);
 
     inEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
-      // TODO remove label from serialized format?
       String edgeLabel = entry.getKey();
       for (long edgeId : entry.getValue()) {
         vertex.storeInEdge(graph.edge(edgeId));
@@ -122,8 +127,10 @@ public class VertexSerializer extends Serializer<Vertex> {
     vertex.setModifiedSinceLastSerialization(false);
 
     deserializedCount++;
+    deserializationTimeSpentMillis += System.currentTimeMillis() - start;
     if (deserializedCount % 100000 == 0) {
-      logger.debug("stats: deserialized " + deserializedCount + " vertices in total");
+      float avgDeserializationTime = deserializationTimeSpentMillis / (float) deserializedCount;
+      logger.debug("stats: deserialized " + deserializedCount + " vertices in total (avg time: " + avgDeserializationTime + "ms)");
     }
     return vertex;
   }
