@@ -78,6 +78,8 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     /* implement in concrete specialised instance to avoid using generic HashMaps */
     protected abstract <V> Iterator<VertexProperty<V>> specificProperties(String key);
 
+    public abstract Map<String, Object> valueMap();
+
     @Override
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
         if (this.removed) return Collections.emptyIterator();
