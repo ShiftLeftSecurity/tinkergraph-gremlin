@@ -56,7 +56,12 @@ public class VertexSerializer extends Serializer<Vertex> {
 //    ((SpecializedTinkerVertex) vertex).acquireModificationLock();
     packer.packLong((Long) vertex.id());
     packer.packString(vertex.label());
-    packProperties(packer, vertex.properties());
+    if (vertex instanceof SpecializedTinkerVertex) {
+      // optimization for better performance
+      packProperties(packer, ((SpecializedTinkerVertex) vertex).valueMap());
+    } else {
+      packProperties(packer, vertex.properties());
+    }
     packEdgeIds(packer, vertex);
 //    ((SpecializedTinkerVertex) vertex).releaseModificationLock();
 

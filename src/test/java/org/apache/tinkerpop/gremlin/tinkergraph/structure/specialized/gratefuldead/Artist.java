@@ -78,6 +78,13 @@ public class Artist extends SpecializedTinkerVertex {
     }
 
     @Override
+    public Map<String, Object> valueMap() {
+        Map<String, Object> properties = new HashMap<>();
+        if (name != null) properties.put(NAME, name);
+        return properties;
+    }
+
+    @Override
     protected <V> VertexProperty<V> updateSpecificProperty(
       VertexProperty.Cardinality cardinality, String key, V value) {
         if (NAME.equals(key)) {

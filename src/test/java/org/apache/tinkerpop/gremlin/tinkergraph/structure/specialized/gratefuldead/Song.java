@@ -110,6 +110,16 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
     }
 
     @Override
+    public Map<String, Object> valueMap() {
+        Map<String, Object> properties = new HashMap<>();
+        if (name != null) properties.put(NAME, name);
+        if (songType != null) properties.put(SONG_TYPE, songType);
+        if (performances != null) properties.put(PERFORMANCES, performances);
+        if (testProp != null) properties.put(TEST_PROP, testProp);
+        return properties;
+    }
+
+    @Override
     protected <V> VertexProperty<V> updateSpecificProperty(
       VertexProperty.Cardinality cardinality, String key, V value) {
         if (NAME.equals(key)) {

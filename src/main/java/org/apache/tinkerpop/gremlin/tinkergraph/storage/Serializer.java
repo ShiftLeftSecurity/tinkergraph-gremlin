@@ -21,16 +21,13 @@ package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerElement;
 import org.msgpack.core.MessageBufferPacker;
 import org.msgpack.value.ArrayValue;
-import org.msgpack.value.FloatValue;
-import org.msgpack.value.IntegerValue;
 import org.msgpack.value.Value;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.Map;
 
 public abstract class Serializer<A extends Element> {
@@ -41,16 +38,11 @@ public abstract class Serializer<A extends Element> {
   /** when deserializing, msgpack can't differentiate between e.g. int and long, so we need to encode the type as well - doing that with an array
    *  i.e. format is: Map[PropertyName, Array(TypeId, PropertyValue)]
    * */
-  protected void packProperties(MessageBufferPacker packer, Iterator<? extends Property> propertyIterator) throws IOException {
-    LinkedList<Property> properties = new LinkedList<>();
-    while (propertyIterator.hasNext()) {
-      properties.add(propertyIterator.next());
-    }
-
+  protected void packProperties(MessageBufferPacker packer, Map<String, Object> properties) throws IOException {
     packer.packMapHeader(properties.size());
-    for (Property property : properties) {
-      packer.packString(property.key());
-      Object value = property.value();
+    for (Map.Entry<String, Object> property : properties.entrySet()) {
+      packer.packString(property.getKey());
+      Object value = property.getValue();
 
       packer.packArrayHeader(2);
       // encode their type as well - as is, we can't differentiate between int and long
@@ -80,7 +72,7 @@ public abstract class Serializer<A extends Element> {
         packer.packDouble((Double) value);
       } else if (value.getClass() == int[].class) {
         //TODO remove this dummy case again
-      } else throw new NotImplementedException("value type `" + value.getClass() + "` not yet supported (key=" + property.key() + ")");
+      } else throw new NotImplementedException("value type `" + value.getClass() + "` not yet supported (key=" + property.getKey() + ")");
     }
   }
 
@@ -129,5 +121,14 @@ public abstract class Serializer<A extends Element> {
       keyValues[idx++] = value;
     }
     return keyValues;
+  }
+
+  protected void packProperties(MessageBufferPacker packer, Iterator<? extends Property> propertyIterator) throws IOException {
+    Map<String, Object> properties = new HashMap<>();
+    while (propertyIterator.hasNext()) {
+      Property property = propertyIterator.next();
+      properties.put(property.key(), property.value());
+    }
+    packProperties(packer, properties);
   }
 }
