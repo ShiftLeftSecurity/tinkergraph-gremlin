@@ -31,6 +31,8 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,13 +41,14 @@ import org.slf4j.LoggerFactory;
  * */
 public class ReferenceManager {
   private final Logger logger = LoggerFactory.getLogger(getClass());
-  private ExecutorService singleThreadExecutor = Executors.newSingleThreadExecutor();
-  private final float heapUsageThreshold; // range 0.0 - 1.0
-  public final int releaseCount = 100000; //TODO make configurable?
-  private int totalReleaseCount;
-  private long backpressureAppliedCount = 0;
-  private boolean clearingInProgress = false;
   private Map<NotificationEmitter, NotificationListener> gcNotificationListeners = new HashMap<>(2);
+  private final float heapUsageThreshold; // range 0.0 - 1.0
+  public final int backpressureMillis = 500; //TODO make configurable
+  public final int releaseCount = 100000; //TODO make configurable
+  private int totalReleaseCount;
+  private final int cpuCount = Runtime.getRuntime().availableProcessors();
+  private final ExecutorService executorService = Executors.newFixedThreadPool(cpuCount);
+  private final AtomicInteger clearingProcessCount = new AtomicInteger(0);
 
   /** prioritize references by
    * 1) serializationCount, i.e. elements that have been serialized more often will be serialized later
@@ -75,11 +78,10 @@ public class ReferenceManager {
   /** when we're running low on heap memory we'll serialize some elements to disk. to ensure we're not creating new ones
    * faster than old ones are serialized away, we're applying some backpressure in those situation */
   public void applyBackpressureMaybe() {
-    if (clearingInProgress) {
+    if (clearingProcessCount.get() > 0) {
       try {
-        backpressureAppliedCount++;
-        logger.trace("applying backpressure. count: " + backpressureAppliedCount);
-        Thread.sleep(500);  //TODO make configurable?
+        logger.trace("applying " + backpressureMillis + "ms backpressure");
+        Thread.sleep(backpressureMillis);
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
       }
@@ -88,7 +90,7 @@ public class ReferenceManager {
 
   protected void maybeClearReferences(final float heapUsage) {
     if (heapUsage > heapUsageThreshold) {
-      if (clearingInProgress) {
+      if (clearingProcessCount.get() > 0) {
         logger.debug("cleaning in progress, will only queue up more references to clear after that's completed");
       } else if (clearableRefs.isEmpty()) {
         logger.debug("clearableRefs queue is empty - nothing to clear at the moment");
@@ -103,13 +105,16 @@ public class ReferenceManager {
   /** run clearing of references asynchronously to not block the gc notification thread
   *using executor with one thread and capacity=1, drop `clearingInProgress` flag */
   protected void asynchronouslyClearReferences(final int releaseCount) {
-    singleThreadExecutor.submit(() -> {
-      final int actualReleaseCount = safelyClearReferences(releaseCount);
-      totalReleaseCount += actualReleaseCount;
-      logger.info("completed clearing of "+ actualReleaseCount + " references");
-      logger.debug("current clearable queue size: " + clearableRefs.size());
-      logger.debug("references cleared in total: " + totalReleaseCount);
-    });
+    for (int i = 0; i < cpuCount; i++) {
+      final int releaseCountPerThread = releaseCount / cpuCount;
+      executorService.submit(() -> {
+        final int actualReleaseCount = safelyClearReferences(releaseCountPerThread);
+        totalReleaseCount += actualReleaseCount;
+        logger.info("completed clearing of "+ actualReleaseCount + " references");
+        logger.debug("current clearable queue size: " + clearableRefs.size());
+        logger.debug("references cleared in total: " + totalReleaseCount);
+      });
+    }
   }
 
   /**
@@ -120,12 +125,12 @@ public class ReferenceManager {
    */
   protected int safelyClearReferences(final int releaseCount) {
     try {
-      clearingInProgress = true;
+      clearingProcessCount.incrementAndGet();
       return clearReferences(releaseCount);
     } catch (Exception e) {
       logger.error("error while trying to clear " + releaseCount + " references", e);
     } finally {
-      clearingInProgress = false;
+      clearingProcessCount.decrementAndGet();
     }
     return 0;
   }
@@ -200,6 +205,6 @@ public class ReferenceManager {
 
   public void close() {
     uninstallGCMonitoring();
-    singleThreadExecutor.shutdown();
+    executorService.shutdown();
   }
 }
