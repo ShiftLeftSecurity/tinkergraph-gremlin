@@ -153,7 +153,9 @@ public final class TinkerGraph implements Graph {
             VertexSerializer vertexSerializer = new VertexSerializer(this, specializedVertexFactoryByLabel);
             EdgeSerializer edgeSerializer = new EdgeSerializer(this, specializedEdgeFactoryByLabel);
             this.ondiskOverflow = new OndiskOverflow(configuration.getString(GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR), vertexSerializer, edgeSerializer);
-            this.referenceManager = new ReferenceManager(configuration.getInt(GREMLIN_TINKERGRAPH_OVERFLOW_HEAP_PERCENTAGE_THRESHOLD));
+            this.referenceManager = new ReferenceManagerImpl(configuration.getInt(GREMLIN_TINKERGRAPH_OVERFLOW_HEAP_PERCENTAGE_THRESHOLD));
+        } else {
+            this.referenceManager = new NoOpReferenceManager();
         }
 
         if (graphLocation != null) loadGraph();

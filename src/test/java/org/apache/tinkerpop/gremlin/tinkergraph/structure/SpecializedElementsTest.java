@@ -18,11 +18,10 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
+import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.T;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.*;
 import org.apache.tinkerpop.gremlin.util.TimeUtil;
@@ -58,55 +57,32 @@ public class SpecializedElementsTest {
         assertEquals(1, __(v2).in().toList().size());
         assertEquals(1, __(v0).both().toList().size());
         assertEquals(1, __(v2).both().toList().size());
-
-        System.out.println(__(v0).bothE(FollowedBy.label).toList());
-        System.out.println(__(v0).out().toList());
-        System.out.println(__(v0).in().toList());
     }
 
     @Test
-    public void gratefulDeadGraph() throws IOException {
-        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
+    public void shouldAllowToSpecifyIds() {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
 
-        List<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toList();
-        assertEquals(garcias.size(), 1);
-        Artist garcia = (Artist) garcias.get(0); //it's actually of type `Artist`, not (only) `Vertex`
-        assertEquals("Garcia", garcia.getName());
-        graph.close();
+        Vertex v10 = graph.addVertex(T.id, 10l, T.label, Song.label, Song.NAME, "Song 10");
+        Vertex v20 = graph.addVertex(T.id, 20l, T.label, Song.label, Song.NAME, "Song 20");
+        v10.addEdge(FollowedBy.label, v20, T.id, 30l, FollowedBy.WEIGHT, 5);
+
+        assertEquals(30l, graph.traversal().V(10l).outE(FollowedBy.label).id().next());
+        assertEquals(5, graph.traversal().V(10l).outE(FollowedBy.label).values(FollowedBy.WEIGHT).next());
+        assertEquals(5, graph.traversal().V(20l).inE(FollowedBy.label).values(FollowedBy.WEIGHT).next());
     }
 
     @Test
-    public void testBasicSteps() throws IOException {
-        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
-        Vertex garcia = graph.traversal().V().has("name", "Garcia").next();
+    public void shouldReturnElementRefs() {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
 
-        // inE
-        assertEquals(4, __(garcia).inE(WrittenBy.label).toList().size());
-
-        // in
-        List<Vertex> songsWritten = __(garcia).in(WrittenBy.label).has("name", "CREAM PUFF WAR").toList();
-        assertEquals(songsWritten.size(), 1);
-        Song song = (Song) songsWritten.get(0); //it's actually of type `Artist`, not (only) `Vertex`
-        assertEquals("CREAM PUFF WAR", song.getName());
-
-        // outE
-        assertEquals(1, __(song).outE(WrittenBy.label).toList().size());
-
-        // out
-        List<Vertex> songOut = __(song).out(WrittenBy.label).toList();
-        assertEquals(1, songOut.size());
-        assertEquals(garcia, songOut.get(0));
-
-        // bothE
-        List<Edge> songBothE = __(song).bothE(WrittenBy.label).toList();
-        assertEquals(1, songBothE.size());
-
-        // both
-        List<Vertex> songBoth = __(song).both(WrittenBy.label).toList();
-        assertEquals(1, songBoth.size());
-        assertEquals(garcia, songBoth.get(0));
-
-        graph.close();
+        Vertex v0 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 1");
+        Vertex v2 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 2");
+        Edge e4 = v0.addEdge(FollowedBy.label, v2);
+        assertTrue(v0 instanceof VertexRef);
+//        assertTrue(e4 instanceof EdgeRef); TODO
+//        assertTrue(v0.edges(Direction.OUT).next() instanceof EdgeRef);
+        assertTrue(v0.vertices(Direction.OUT).next() instanceof VertexRef);
     }
 
     @Test
@@ -141,6 +117,54 @@ public class SpecializedElementsTest {
     }
 
     @Test
+    public void gratefulDeadGraph() throws IOException {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
+
+        List<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toList();
+        assertEquals(garcias.size(), 1);
+        VertexRef vertexRef = (VertexRef) garcias.get(0); // Tinkergraph returns VertexRefs for overflow
+        Artist garcia = (Artist) vertexRef.get(); //it's actually of type `Artist`, not (only) `Vertex`
+        assertEquals("Garcia", garcia.getName());
+        graph.close();
+    }
+
+    @Test
+    public void testBasicSteps() throws IOException {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
+        Vertex garcia = graph.traversal().V().has("name", "Garcia").next();
+
+        // inE
+        assertEquals(4, __(garcia).inE(WrittenBy.label).toList().size());
+        assertEquals(4, __(garcia).inE(WrittenBy.label).outV().toList().size());
+
+        // in
+        assertEquals(4, __(garcia).in(WrittenBy.label).toList().size());
+        List<Vertex> songsWritten = __(garcia).in(WrittenBy.label).has("name", "CREAM PUFF WAR").toList();
+        assertEquals(songsWritten.size(), 1);
+        VertexRef<Song> songRef = (VertexRef) songsWritten.get(0); //it's actually of type `VertexRef<Song>`, but we can't infer that since it's behind the tinkerpop api
+        Song song = songRef.get();
+        assertEquals("CREAM PUFF WAR", song.getName());
+
+        // outE
+        assertEquals(1, __(song).outE(WrittenBy.label).toList().size());
+
+        // out
+        List<Vertex> songOut = __(song).out(WrittenBy.label).toList();
+        assertEquals(1, songOut.size());
+        assertEquals(garcia, songOut.get(0));
+
+        // bothE
+        List<Edge> songBothE = __(song).bothE(WrittenBy.label).toList();
+        assertEquals(1, songBothE.size());
+
+        // both
+        List<Vertex> songBoth = __(song).both(WrittenBy.label).toList();
+        assertEquals(1, songBoth.size());
+        assertEquals(garcia, songBoth.get(0));
+        graph.close();
+    }
+
+    @Test
     public void shouldAllowAddingElementsAndSettingProperties() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
 
@@ -163,11 +187,65 @@ public class SpecializedElementsTest {
     }
 
     @Test
-    public void shouldSupportRemovalOfSpecializedElements() throws IOException {
+    public void shouldSupportEdgeRemoval() {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+        Vertex song1 = graph.addVertex(Song.label);
+        Vertex song2 = graph.addVertex(Song.label);
+        Edge followedBy = song1.addEdge(FollowedBy.label, song2);
+        assertEquals(2, graph.traversal().V().toList().size());
+        assertEquals(1, graph.traversal().E().toList().size());
+
+        followedBy.remove();
+        assertEquals(2, graph.traversal().V().toList().size());
+        assertEquals(0, graph.traversal().E().toList().size());
+
+        graph.close();
+    }
+
+    @Test
+    public void shouldSupportVertexRemoval1() {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+        Vertex song1 = graph.addVertex(Song.label);
+        Vertex song2 = graph.addVertex(Song.label);
+        song1.addEdge(FollowedBy.label, song2);
+        assertEquals(2, graph.traversal().V().toList().size());
+        assertEquals(1, graph.traversal().E().toList().size());
+
+        song1.remove();
+        assertEquals(1, graph.traversal().V().toList().size());
+        assertEquals(0, graph.traversal().E().toList().size());
+
+        song2.remove();
+        assertEquals(0, graph.traversal().V().toList().size());
+
+        graph.close();
+    }
+
+    @Test
+    public void shouldSupportVertexRemoval2() {
+        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+        Vertex song1 = graph.addVertex(Song.label);
+        Vertex song2 = graph.addVertex(Song.label);
+        song1.addEdge(FollowedBy.label, song2);
+        assertEquals(2, graph.traversal().V().toList().size());
+        assertEquals(1, graph.traversal().E().toList().size());
+
+        song2.remove();
+        assertEquals(1, graph.traversal().V().toList().size());
+        assertEquals(0, graph.traversal().E().toList().size());
+
+        song1.remove();
+        assertEquals(0, graph.traversal().V().toList().size());
+
+        graph.close();
+    }
+
+    @Test
+    public void shouldSupportRemovalOfSpecializedElementsInBigDataset() throws IOException {
         TinkerGraph graph = newGratefulDeadGraphWithSpecializedElementsWithData();
         Set<Vertex> garcias = graph.traversal().V().has("name", "Garcia").toSet();
         assertNotEquals(0, garcias.size());
-        garcias.forEach(garcia -> garcia.remove());
+        garcias.forEach(Element::remove);
         Long garciaCount = graph.traversal().V().has("name", "Garcia").count().next();
         assertEquals(Long.valueOf(0), garciaCount);
 
@@ -212,7 +290,7 @@ public class SpecializedElementsTest {
     @Test
     @Ignore // only run manually since the timings vary depending on the environment
     public void shouldUseIndices() throws IOException {
-        int loops = 1000;
+        int loops = 100;
         Double avgTimeWithIndex = null;
         Double avgTimeWithoutIndex = null;
 
@@ -282,7 +360,7 @@ public class SpecializedElementsTest {
         graph.close();
     }
 
-//     @Test
+    //     @Test
     // only run manually since the timings vary depending on the environment
     public void propertyLookupPerformanceComparison() throws IOException {
         int loops = 1000;
@@ -315,7 +393,7 @@ public class SpecializedElementsTest {
             avgTimeWithSpecializedElements < avgTimeWithGenericElements);
     }
 
-//    @Test
+    //    @Test
     // only run manually since the timings vary depending on the environment
     public void traversalPerformanceComparison() throws IOException {
         int loops = 1000;
@@ -343,26 +421,11 @@ public class SpecializedElementsTest {
         System.out.println("performance enhancement of specialized elements = " + diffPercent);
     }
 
-//    @Test
-    // only run manually since the timings vary depending on the environment
-    // 1M vertices normally consume 2.5G memory, but you can run this test even with `-Xmx200m` - it'll be much slower then, though
-    public void shouldAllowGiganticGraphs() {
-        int vertexCount = 1000000;
-        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
-        for (long i = 0; i < vertexCount; i++) {
-           if (i % 100000 == 0) {
-               System.out.println(i);
-           }
-           Vertex v = graph.addVertex(Song.label);
-           v.property(Song.NAME, UUID.randomUUID().toString());
-           v.property(Song.SONG_TYPE, UUID.randomUUID().toString());
-        }
-
-        graph.close();
-    }
-
     private TinkerGraph newGratefulDeadGraphWithSpecializedElements() {
+        Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
+        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, false);
         return TinkerGraph.open(
+            configuration,
             Arrays.asList(Song.factory, Artist.factory),
             Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
         );
