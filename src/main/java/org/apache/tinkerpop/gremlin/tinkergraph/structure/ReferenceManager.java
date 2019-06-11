@@ -186,7 +186,7 @@ public class ReferenceManager {
             }
             float heapUsage = (float) totalMemUsed / (float) totalMemMax;
             int heapUsagePercent = (int) Math.floor(heapUsage * 100f);
-            logger.debug("heap usage after GC: " + heapUsagePercent + "%");
+            logger.trace("heap usage after GC: " + heapUsagePercent + "%");
             maybeClearReferences(heapUsage);
           }
         };
