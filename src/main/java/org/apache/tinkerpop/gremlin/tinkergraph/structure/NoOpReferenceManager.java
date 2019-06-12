@@ -18,10 +18,16 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-public interface ReferenceManager {
-  void registerRef(ElementRef ref);
+public class NoOpReferenceManager implements ReferenceManager {
+  @Override
+  public void registerRef(ElementRef ref) {
+  }
 
-  void applyBackpressureMaybe();
+  @Override
+  public void applyBackpressureMaybe() {
+  }
 
-  void close();
+  @Override
+  public void close() {
+  }
 }
