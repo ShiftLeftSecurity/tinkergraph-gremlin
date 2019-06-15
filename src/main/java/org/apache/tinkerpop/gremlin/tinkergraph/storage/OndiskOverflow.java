@@ -35,8 +35,7 @@ public class OndiskOverflow {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   protected final VertexSerializer vertexSerializer;
   protected final EdgeSerializer edgeSerializer;
-  private final MVStore vertexMVStore;
-  private final MVStore edgeMVStore;
+  private final MVStore mvstore;
   protected final MVMap<Long, byte[]> vertexMVMap;
   protected final MVMap<Long, byte[]> edgeMVMap;
   private boolean closed;
@@ -46,23 +45,21 @@ public class OndiskOverflow {
     this.vertexSerializer = vertexSerializer;
     this.edgeSerializer = edgeSerializer;
 
-    final File mvstoreVerticesFile;
-    final File mvstoreEdgesFile;
+    final File mvstoreFile;
     try {
       File cacheParentDir = ondiskOverflowRootDir != null ? new File(ondiskOverflowRootDir) : null;
-      mvstoreVerticesFile = File.createTempFile("vertexMVStore", ".bin", cacheParentDir);
-      mvstoreEdgesFile = File.createTempFile("edgeMVStore", ".bin", cacheParentDir);
-      mvstoreVerticesFile.deleteOnExit();
-      mvstoreEdgesFile.deleteOnExit();
-      logger.debug("on-disk cache overflow files: " + mvstoreVerticesFile + ", " + mvstoreEdgesFile);
+      mvstoreFile = File.createTempFile("mvstore", ".bin", cacheParentDir);
+      mvstoreFile.deleteOnExit();
+      logger.debug("on-disk cache overflow files: " + mvstoreFile);
     } catch (IOException e) {
       throw new RuntimeException("cannot create tmp file for mvstore", e);
     }
-    vertexMVStore = new MVStore.Builder().fileName(mvstoreVerticesFile.getAbsolutePath()).open();
-    edgeMVStore = new MVStore.Builder().fileName(mvstoreEdgesFile.getAbsolutePath()).open();
-    vertexMVMap = vertexMVStore.openMap("vertices");
-    edgeMVMap = edgeMVStore.openMap("edges");
+    mvstore = new MVStore.Builder().fileName(mvstoreFile.getAbsolutePath()).open();
+    vertexMVMap = mvstore.openMap("vertices");
+    edgeMVMap = mvstore.openMap("edges");
   }
+
+//  private
 
   public void persist(final TinkerElement element) throws IOException {
     if (!closed) {
@@ -87,8 +84,7 @@ public class OndiskOverflow {
 
   public void close() {
     closed = true;
-    vertexMVStore.close();
-    edgeMVStore.close();
+    mvstore.close();
   }
 
   public void removeVertex(final Long id) {
