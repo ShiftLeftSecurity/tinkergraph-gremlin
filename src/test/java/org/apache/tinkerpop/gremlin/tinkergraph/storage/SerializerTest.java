@@ -71,6 +71,28 @@ public class SerializerTest {
         graph.close();
     }
 
+    @Test
+    public void serializeVertexWithEdgeIds() throws IOException {
+        TinkerGraph graph = newGraph();
+        VertexSerializer serializer = newVertexSerializer(graph);
+
+        Vertex vertex0 = graph.addVertex(T.label, SerializerTestVertex.label);
+        Vertex vertex1 = graph.addVertex(T.label, SerializerTestVertex.label);
+        Edge edge0 = vertex0.addEdge(SerializerTestEdge.label, vertex1);
+        Edge edge1 = vertex1.addEdge(SerializerTestEdge.label, vertex0);
+
+        byte[] bytes = serializer.serialize(vertex0);
+        TinkerVertex deserialized = serializer.deserialize(bytes);
+
+        Vertex underlyingVertexDb = ((VertexRef<TinkerVertex>) vertex0).get();
+        assertEquals(underlyingVertexDb, deserialized);
+        assertEquals(edge0, deserialized.edges(Direction.OUT, SerializerTestEdge.label).next());
+        assertEquals(edge1, deserialized.edges(Direction.IN, SerializerTestEdge.label).next());
+        assertEquals(vertex1, deserialized.vertices(Direction.OUT, SerializerTestEdge.label).next());
+
+        graph.close();
+    }
+
     private VertexSerializer newVertexSerializer(TinkerGraph graph) {
         Map<String, SpecializedElementFactory.ForVertex> vertexFactories = new HashMap();
         vertexFactories.put(SerializerTestVertex.label, SerializerTestVertex.factory);
