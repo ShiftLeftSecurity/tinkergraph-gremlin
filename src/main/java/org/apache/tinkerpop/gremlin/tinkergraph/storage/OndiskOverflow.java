@@ -40,26 +40,33 @@ public class OndiskOverflow {
   protected final MVMap<Long, byte[]> edgeMVMap;
   private boolean closed;
 
-  public OndiskOverflow(final String ondiskOverflowRootDir,
-                        final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer) {
-    this.vertexSerializer = vertexSerializer;
-    this.edgeSerializer = edgeSerializer;
+  public static OndiskOverflow createWithTempFile(
+      final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer) {
+    return createWithTempFile(vertexSerializer, edgeSerializer, null);
+  }
 
+  public static OndiskOverflow createWithTempFile(
+      final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer, final String tmpRootDir) {
     final File mvstoreFile;
     try {
-      File cacheParentDir = ondiskOverflowRootDir != null ? new File(ondiskOverflowRootDir) : null;
-      mvstoreFile = File.createTempFile("mvstore", ".bin", cacheParentDir);
+      final File tmpRootDirFile = tmpRootDir != null ? new File(tmpRootDir) : null;
+      mvstoreFile = File.createTempFile("mvstore", ".bin", tmpRootDirFile);
       mvstoreFile.deleteOnExit();
-      logger.debug("on-disk cache overflow files: " + mvstoreFile);
     } catch (IOException e) {
       throw new RuntimeException("cannot create tmp file for mvstore", e);
     }
+    return new OndiskOverflow(mvstoreFile, vertexSerializer, edgeSerializer);
+  }
+
+  private OndiskOverflow(final File mvstoreFile, final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer) {
+    this.vertexSerializer = vertexSerializer;
+    this.edgeSerializer = edgeSerializer;
+
+    logger.debug("on-disk overflow file: " + mvstoreFile);
     mvstore = new MVStore.Builder().fileName(mvstoreFile.getAbsolutePath()).open();
     vertexMVMap = mvstore.openMap("vertices");
     edgeMVMap = mvstore.openMap("edges");
   }
-
-//  private
 
   public void persist(final TinkerElement element) throws IOException {
     if (!closed) {

@@ -96,6 +96,8 @@ public final class TinkerGraph implements Graph {
     /** when heap (after GC run) is above this threshold (e.g. 80 for 80%), @see ReferenceManager will start to clear some references, i.e. write them to storage and set them to `null` */
     public static final String GREMLIN_TINKERGRAPH_OVERFLOW_HEAP_PERCENTAGE_THRESHOLD = "gremlin.tinkergraph.ondiskOverflow.heapPercentageThreshold";
 
+    public static final String GRAPH_FORMAT_MVSTORE = "overflowdb.graphFormat.mvstore";
+
     private final TinkerGraphFeatures features = new TinkerGraphFeatures();
 
     protected AtomicLong currentId = new AtomicLong(-1L);
@@ -130,9 +132,6 @@ public final class TinkerGraph implements Graph {
     protected OndiskOverflow ondiskOverflow;
     protected ReferenceManager referenceManager;
 
-    /**
-     * An empty private constructor that initializes {@link TinkerGraph}.
-     */
     private TinkerGraph(final Configuration configuration, boolean usesSpecializedElements) {
         this.configuration = configuration;
         this.usesSpecializedElements = usesSpecializedElements;
@@ -143,22 +142,21 @@ public final class TinkerGraph implements Graph {
           configuration.getString(GREMLIN_TINKERGRAPH_DEFAULT_VERTEX_PROPERTY_CARDINALITY, VertexProperty.Cardinality.single.name()));
 
         graphLocation = configuration.getString(GREMLIN_TINKERGRAPH_GRAPH_LOCATION, null);
-        graphFormat = configuration.getString(GREMLIN_TINKERGRAPH_GRAPH_FORMAT, null);
-        if ((graphLocation != null && null == graphFormat) || (null == graphLocation && graphFormat != null))
-            throw new IllegalStateException(String.format("The %s and %s must both be specified if either is present",
-              GREMLIN_TINKERGRAPH_GRAPH_LOCATION, GREMLIN_TINKERGRAPH_GRAPH_FORMAT));
-
         ondiskOverflowEnabled = configuration.getBoolean(GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
         if (ondiskOverflowEnabled) {
+            graphFormat = GRAPH_FORMAT_MVSTORE;
             VertexSerializer vertexSerializer = new VertexSerializer(this, specializedVertexFactoryByLabel);
             EdgeSerializer edgeSerializer = new EdgeSerializer(this, specializedEdgeFactoryByLabel);
-            this.ondiskOverflow = new OndiskOverflow(configuration.getString(GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR), vertexSerializer, edgeSerializer);
+            this.ondiskOverflow = OndiskOverflow.createWithTempFile(vertexSerializer, edgeSerializer, configuration.getString(GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR));
             this.referenceManager = new ReferenceManagerImpl(configuration.getInt(GREMLIN_TINKERGRAPH_OVERFLOW_HEAP_PERCENTAGE_THRESHOLD));
         } else {
+            graphFormat = configuration.getString(GREMLIN_TINKERGRAPH_GRAPH_FORMAT, null);
+            if ((graphLocation != null && null == graphFormat) || (null == graphLocation && graphFormat != null))
+                throw new IllegalStateException(String.format("The %s and %s must both be specified if either is present",
+                    GREMLIN_TINKERGRAPH_GRAPH_LOCATION, GREMLIN_TINKERGRAPH_GRAPH_FORMAT));
             this.referenceManager = new NoOpReferenceManager();
+            if (graphLocation != null) loadGraph();
         }
-
-        if (graphLocation != null) loadGraph();
     }
 
     /**
