@@ -36,8 +36,8 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
     public static final String STRING_LIST_PROPERTY = "StringListProperty";
     public static final String INT_LIST_PROPERTY = "IntListProperty";
     public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(STRING_PROPERTY, INT_PROPERTY, STRING_LIST_PROPERTY, INT_LIST_PROPERTY));
-    public static final Set<String> ALLOWED_IN_EDGE_LABELS = new HashSet<>(Arrays.asList());
-    public static final Set<String> ALLOWED_OUT_EDGE_LABELS = new HashSet<>(Arrays.asList());
+    public static final Set<String> ALLOWED_IN_EDGE_LABELS = new HashSet<>(Arrays.asList(SerializerTestEdge.label));
+    public static final Set<String> ALLOWED_OUT_EDGE_LABELS = new HashSet<>(Arrays.asList(SerializerTestEdge.label));
 
     // properties
     private String stringProperty;

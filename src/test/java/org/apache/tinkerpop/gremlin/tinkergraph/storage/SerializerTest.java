@@ -51,17 +51,42 @@ public class SerializerTest {
 
         graph.close();
     }
+    
+    @Test
+    public void serializeEdge() throws IOException {
+        TinkerGraph graph = newGraph();
+        EdgeSerializer serializer = newEdgeSerializer(graph);
+
+        Vertex v0 = graph.addVertex(T.label, SerializerTestVertex.label);
+        Vertex v1 = graph.addVertex(T.label, SerializerTestVertex.label);
+        Edge edge = v0.addEdge(SerializerTestEdge.label, v1, SerializerTestEdge.LONG_PROPERTY, Long.MAX_VALUE);
+
+        byte[] bytes = serializer.serialize(edge);
+        TinkerEdge deserialized = serializer.deserialize(bytes);
+
+        Edge underlyingEdgeDb = ((EdgeRef<TinkerEdge>) edge).get();
+        assertEquals(underlyingEdgeDb, deserialized);
+//        deserialized.values().forEachRemaining(System.out::println);
+
+        graph.close();
+    }
 
     private VertexSerializer newVertexSerializer(TinkerGraph graph) {
         Map<String, SpecializedElementFactory.ForVertex> vertexFactories = new HashMap();
         vertexFactories.put(SerializerTestVertex.label, SerializerTestVertex.factory);
         return new VertexSerializer(graph, vertexFactories);
     }
+    
+    private EdgeSerializer newEdgeSerializer(TinkerGraph graph) {
+        Map<String, SpecializedElementFactory.ForEdge> edgeFactories = new HashMap();
+        edgeFactories.put(SerializerTestEdge.label, SerializerTestEdge.factory);
+        return new EdgeSerializer(graph, edgeFactories);
+    }
 
     private TinkerGraph newGraph() {
         return TinkerGraph.open(
             Arrays.asList(SerializerTestVertex.factory),
-            Arrays.asList()
+            Arrays.asList(SerializerTestEdge.factory)
         );
     }
 
