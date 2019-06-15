@@ -41,70 +41,8 @@ public abstract class Serializer<A extends Element> {
     packer.packMapHeader(properties.size());
     for (Map.Entry<String, Object> property : properties.entrySet()) {
       packer.packString(property.getKey());
-      Object value = property.getValue();
-
-      if (value.getClass() == Boolean.class) {
-        packer.packBoolean((Boolean) value);
-      } else if (value.getClass() == String.class) {
-        packer.packString((String) value);
-      } else if (value.getClass() == Byte.class) {
-        packer.packByte((byte) value);
-      } else if (value.getClass() == Short.class) {
-        packer.packShort((short) value);
-      } else if (value.getClass() == Integer.class) {
-        packer.packInt((int) value);
-      } else if (value.getClass() == Long.class) {
-        packer.packLong((long) value);
-      } else if (value.getClass() == Float.class || value.getClass() == Double.class) {
-        packer.packFloat((float) value);
-//      } else if (value.getClass() == List.class) {
-//        packer.packShort((short) 9);
-//        List listValue = (List) value;
-//        packer.packArrayHeader(listValue.size());
-      } else throw new NotImplementedException("value type `" + value.getClass() + "` not yet supported (key=" + property.getKey() + ")");
+      packPropertyValue(packer, property.getValue());
     }
-  }
-
-  protected Object[] unpackProperties(Map<Value, Value> properties) {
-    Object[] keyValues = new Object[properties.size() * 2];
-    int idx = 0;
-    for (Map.Entry<Value, Value> entry : properties.entrySet()) {
-      String key = entry.getKey().asStringValue().asString();
-      keyValues[idx++] = key;
-
-      final Value packedValue = entry.getValue();
-      final Object value;
-      switch (packedValue.getValueType()) {
-        case BOOLEAN:
-          value = packedValue.asBooleanValue().getBoolean();
-          break;
-        case STRING:
-          value = packedValue.asStringValue().asString();
-          break;
-        case INTEGER:
-          final IntegerValue integerValue = packedValue.asIntegerValue();
-          if (integerValue.isInByteRange()) {
-            value = integerValue.asByte();
-          } else if (integerValue.isInShortRange()) {
-            value = integerValue.asShort();
-          } else if (integerValue.isInIntRange()) {
-            value = integerValue.asInt();
-          } else if (integerValue.isInLongRange()) {
-            value = integerValue.asLong();
-          } else {
-            value = integerValue.asBigInteger();
-          }
-          break;
-        case FLOAT:
-          value = packedValue.asFloatValue().toFloat();
-          break;
-        default:
-          throw new NotImplementedException("type  `" + packedValue.getValueType() + "` not yet supported (key=" + key + ", packedValue=" + packedValue + ")");
-      }
-
-      keyValues[idx++] = value;
-    }
-    return keyValues;
   }
 
   protected void packProperties(MessageBufferPacker packer, Iterator<? extends Property> propertyIterator) throws IOException {
@@ -115,4 +53,77 @@ public abstract class Serializer<A extends Element> {
     }
     packProperties(packer, properties);
   }
+
+  private void packPropertyValue(final MessageBufferPacker packer, final Object value) throws IOException {
+    if (value instanceof Boolean ) {
+      packer.packBoolean((Boolean) value);
+    } else if (value instanceof String) {
+      packer.packString((String) value);
+    } else if (value instanceof Byte) {
+      packer.packByte((byte) value);
+    } else if (value instanceof Short) {
+      packer.packShort((short) value);
+    } else if (value instanceof Integer) {
+      packer.packInt((int) value);
+    } else if (value instanceof Long) {
+      packer.packLong((long) value);
+    } else if (value instanceof Float || value instanceof Double) {
+      packer.packFloat((float) value);
+    } else if (value instanceof List) {
+      List listValue = (List) value;
+      packer.packArrayHeader(listValue.size());
+      final Iterator listIter = listValue.iterator();
+      while (listIter.hasNext()) {
+        packPropertyValue(packer, listIter.next());
+      }
+    } else {
+      throw new NotImplementedException("value type `" + value.getClass() + "` not yet supported");
+    }
+  }
+
+  protected Object[] unpackProperties(Map<Value, Value> properties) {
+    Object[] keyValues = new Object[properties.size() * 2];
+    int idx = 0;
+    for (Map.Entry<Value, Value> entry : properties.entrySet()) {
+      String key = entry.getKey().asStringValue().asString();
+      keyValues[idx++] = key;
+      keyValues[idx++] = unpackProperty(entry.getValue());
+    }
+    return keyValues;
+  }
+
+  private Object unpackProperty(final Value packedValue) {
+    switch (packedValue.getValueType()) {
+      case BOOLEAN:
+        return packedValue.asBooleanValue().getBoolean();
+      case STRING:
+        return packedValue.asStringValue().asString();
+      case INTEGER:
+        final IntegerValue integerValue = packedValue.asIntegerValue();
+        if (integerValue.isInByteRange()) {
+          return integerValue.asByte();
+        } else if (integerValue.isInShortRange()) {
+          return integerValue.asShort();
+        } else if (integerValue.isInIntRange()) {
+          return integerValue.asInt();
+        } else if (integerValue.isInLongRange()) {
+          return integerValue.asLong();
+        } else {
+          return integerValue.asBigInteger();
+        }
+      case FLOAT:
+        return packedValue.asFloatValue().toFloat();
+      case ARRAY:
+        final ArrayValue arrayValue = packedValue.asArrayValue();
+        List deserializedArray = new ArrayList(arrayValue.size());
+        final Iterator<Value> valueIterator = arrayValue.iterator();
+        while (valueIterator.hasNext()) {
+          deserializedArray.add(unpackProperty(valueIterator.next()));
+        }
+        return deserializedArray;
+      default:
+        throw new NotImplementedException("type  `" + packedValue.getValueType() + "` not yet supported (packedValue=" + packedValue + ")");
+    }
+  }
+
 }

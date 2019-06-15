@@ -34,16 +34,16 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
     public static final String STRING_PROPERTY = "StringProperty";
     public static final String INT_PROPERTY = "IntProperty";
     public static final String STRING_LIST_PROPERTY = "StringListProperty";
-    public static final String TEST_PROP = "testProperty";
-    public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(STRING_PROPERTY, INT_PROPERTY, STRING_LIST_PROPERTY, TEST_PROP));
-    public static final Set<String> ALLOWED_IN_EDGE_LABELS = new HashSet<>(Arrays.asList(FollowedBy.label));
-    public static final Set<String> ALLOWED_OUT_EDGE_LABELS = new HashSet<>(Arrays.asList(FollowedBy.label, SungBy.label, WrittenBy.label));
+    public static final String INT_LIST_PROPERTY = "IntListProperty";
+    public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(STRING_PROPERTY, INT_PROPERTY, STRING_LIST_PROPERTY, INT_LIST_PROPERTY));
+    public static final Set<String> ALLOWED_IN_EDGE_LABELS = new HashSet<>(Arrays.asList());
+    public static final Set<String> ALLOWED_OUT_EDGE_LABELS = new HashSet<>(Arrays.asList());
 
     // properties
     private String stringProperty;
     private Integer intProperty;
-    private List stringListProperty;
-    private int[] testProp;
+    private List<String> stringListProperty;
+    private List<Integer> intListProperty;
 
     public SerializerTestVertex(Long id, TinkerGraph graph) {
         super(id, SerializerTestVertex.label, graph);
@@ -74,8 +74,8 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
             return IteratorUtils.of(new TinkerVertexProperty(this, key, stringListProperty));
         } else if (key == INT_PROPERTY && intProperty != null) {
             return IteratorUtils.of(new TinkerVertexProperty(this, key, intProperty));
-        } else if (key == TEST_PROP && testProp != null) {
-            return IteratorUtils.of(new TinkerVertexProperty(this, key, testProp));
+        } else if (key == INT_LIST_PROPERTY && intListProperty != null) {
+            return IteratorUtils.of(new TinkerVertexProperty(this, key, intListProperty));
         } else {
             return Collections.emptyIterator();
         }
@@ -87,7 +87,7 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
         if (stringProperty != null) properties.put(STRING_PROPERTY, stringProperty);
         if (stringListProperty != null) properties.put(STRING_LIST_PROPERTY, stringListProperty);
         if (intProperty != null) properties.put(INT_PROPERTY, intProperty);
-        if (testProp != null) properties.put(TEST_PROP, testProp);
+        if (intListProperty != null) properties.put(INT_LIST_PROPERTY, intListProperty);
         return properties;
     }
 
@@ -100,8 +100,8 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
             this.stringListProperty = (List) value;
         } else if (INT_PROPERTY.equals(key)) {
             this.intProperty = (Integer) value;
-        } else if (TEST_PROP.equals(key)) {
-            this.testProp = (int[]) value;
+        } else if (INT_LIST_PROPERTY.equals(key)) {
+            this.intListProperty = (List) value;
         } else {
             throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
         }
@@ -117,8 +117,8 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
             this.stringListProperty = null;
         } else if (INT_PROPERTY.equals(key)) {
             this.intProperty = null;
-        } else if (TEST_PROP.equals(key)) {
-            this.testProp = null;
+        } else if (INT_LIST_PROPERTY.equals(key)) {
+            this.intListProperty = null;
         } else {
             throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
         }

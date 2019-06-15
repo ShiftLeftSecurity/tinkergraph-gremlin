@@ -37,8 +37,10 @@ public class SerializerTest {
         Vertex vertex = graph.addVertex(
             T.label, SerializerTestVertex.label,
             SerializerTestVertex.STRING_PROPERTY, "StringValue",
-            SerializerTestVertex.INT_PROPERTY, Integer.MAX_VALUE
-            );
+            SerializerTestVertex.INT_PROPERTY, Integer.MAX_VALUE,
+            SerializerTestVertex.STRING_LIST_PROPERTY, Arrays.asList("stringOne", "stringTwo"),
+            SerializerTestVertex.INT_LIST_PROPERTY, Arrays.asList(42, 43)
+        );
 
         byte[] bytes = serializer.serialize(vertex);
         TinkerVertex deserialized = serializer.deserialize(bytes);
@@ -56,14 +58,11 @@ public class SerializerTest {
         return new VertexSerializer(graph, vertexFactories);
     }
 
-
     private TinkerGraph newGraph() {
         return TinkerGraph.open(
             Arrays.asList(SerializerTestVertex.factory),
             Arrays.asList()
         );
     }
-
-
 
 }
