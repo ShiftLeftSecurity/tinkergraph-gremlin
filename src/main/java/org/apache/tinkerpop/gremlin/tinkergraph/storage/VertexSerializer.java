@@ -51,11 +51,16 @@ public class VertexSerializer extends Serializer<Vertex> {
 
   @Override
   public byte[] serialize(Vertex vertex) throws IOException {
+    if (vertex instanceof VertexRef) { // unwrap
+      vertex = ((VertexRef<TinkerVertex>) vertex).get();
+    }
+
     long start = System.currentTimeMillis();
     MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
 //    ((SpecializedTinkerVertex) vertex).acquireModificationLock();
     packer.packLong((Long) vertex.id());
     packer.packString(vertex.label());
+
     if (vertex instanceof SpecializedTinkerVertex) {
       // optimization for better performance
       packProperties(packer, ((SpecializedTinkerVertex) vertex).valueMap());
