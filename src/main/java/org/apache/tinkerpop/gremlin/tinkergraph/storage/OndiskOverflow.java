@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 
-public class OndiskOverflow {
+public class OndiskOverflow implements AutoCloseable {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   protected final VertexSerializer vertexSerializer;
   protected final EdgeSerializer edgeSerializer;
@@ -55,6 +55,13 @@ public class OndiskOverflow {
     } catch (IOException e) {
       throw new RuntimeException("cannot create tmp file for mvstore", e);
     }
+    return new OndiskOverflow(mvstoreFile, vertexSerializer, edgeSerializer);
+  }
+
+  /** create with specific mvstore file - which may or may not yet exist.
+   * mvstoreFile won't be deleted at the end (unlike temp file constructors above) */
+  public static OndiskOverflow createWithSpecificLocation(
+      final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer, final File mvstoreFile) {
     return new OndiskOverflow(mvstoreFile, vertexSerializer, edgeSerializer);
   }
 
@@ -89,6 +96,7 @@ public class OndiskOverflow {
     return (A) edgeSerializer.deserialize(edgeMVMap.get(id));
   }
 
+  @Override
   public void close() {
     closed = true;
     mvstore.close();

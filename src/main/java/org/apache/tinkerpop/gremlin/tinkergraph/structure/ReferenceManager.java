@@ -24,4 +24,6 @@ public interface ReferenceManager {
   void applyBackpressureMaybe();
 
   void close();
+
+  void clearAllReferences();
 }

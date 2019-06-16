@@ -125,6 +125,7 @@ public final class TinkerGraph implements Graph {
     private final Configuration configuration;
     private final String graphLocation;
     private final String graphFormat;
+    private boolean closed = false;
 
     /* overflow to disk: elements are serialized on eviction from on-heap cache - off by default */
     // TODO: also allow using for generic elements
@@ -147,7 +148,11 @@ public final class TinkerGraph implements Graph {
             graphFormat = GRAPH_FORMAT_MVSTORE;
             VertexSerializer vertexSerializer = new VertexSerializer(this, specializedVertexFactoryByLabel);
             EdgeSerializer edgeSerializer = new EdgeSerializer(this, specializedEdgeFactoryByLabel);
-            this.ondiskOverflow = OndiskOverflow.createWithTempFile(vertexSerializer, edgeSerializer, configuration.getString(GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR));
+            if (graphLocation == null) {
+                this.ondiskOverflow = OndiskOverflow.createWithTempFile(vertexSerializer, edgeSerializer, configuration.getString(GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR));
+            } else {
+                this.ondiskOverflow = OndiskOverflow.createWithSpecificLocation(vertexSerializer, edgeSerializer, new File(graphLocation));
+            }
             this.referenceManager = new ReferenceManagerImpl(configuration.getInt(GREMLIN_TINKERGRAPH_OVERFLOW_HEAP_PERCENTAGE_THRESHOLD));
         } else {
             graphFormat = configuration.getString(GREMLIN_TINKERGRAPH_GRAPH_FORMAT, null);
@@ -208,6 +213,9 @@ public final class TinkerGraph implements Graph {
 
     @Override
     public Vertex addVertex(final Object... keyValues) {
+        if (isClosed()) {
+            throw new IllegalStateException("cannot add more elements, graph is closed");
+        }
         ElementHelper.legalPropertyKeyValueArray(keyValues);
         final String label = ElementHelper.getLabelValue(keyValues).orElse(Vertex.DEFAULT_LABEL);
 
@@ -293,19 +301,19 @@ public final class TinkerGraph implements Graph {
     }
 
     /**
-     * This method only has an effect if the {@link #GREMLIN_TINKERGRAPH_GRAPH_LOCATION} is set, in which case the
-     * data in the graph is persisted to that location. This method may be called multiple times and does not release
-     * resources.
+     * if the {@link #GREMLIN_TINKERGRAPH_GRAPH_LOCATION} is set, data in the graph is persisted to that location.
      */
     @Override
     public void close() {
-        if (graphLocation != null) saveGraph();
+        this.closed = true;
         if (ondiskOverflowEnabled) {
-            if (logger.isDebugEnabled()) {
-                logger.debug(getSerializationStats().toString());
-            }
-            ondiskOverflow.close();
+            if (logger.isDebugEnabled()) logger.debug(getSerializationStats().toString());
+            referenceManager.clearAllReferences();
             referenceManager.close();
+            ondiskOverflow.close();
+
+        } else {
+            if (graphLocation != null) saveGraph();
         }
     }
 
@@ -460,6 +468,10 @@ public final class TinkerGraph implements Graph {
             if (id == null || !id.getClass().equals(firstClass))
                 throw Graph.Exceptions.idArgsMustBeEitherIdOrElement();
         }
+    }
+
+    public boolean isClosed() {
+        return closed;
     }
 
     public class TinkerGraphFeatures implements Features {

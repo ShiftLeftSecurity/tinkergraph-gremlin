@@ -28,6 +28,10 @@ public class NoOpReferenceManager implements ReferenceManager {
   }
 
   @Override
+  public void clearAllReferences() {
+  }
+
+  @Override
   public void close() {
   }
 }

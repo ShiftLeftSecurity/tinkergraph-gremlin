@@ -28,9 +28,7 @@ import java.io.IOException;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.MemoryUsage;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.PriorityBlockingQueue;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
@@ -46,7 +44,7 @@ public class ReferenceManagerImpl implements ReferenceManager {
   public final int backpressureMillis = 500; //TODO make configurable
   public final int releaseCount = 100000; //TODO make configurable
   private int totalReleaseCount;
-  private final int cpuCount = Runtime.getRuntime().availableProcessors();
+  private final Integer cpuCount = Runtime.getRuntime().availableProcessors();
   private final ExecutorService executorService = Executors.newFixedThreadPool(cpuCount);
   private final AtomicInteger clearingProcessCount = new AtomicInteger(0);
 
@@ -105,18 +103,22 @@ public class ReferenceManagerImpl implements ReferenceManager {
   }
 
   /** run clearing of references asynchronously to not block the gc notification thread
-  *using executor with one thread and capacity=1, drop `clearingInProgress` flag */
-  protected void asynchronouslyClearReferences(final int releaseCount) {
+   * using executor with one thread and capacity=1, drop `clearingInProgress` flag
+   */
+  protected List<Future> asynchronouslyClearReferences(final int releaseCount) {
+    List<Future> futures = new ArrayList<>(cpuCount);
+    // use Math.ceil to err on the larger side
+    final int releaseCountPerThread = (int) Math.ceil(releaseCount / cpuCount.floatValue());
     for (int i = 0; i < cpuCount; i++) {
-      final int releaseCountPerThread = releaseCount / cpuCount;
-      executorService.submit(() -> {
+      futures.add(executorService.submit(() -> {
         final int actualReleaseCount = safelyClearReferences(releaseCountPerThread);
         totalReleaseCount += actualReleaseCount;
         logger.info("completed clearing of "+ actualReleaseCount + " references");
         logger.debug("current clearable queue size: " + clearableRefs.size());
         logger.debug("references cleared in total: " + totalReleaseCount);
-      });
+      }));
     }
+    return futures;
   }
 
   /**
@@ -194,10 +196,30 @@ public class ReferenceManagerImpl implements ReferenceManager {
         };
   }
 
+
+  /** write all references to disk overflow - useful when saving the graph */
+  @Override
+  public void clearAllReferences() {
+    while (!clearableRefs.isEmpty()) {
+      int clearableRefsSize = clearableRefs.size();
+      logger.info("clearing " + clearableRefsSize + " references - this may take some time");
+      for (Future clearRefFuture : asynchronouslyClearReferences(clearableRefsSize)) {
+        try {
+          // block until everything is cleared
+          clearRefFuture.get();
+        } catch (Exception e) {
+          throw new RuntimeException("error while clearing references to disk", e);
+        }
+      }
+    }
+  }
+
   protected void uninstallGCMonitoring() {
-    for (Map.Entry<NotificationEmitter, NotificationListener> entry : gcNotificationListeners.entrySet()) {
+    while (!gcNotificationListeners.isEmpty()) {
+      Map.Entry<NotificationEmitter, NotificationListener> entry = gcNotificationListeners.entrySet().iterator().next();
       try {
         entry.getKey().removeNotificationListener(entry.getValue());
+        gcNotificationListeners.remove(entry.getKey());
       } catch (ListenerNotFoundException e) {
         throw new RuntimeException("unable to remove GC monitor", e);
       }
@@ -210,4 +232,5 @@ public class ReferenceManagerImpl implements ReferenceManager {
     uninstallGCMonitoring();
     executorService.shutdown();
   }
+
 }

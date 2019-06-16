@@ -125,6 +125,9 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     @Override
     public Edge addEdge(final String label, Vertex inVertex, final Object... keyValues) {
+        if (graph.isClosed()) {
+            throw new IllegalStateException("cannot add more elements, graph is closed");
+        }
         if (null == inVertex) {
             throw Graph.Exceptions.argumentCanNotBeNull("inVertex");
         }
