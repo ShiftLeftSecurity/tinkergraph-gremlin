@@ -47,11 +47,9 @@ public class EdgeSerializer extends Serializer<Edge> {
     MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
     packer.packLong((Long) edge.id());
     packer.packString(edge.label());
-    packProperties(packer, edge.properties());
     packer.packLong((Long) edge.outVertex().id());
-    packer.packString(edge.outVertex().label());
     packer.packLong((Long) edge.inVertex().id());
-    packer.packString(edge.inVertex().label());
+    packProperties(packer, edge.properties());
 
     serializedCount++;
     if (serializedCount % 100000 == 0) {
@@ -66,15 +64,11 @@ public class EdgeSerializer extends Serializer<Edge> {
     MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes);
     Long id = unpacker.unpackLong();
     String label = unpacker.unpackString();
-    Object[] keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
     long outVertexId = unpacker.unpackLong();
-    // TODO remove
-    String outVertexLabel = unpacker.unpackString();
     long inVertexId = unpacker.unpackLong();
-    // TODO remove
-    String inVertexLabel = unpacker.unpackString();
     VertexRef outVertexRef = (VertexRef) graph.vertex(outVertexId);
     VertexRef inVertexRef = (VertexRef) graph.vertex(inVertexId);
+    Object[] keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
 
     // TODO support generic edges too
     SpecializedTinkerEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexRef, inVertexRef);
