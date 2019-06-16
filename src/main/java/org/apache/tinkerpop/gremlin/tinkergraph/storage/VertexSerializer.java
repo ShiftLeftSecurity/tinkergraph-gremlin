@@ -113,7 +113,7 @@ public class VertexSerializer extends Serializer<Vertex> {
 
     SpecializedElementFactory.ForVertex vertexFactory = vertexFactoryByLabel.get(label);
     if (vertexFactory == null) {
-      throw new AssertionError("vertexFactory not found for id=" + id + ", label=" + label);
+      throw new AssertionError("vertexFactory not found for label=" + label);
     }
     SpecializedTinkerVertex vertex = vertexFactory.createVertex(id, graph);
     ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
@@ -142,6 +142,20 @@ public class VertexSerializer extends Serializer<Vertex> {
       logger.debug("stats: deserialized " + deserializedCount + " vertices in total (avg time: " + avgDeserializationTime + "ms)");
     }
     return vertex;
+  }
+
+  @Override
+  public ElementRef<TinkerVertex> deserializeRef(byte[] bytes) throws IOException {
+    MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes);
+    Long id = unpacker.unpackLong();
+    String label = unpacker.unpackString();
+
+    SpecializedElementFactory.ForVertex vertexFactory = vertexFactoryByLabel.get(label);
+    if (vertexFactory == null) {
+      throw new AssertionError("vertexFactory not found for label=" + label);
+    }
+
+    return vertexFactory.createVertexRef(id, graph);
   }
 
   /** format: `Map<Label, Array<EdgeId>>` */

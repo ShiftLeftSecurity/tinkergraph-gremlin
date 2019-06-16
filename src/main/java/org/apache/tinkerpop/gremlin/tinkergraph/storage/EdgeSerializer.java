@@ -82,4 +82,16 @@ public class EdgeSerializer extends Serializer<Edge> {
     }
     return edge;
   }
+
+  @Override
+  public ElementRef<TinkerEdge> deserializeRef(byte[] bytes) throws IOException {
+    MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes);
+    Long id = unpacker.unpackLong();
+    String label = unpacker.unpackString();
+    long outVertexId = unpacker.unpackLong();
+    long inVertexId = unpacker.unpackLong();
+    VertexRef outVertexRef = (VertexRef) graph.vertex(outVertexId);
+    VertexRef inVertexRef = (VertexRef) graph.vertex(inVertexId);
+    return edgeFactoryByLabel.get(label).createEdgeRef(id, graph, outVertexRef, inVertexRef);
+  }
 }

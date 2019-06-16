@@ -21,6 +21,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.ElementRef;
 import org.msgpack.core.MessageBufferPacker;
 import org.msgpack.value.ArrayValue;
 import org.msgpack.value.IntegerValue;
@@ -33,6 +34,9 @@ public abstract class Serializer<A extends Element> {
 
   public abstract byte[] serialize(A a) throws IOException;
   public abstract A deserialize(byte[] bytes) throws IOException;
+
+  /** only deserialize the part we're keeping in memory, used during startup when initializing from disk */
+  public abstract ElementRef deserializeRef(byte[] bytes) throws IOException;
 
   /** when deserializing, msgpack can't differentiate between e.g. int and long, so we need to encode the type as well - doing that with an array
    *  i.e. format is: Map[PropertyName, Array(TypeId, PropertyValue)]

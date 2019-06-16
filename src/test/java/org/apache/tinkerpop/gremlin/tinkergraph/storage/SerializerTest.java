@@ -49,6 +49,10 @@ public class SerializerTest {
         assertEquals(underlyingVertexDb, deserialized);
 //        deserialized.values().forEachRemaining(System.out::println);
 
+        final ElementRef<TinkerVertex> deserializedRef = serializer.deserializeRef(bytes);
+        assertEquals(vertex.id(), deserializedRef.id);
+        assertEquals(SerializerTestVertex.label, deserializedRef.label());
+
         graph.close();
     }
     
@@ -67,6 +71,10 @@ public class SerializerTest {
         Edge underlyingEdgeDb = ((EdgeRef<TinkerEdge>) edge).get();
         assertEquals(underlyingEdgeDb, deserialized);
 //        deserialized.values().forEachRemaining(System.out::println);
+
+        final ElementRef<TinkerEdge> deserializedRef = serializer.deserializeRef(bytes);
+        assertEquals(edge.id(), deserializedRef.id);
+        assertEquals(SerializerTestEdge.label, deserializedRef.label());
 
         graph.close();
     }
