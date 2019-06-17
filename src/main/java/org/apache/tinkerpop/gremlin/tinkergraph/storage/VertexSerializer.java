@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+// TODO: support generic vertices as well
 public class VertexSerializer extends Serializer<Vertex> {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   protected final TinkerGraph graph;
@@ -51,11 +52,16 @@ public class VertexSerializer extends Serializer<Vertex> {
 
   @Override
   public byte[] serialize(Vertex vertex) throws IOException {
+    if (vertex instanceof VertexRef) { // unwrap
+      vertex = ((VertexRef<TinkerVertex>) vertex).get();
+    }
+
     long start = System.currentTimeMillis();
     MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
 //    ((SpecializedTinkerVertex) vertex).acquireModificationLock();
     packer.packLong((Long) vertex.id());
     packer.packString(vertex.label());
+
     if (vertex instanceof SpecializedTinkerVertex) {
       // optimization for better performance
       packProperties(packer, ((SpecializedTinkerVertex) vertex).valueMap());
@@ -116,14 +122,12 @@ public class VertexSerializer extends Serializer<Vertex> {
     Map<String, long[]> outEdgeIdsByLabel = unpackEdges(unpacker);
 
     inEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
-      String edgeLabel = entry.getKey();
       for (long edgeId : entry.getValue()) {
         vertex.storeInEdge(graph.edge(edgeId));
       }
     });
 
     outEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
-      String edgeLabel = entry.getKey();
       for (long edgeId : entry.getValue()) {
         vertex.storeOutEdge(graph.edge(edgeId));
       }

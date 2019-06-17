@@ -23,12 +23,11 @@ import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.msgpack.core.MessageBufferPacker;
 import org.msgpack.value.ArrayValue;
+import org.msgpack.value.IntegerValue;
 import org.msgpack.value.Value;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 public abstract class Serializer<A extends Element> {
 
@@ -42,85 +41,8 @@ public abstract class Serializer<A extends Element> {
     packer.packMapHeader(properties.size());
     for (Map.Entry<String, Object> property : properties.entrySet()) {
       packer.packString(property.getKey());
-      Object value = property.getValue();
-
-      packer.packArrayHeader(2);
-      // encode their type as well - as is, we can't differentiate between int and long
-      if (value.getClass() == Boolean.class) {
-        packer.packShort((short) 1);
-        packer.packBoolean((Boolean) value);
-      } else if (value.getClass() == String.class) {
-        packer.packShort((short) 2);
-        packer.packString((String) value);
-      } else if (value.getClass() == Byte.class) {
-        packer.packShort((short) 3);
-        packer.packByte((Byte) value);
-      } else if (value.getClass() == Short.class) {
-        packer.packShort((short) 4);
-        packer.packShort((Short) value);
-      } else if (value.getClass() == Integer.class) {
-        packer.packShort((short) 5);
-        packer.packInt((int) value);
-      } else if (value.getClass() == Long.class) {
-        packer.packShort((short) 6);
-        packer.packLong((Long) value);
-      } else if (value.getClass() == Float.class) {
-        packer.packShort((short) 7);
-        packer.packFloat((Float) value);
-      } else if (value.getClass() == Double.class) {
-        packer.packShort((short) 8);
-        packer.packDouble((Double) value);
-      } else if (value.getClass() == int[].class) {
-        //TODO remove this dummy case again
-      } else throw new NotImplementedException("value type `" + value.getClass() + "` not yet supported (key=" + property.getKey() + ")");
+      packPropertyValue(packer, property.getValue());
     }
-  }
-
-  protected Object[] unpackProperties(Map<Value, Value> properties) {
-    Object[] keyValues = new Object[properties.size() * 2];
-    int idx = 0;
-    for (Map.Entry<Value, Value> entry : properties.entrySet()) {
-      String key = entry.getKey().asStringValue().asString();
-      keyValues[idx++] = key;
-
-      ArrayValue typeAndValue = entry.getValue().asArrayValue();
-      short type = typeAndValue.get(0).asIntegerValue().asShort();
-
-      final Object value;
-      Value packedValue = typeAndValue.get(1);
-
-      switch (type) {
-        case 1:
-          value = packedValue.asBooleanValue().getBoolean();
-          break;
-        case 2:
-          value = packedValue.asStringValue().asString();
-          break;
-        case 3:
-          value = packedValue.asIntegerValue().asByte();
-          break;
-        case 4:
-          value = packedValue.asIntegerValue().asShort();
-          break;
-        case 5:
-          value = packedValue.asIntegerValue().asInt();
-          break;
-        case 6:
-          value = packedValue.asIntegerValue().asLong();
-          break;
-        case 7:
-          value = packedValue.asFloatValue().toFloat();
-          break;
-        case 8:
-          value = packedValue.asFloatValue().toDouble();
-          break;
-        default:
-          throw new NotImplementedException("type prefix `" + type + "` not yet supported (key=" + key + ", packedValue=" + packedValue + ")");
-      }
-
-      keyValues[idx++] = value;
-    }
-    return keyValues;
   }
 
   protected void packProperties(MessageBufferPacker packer, Iterator<? extends Property> propertyIterator) throws IOException {
@@ -131,4 +53,77 @@ public abstract class Serializer<A extends Element> {
     }
     packProperties(packer, properties);
   }
+
+  private void packPropertyValue(final MessageBufferPacker packer, final Object value) throws IOException {
+    if (value instanceof Boolean ) {
+      packer.packBoolean((Boolean) value);
+    } else if (value instanceof String) {
+      packer.packString((String) value);
+    } else if (value instanceof Byte) {
+      packer.packByte((byte) value);
+    } else if (value instanceof Short) {
+      packer.packShort((short) value);
+    } else if (value instanceof Integer) {
+      packer.packInt((int) value);
+    } else if (value instanceof Long) {
+      packer.packLong((long) value);
+    } else if (value instanceof Float || value instanceof Double) {
+      packer.packFloat((float) value);
+    } else if (value instanceof List) {
+      List listValue = (List) value;
+      packer.packArrayHeader(listValue.size());
+      final Iterator listIter = listValue.iterator();
+      while (listIter.hasNext()) {
+        packPropertyValue(packer, listIter.next());
+      }
+    } else {
+      throw new NotImplementedException("value type `" + value.getClass() + "` not yet supported");
+    }
+  }
+
+  protected Object[] unpackProperties(Map<Value, Value> properties) {
+    Object[] keyValues = new Object[properties.size() * 2];
+    int idx = 0;
+    for (Map.Entry<Value, Value> entry : properties.entrySet()) {
+      String key = entry.getKey().asStringValue().asString();
+      keyValues[idx++] = key;
+      keyValues[idx++] = unpackProperty(entry.getValue());
+    }
+    return keyValues;
+  }
+
+  private Object unpackProperty(final Value packedValue) {
+    switch (packedValue.getValueType()) {
+      case BOOLEAN:
+        return packedValue.asBooleanValue().getBoolean();
+      case STRING:
+        return packedValue.asStringValue().asString();
+      case INTEGER:
+        final IntegerValue integerValue = packedValue.asIntegerValue();
+        if (integerValue.isInByteRange()) {
+          return integerValue.asByte();
+        } else if (integerValue.isInShortRange()) {
+          return integerValue.asShort();
+        } else if (integerValue.isInIntRange()) {
+          return integerValue.asInt();
+        } else if (integerValue.isInLongRange()) {
+          return integerValue.asLong();
+        } else {
+          return integerValue.asBigInteger();
+        }
+      case FLOAT:
+        return packedValue.asFloatValue().toFloat();
+      case ARRAY:
+        final ArrayValue arrayValue = packedValue.asArrayValue();
+        List deserializedArray = new ArrayList(arrayValue.size());
+        final Iterator<Value> valueIterator = arrayValue.iterator();
+        while (valueIterator.hasNext()) {
+          deserializedArray.add(unpackProperty(valueIterator.next()));
+        }
+        return deserializedArray;
+      default:
+        throw new NotImplementedException("type  `" + packedValue.getValueType() + "` not yet supported (packedValue=" + packedValue + ")");
+    }
+  }
+
 }
