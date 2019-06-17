@@ -29,87 +29,81 @@ import static org.junit.Assert.*;
 
 public class SerializerTest {
 
-    @Test
-    public void serializeVertex() throws IOException {
-        TinkerGraph graph = newGraph();
-        VertexSerializer serializer = newVertexSerializer(graph);
+  @Test
+  public void serializeVertex() throws IOException {
+    try (TinkerGraph graph = newGraph()) {
+      VertexSerializer serializer = newVertexSerializer(graph);
+      Vertex vertex = graph.addVertex(
+          T.label, SerializerTestVertex.label,
+          SerializerTestVertex.STRING_PROPERTY, "StringValue",
+          SerializerTestVertex.INT_PROPERTY, Integer.MAX_VALUE,
+          SerializerTestVertex.STRING_LIST_PROPERTY, Arrays.asList("stringOne", "stringTwo"),
+          SerializerTestVertex.INT_LIST_PROPERTY, Arrays.asList(42, 43)
+      );
 
-        Vertex vertex = graph.addVertex(
-            T.label, SerializerTestVertex.label,
-            SerializerTestVertex.STRING_PROPERTY, "StringValue",
-            SerializerTestVertex.INT_PROPERTY, Integer.MAX_VALUE,
-            SerializerTestVertex.STRING_LIST_PROPERTY, Arrays.asList("stringOne", "stringTwo"),
-            SerializerTestVertex.INT_LIST_PROPERTY, Arrays.asList(42, 43)
-        );
+      byte[] bytes = serializer.serialize(vertex);
+      TinkerVertex deserialized = serializer.deserialize(bytes);
 
-        byte[] bytes = serializer.serialize(vertex);
-        TinkerVertex deserialized = serializer.deserialize(bytes);
-
-        Vertex underlyingVertexDb = ((VertexRef<TinkerVertex>) vertex).get();
-        assertEquals(underlyingVertexDb, deserialized);
-//        deserialized.values().forEachRemaining(System.out::println);
-
-        graph.close();
+      Vertex underlyingVertexDb = ((VertexRef<TinkerVertex>) vertex).get();
+      assertEquals(underlyingVertexDb, deserialized);
     }
-    
-    @Test
-    public void serializeEdge() throws IOException {
-        TinkerGraph graph = newGraph();
-        EdgeSerializer serializer = newEdgeSerializer(graph);
+  }
 
-        Vertex v0 = graph.addVertex(T.label, SerializerTestVertex.label);
-        Vertex v1 = graph.addVertex(T.label, SerializerTestVertex.label);
-        Edge edge = v0.addEdge(SerializerTestEdge.label, v1, SerializerTestEdge.LONG_PROPERTY, Long.MAX_VALUE);
+  @Test
+  public void serializeEdge() throws IOException {
+    try (TinkerGraph graph = newGraph()) {
+      EdgeSerializer serializer = newEdgeSerializer(graph);
 
-        byte[] bytes = serializer.serialize(edge);
-        TinkerEdge deserialized = serializer.deserialize(bytes);
+      Vertex v0 = graph.addVertex(T.label, SerializerTestVertex.label);
+      Vertex v1 = graph.addVertex(T.label, SerializerTestVertex.label);
+      Edge edge = v0.addEdge(SerializerTestEdge.label, v1, SerializerTestEdge.LONG_PROPERTY, Long.MAX_VALUE);
 
-        Edge underlyingEdgeDb = ((EdgeRef<TinkerEdge>) edge).get();
-        assertEquals(underlyingEdgeDb, deserialized);
-//        deserialized.values().forEachRemaining(System.out::println);
+      byte[] bytes = serializer.serialize(edge);
+      TinkerEdge deserialized = serializer.deserialize(bytes);
 
-        graph.close();
+      Edge underlyingEdgeDb = ((EdgeRef<TinkerEdge>) edge).get();
+      assertEquals(underlyingEdgeDb, deserialized);
     }
+  }
 
-    @Test
-    public void serializeVertexWithEdgeIds() throws IOException {
-        TinkerGraph graph = newGraph();
-        VertexSerializer serializer = newVertexSerializer(graph);
+  @Test
+  public void serializeVertexWithEdgeIds() throws IOException {
+    try (TinkerGraph graph = newGraph()) {
+      VertexSerializer serializer = newVertexSerializer(graph);
 
-        Vertex vertex0 = graph.addVertex(T.label, SerializerTestVertex.label);
-        Vertex vertex1 = graph.addVertex(T.label, SerializerTestVertex.label);
-        Edge edge0 = vertex0.addEdge(SerializerTestEdge.label, vertex1);
-        Edge edge1 = vertex1.addEdge(SerializerTestEdge.label, vertex0);
+      Vertex vertex0 = graph.addVertex(T.label, SerializerTestVertex.label);
+      Vertex vertex1 = graph.addVertex(T.label, SerializerTestVertex.label);
+      Edge edge0 = vertex0.addEdge(SerializerTestEdge.label, vertex1);
+      Edge edge1 = vertex1.addEdge(SerializerTestEdge.label, vertex0);
 
-        byte[] bytes = serializer.serialize(vertex0);
-        TinkerVertex deserialized = serializer.deserialize(bytes);
+      byte[] bytes = serializer.serialize(vertex0);
+      TinkerVertex deserialized = serializer.deserialize(bytes);
 
-        Vertex underlyingVertexDb = ((VertexRef<TinkerVertex>) vertex0).get();
-        assertEquals(underlyingVertexDb, deserialized);
-        assertEquals(edge0, deserialized.edges(Direction.OUT, SerializerTestEdge.label).next());
-        assertEquals(edge1, deserialized.edges(Direction.IN, SerializerTestEdge.label).next());
-        assertEquals(vertex1, deserialized.vertices(Direction.OUT, SerializerTestEdge.label).next());
-
-        graph.close();
+      Vertex underlyingVertexDb = ((VertexRef<TinkerVertex>) vertex0).get();
+      assertEquals(underlyingVertexDb, deserialized);
+      assertEquals(edge0, deserialized.edges(Direction.OUT, SerializerTestEdge.label).next());
+      assertEquals(edge1, deserialized.edges(Direction.IN, SerializerTestEdge.label).next());
+      assertEquals(vertex1, deserialized.vertices(Direction.OUT, SerializerTestEdge.label).next());
     }
+  }
 
-    private VertexSerializer newVertexSerializer(TinkerGraph graph) {
-        Map<String, SpecializedElementFactory.ForVertex> vertexFactories = new HashMap();
-        vertexFactories.put(SerializerTestVertex.label, SerializerTestVertex.factory);
-        return new VertexSerializer(graph, vertexFactories);
-    }
-    
-    private EdgeSerializer newEdgeSerializer(TinkerGraph graph) {
-        Map<String, SpecializedElementFactory.ForEdge> edgeFactories = new HashMap();
-        edgeFactories.put(SerializerTestEdge.label, SerializerTestEdge.factory);
-        return new EdgeSerializer(graph, edgeFactories);
-    }
+  private VertexSerializer newVertexSerializer(TinkerGraph graph) {
+    Map<String, SpecializedElementFactory.ForVertex> vertexFactories = new HashMap();
+    vertexFactories.put(SerializerTestVertex.label, SerializerTestVertex.factory);
+    return new VertexSerializer(graph, vertexFactories);
+  }
 
-    private TinkerGraph newGraph() {
-        return TinkerGraph.open(
-            Arrays.asList(SerializerTestVertex.factory),
-            Arrays.asList(SerializerTestEdge.factory)
-        );
-    }
+  private EdgeSerializer newEdgeSerializer(TinkerGraph graph) {
+    Map<String, SpecializedElementFactory.ForEdge> edgeFactories = new HashMap();
+    edgeFactories.put(SerializerTestEdge.label, SerializerTestEdge.factory);
+    return new EdgeSerializer(graph, edgeFactories);
+  }
+
+  private TinkerGraph newGraph() {
+    return TinkerGraph.open(
+        Arrays.asList(SerializerTestVertex.factory),
+        Arrays.asList(SerializerTestEdge.factory)
+    );
+  }
 
 }
