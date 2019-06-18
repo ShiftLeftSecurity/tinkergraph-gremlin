@@ -84,7 +84,7 @@ public class EdgeSerializer extends Serializer<Edge> {
   }
 
   @Override
-  public ElementRef<TinkerEdge> deserializeRef(byte[] bytes) throws IOException {
+  public EdgeRef<TinkerEdge> deserializeRef(byte[] bytes) throws IOException {
     MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes);
     Long id = unpacker.unpackLong();
     String label = unpacker.unpackString();

@@ -46,6 +46,7 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
     graph.referenceManager.registerRef(this);
   }
 
+  /** used when creating a reference without the underlying reference at hand - please ensure it's available on disk */
   protected ElementRef(final long id, final String label, final TinkerGraph graph) {
     this.id = id;
     this.label = label;
@@ -81,9 +82,10 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
     } else {
       try {
         final E element = readFromDisk(id);
+        if (element == null) throw new IllegalStateException("unable to read element from disk; id=" + id);
         this.reference = element;
         this.lastDeserializedTime = System.currentTimeMillis();
-        graph.referenceManager.registerRef(this);
+        graph.referenceManager.registerRef(this); // so it can be cleared on low memory
         return element;
       } catch (Exception e) {
         throw new RuntimeException(e);

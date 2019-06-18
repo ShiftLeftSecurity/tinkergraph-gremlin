@@ -50,7 +50,7 @@ public class SerializerTestEdge extends SpecializedTinkerEdge {
     @Override
     protected <V> Property<V> updateSpecificProperty(String key, V value) {
         if (LONG_PROPERTY.equals(key)) {
-            this.longProperty = (Long) value;
+            this.longProperty = ((Number) value).longValue();
         } else {
             throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
         }
@@ -78,8 +78,13 @@ public class SerializerTestEdge extends SpecializedTinkerEdge {
         }
 
         @Override
+        public EdgeRef<SerializerTestEdge> createEdgeRef(SerializerTestEdge edge) {
+            return new EdgeRef<>(edge);
+        }
+
+        @Override
         public EdgeRef<SerializerTestEdge> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
-            return new EdgeRef<>(createEdge(id, graph, outVertex, inVertex));
+            return new EdgeRef<>(id, SerializerTestEdge.label, graph);
         }
     };
 }

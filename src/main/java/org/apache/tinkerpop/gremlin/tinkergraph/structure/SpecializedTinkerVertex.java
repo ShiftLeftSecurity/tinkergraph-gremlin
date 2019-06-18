@@ -160,9 +160,10 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
             // TODO hold link to vertexRef locally so we don't need the following lookup
             VertexRef<TinkerVertex> outVertexRef = (VertexRef<TinkerVertex>) graph.vertices.get(id);
+            final SpecializedTinkerEdge underlying = factory.createEdge(idValue, graph, outVertexRef, inVertexRef);
             final Edge edge;
             if (graph.ondiskOverflowEnabled) {
-                edge = factory.createEdgeRef(idValue, graph, outVertexRef, inVertexRef);
+                edge = factory.createEdgeRef(underlying);
             } else {
                 edge = factory.createEdge(idValue, graph, outVertexRef, inVertexRef);
             }

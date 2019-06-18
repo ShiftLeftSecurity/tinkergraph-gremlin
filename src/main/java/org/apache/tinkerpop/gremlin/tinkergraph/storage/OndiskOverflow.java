@@ -30,6 +30,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
 
 public class OndiskOverflow implements AutoCloseable {
   private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -108,6 +110,23 @@ public class OndiskOverflow implements AutoCloseable {
 
   public void removeEdge(final Long id) {
     edgeMVMap.remove(id);
+  }
+
+  public Set<Map.Entry<Long, byte[]>> allVertices() {
+    return vertexMVMap.entrySet();
+  }
+
+  public Set<Map.Entry<Long, byte[]>> allEdges() {
+    return edgeMVMap.entrySet();
+  }
+
+
+  public VertexSerializer getVertexSerializer() {
+    return vertexSerializer;
+  }
+
+  public EdgeSerializer getEdgeSerializer() {
+    return edgeSerializer;
   }
 
 }

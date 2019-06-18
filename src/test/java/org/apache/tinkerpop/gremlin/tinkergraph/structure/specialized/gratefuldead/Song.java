@@ -127,7 +127,7 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
         } else if (SONG_TYPE.equals(key)) {
             this.songType = (String) value;
         } else if (PERFORMANCES.equals(key)) {
-            this.performances = (Integer) value;
+            this.performances = ((Number) value).intValue();
         } else if (TEST_PROP.equals(key)) {
             this.testProp = (int[]) value;
         } else {
@@ -164,8 +164,13 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
         }
 
         @Override
+        public VertexRef<Song> createVertexRef(Song vertex) {
+            return new VertexRef<>(vertex);
+        }
+
+        @Override
         public VertexRef<Song> createVertexRef(Long id, TinkerGraph graph) {
-            return new VertexRef<>(createVertex(id, graph));
+            return new VertexRef<>(id, Song.label, graph);
         }
     };
 

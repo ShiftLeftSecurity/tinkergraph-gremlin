@@ -145,7 +145,7 @@ public class VertexSerializer extends Serializer<Vertex> {
   }
 
   @Override
-  public ElementRef<TinkerVertex> deserializeRef(byte[] bytes) throws IOException {
+  public VertexRef<TinkerVertex> deserializeRef(byte[] bytes) throws IOException {
     MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes);
     Long id = unpacker.unpackLong();
     String label = unpacker.unpackString();

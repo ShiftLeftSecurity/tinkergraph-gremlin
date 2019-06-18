@@ -61,8 +61,13 @@ public class WrittenBy extends SpecializedTinkerEdge implements Serializable {
         }
 
         @Override
+        public EdgeRef<WrittenBy> createEdgeRef(WrittenBy edge) {
+            return new EdgeRef<>(edge);
+        }
+
+        @Override
         public EdgeRef<WrittenBy> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
-            return new EdgeRef<>(createEdge(id, graph, outVertex, inVertex));
+            return new EdgeRef<>(id, WrittenBy.label, graph);
         }
     };
 }

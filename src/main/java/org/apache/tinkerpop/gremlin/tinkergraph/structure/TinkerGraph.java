@@ -52,6 +52,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
@@ -103,10 +104,10 @@ public final class TinkerGraph implements Graph {
     protected AtomicLong currentId = new AtomicLong(-1L);
     // TODO: replace with the more memory efficient `TLongHashMap`
     // note: if on-disk overflow enabled, these [Vertex|Edge] values are [VertexRef|ElementRef]
-    protected Map<Object, Vertex> vertices = new THashMap<>();
-    protected Map<Object, Edge> edges = new THashMap<>();
-    protected final THashMap<String, Set<Vertex>> verticesByLabel = new THashMap<>(100);
-    protected final THashMap<String, Set<Edge>> edgesByLabel = new THashMap<>(100);
+    protected Map<Object, Vertex> vertices;
+    protected Map<Object, Edge> edges;
+    protected THashMap<String, Set<Vertex>> verticesByLabel;
+    protected THashMap<String, Set<Edge>> edgesByLabel;
 
     protected TinkerGraphVariables variables = null;
     protected TinkerGraphComputerView graphComputerView = null;
@@ -119,8 +120,8 @@ public final class TinkerGraph implements Graph {
     protected final VertexProperty.Cardinality defaultVertexPropertyCardinality;
 
     protected final boolean usesSpecializedElements;
-    protected final Map<String, SpecializedElementFactory.ForVertex> specializedVertexFactoryByLabel = new HashMap();
-    protected final Map<String, SpecializedElementFactory.ForEdge> specializedEdgeFactoryByLabel = new HashMap();
+    protected final Map<String, SpecializedElementFactory.ForVertex> specializedVertexFactoryByLabel;
+    protected final Map<String, SpecializedElementFactory.ForEdge> specializedEdgeFactoryByLabel;
 
     private final Configuration configuration;
     private final String graphLocation;
@@ -133,9 +134,13 @@ public final class TinkerGraph implements Graph {
     protected OndiskOverflow ondiskOverflow;
     protected ReferenceManager referenceManager;
 
-    private TinkerGraph(final Configuration configuration, boolean usesSpecializedElements) {
+    private TinkerGraph(final Configuration configuration, boolean usesSpecializedElements,
+                        Map<String, SpecializedElementFactory.ForVertex> specializedVertexFactoryByLabel,
+                        Map<String, SpecializedElementFactory.ForEdge> specializedEdgeFactoryByLabel) {
         this.configuration = configuration;
         this.usesSpecializedElements = usesSpecializedElements;
+        this.specializedVertexFactoryByLabel = specializedVertexFactoryByLabel;
+        this.specializedEdgeFactoryByLabel = specializedEdgeFactoryByLabel;
         vertexIdManager = selectIdManager(configuration, GREMLIN_TINKERGRAPH_VERTEX_ID_MANAGER, Vertex.class);
         edgeIdManager = selectIdManager(configuration, GREMLIN_TINKERGRAPH_EDGE_ID_MANAGER, Edge.class);
         vertexPropertyIdManager = selectIdManager(configuration, GREMLIN_TINKERGRAPH_VERTEX_PROPERTY_ID_MANAGER, VertexProperty.class);
@@ -146,22 +151,61 @@ public final class TinkerGraph implements Graph {
         ondiskOverflowEnabled = configuration.getBoolean(GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
         if (ondiskOverflowEnabled) {
             graphFormat = GRAPH_FORMAT_MVSTORE;
+            referenceManager = new ReferenceManagerImpl(configuration.getInt(GREMLIN_TINKERGRAPH_OVERFLOW_HEAP_PERCENTAGE_THRESHOLD));
             VertexSerializer vertexSerializer = new VertexSerializer(this, specializedVertexFactoryByLabel);
             EdgeSerializer edgeSerializer = new EdgeSerializer(this, specializedEdgeFactoryByLabel);
             if (graphLocation == null) {
-                this.ondiskOverflow = OndiskOverflow.createWithTempFile(vertexSerializer, edgeSerializer, configuration.getString(GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR));
+                ondiskOverflow = OndiskOverflow.createWithTempFile(vertexSerializer, edgeSerializer, configuration.getString(GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR));
+                initEmptyElementCollections();
             } else {
-                this.ondiskOverflow = OndiskOverflow.createWithSpecificLocation(vertexSerializer, edgeSerializer, new File(graphLocation));
+                ondiskOverflow = OndiskOverflow.createWithSpecificLocation(vertexSerializer, edgeSerializer, new File(graphLocation));
+                initElementCollections(ondiskOverflow);
             }
-            this.referenceManager = new ReferenceManagerImpl(configuration.getInt(GREMLIN_TINKERGRAPH_OVERFLOW_HEAP_PERCENTAGE_THRESHOLD));
         } else {
             graphFormat = configuration.getString(GREMLIN_TINKERGRAPH_GRAPH_FORMAT, null);
             if ((graphLocation != null && null == graphFormat) || (null == graphLocation && graphFormat != null))
                 throw new IllegalStateException(String.format("The %s and %s must both be specified if either is present",
                     GREMLIN_TINKERGRAPH_GRAPH_LOCATION, GREMLIN_TINKERGRAPH_GRAPH_FORMAT));
-            this.referenceManager = new NoOpReferenceManager();
+            initEmptyElementCollections();
+            referenceManager = new NoOpReferenceManager();
             if (graphLocation != null) loadGraph();
         }
+    }
+
+    private void initEmptyElementCollections() {
+        vertices = new THashMap<>();
+        edges = new THashMap<>();
+        verticesByLabel = new THashMap<>(100);
+        edgesByLabel = new THashMap<>(100);
+    }
+
+    /** implementation note: must start with vertices, because the edges require the vertexRefs to be already present! */
+    private void initElementCollections(OndiskOverflow ondiskOverflow) {
+        final Set<Map.Entry<Long, byte[]>> serializedVertices = ondiskOverflow.allVertices();
+        vertices = new THashMap<>(serializedVertices.size());
+        verticesByLabel = new THashMap<>(serializedVertices.size());
+        serializedVertices.iterator().forEachRemaining(entry -> {
+            try {
+                final VertexRef<TinkerVertex> vertexRef = ondiskOverflow.getVertexSerializer().deserializeRef(entry.getValue());
+                vertices.put(vertexRef.id, vertexRef);
+                getElementsByLabel(verticesByLabel, vertexRef.label).add(vertexRef);
+            } catch (IOException e) {
+                logger.error("error while initializing vertex from storage: id=" + entry.getKey());
+            }
+        });
+
+        final Set<Map.Entry<Long, byte[]>> serializedEdges = ondiskOverflow.allEdges();
+        edges = new THashMap<>(serializedEdges.size());
+        edgesByLabel = new THashMap<>(serializedEdges.size());
+        serializedEdges.iterator().forEachRemaining(entry -> {
+            try {
+                final EdgeRef<TinkerEdge> edgeRef = ondiskOverflow.getEdgeSerializer().deserializeRef(entry.getValue());
+                edges.put(edgeRef.id, edgeRef);
+                getElementsByLabel(edgesByLabel, edgeRef.label).add(edgeRef);
+            } catch (IOException e) {
+                logger.error("error while initializing edge from storage: id=" + entry.getKey());
+            }
+        });
     }
 
     /**
@@ -190,7 +234,7 @@ public final class TinkerGraph implements Graph {
      * @return a newly opened {@link Graph}
      */
     public static TinkerGraph open(final Configuration configuration) {
-        return new TinkerGraph(configuration, false);
+        return new TinkerGraph(configuration, false, new HashMap<>(), new HashMap<>());
     }
 
 
@@ -203,10 +247,11 @@ public final class TinkerGraph implements Graph {
                                    List<SpecializedElementFactory.ForVertex<?>> vertexFactories,
                                    List<SpecializedElementFactory.ForEdge<?>> edgeFactories) {
         boolean usesSpecializedElements = !vertexFactories.isEmpty() || !edgeFactories.isEmpty();
-        TinkerGraph tg =  new TinkerGraph(configuration, usesSpecializedElements);
-        vertexFactories.forEach(factory -> tg.specializedVertexFactoryByLabel.put(factory.forLabel(), factory));
-        edgeFactories.forEach(factory -> tg.specializedEdgeFactoryByLabel.put(factory.forLabel(), factory));
-        return tg;
+        Map<String, SpecializedElementFactory.ForVertex> specializedVertexFactoryByLabel = new HashMap<>();
+        Map<String, SpecializedElementFactory.ForEdge> specializedEdgeFactoryByLabel = new HashMap<>();
+        vertexFactories.forEach(factory -> specializedVertexFactoryByLabel.put(factory.forLabel(), factory));
+        edgeFactories.forEach(factory -> specializedEdgeFactoryByLabel.put(factory.forLabel(), factory));
+        return new TinkerGraph(configuration, usesSpecializedElements, specializedVertexFactoryByLabel, specializedEdgeFactoryByLabel);
     }
 
     ////////////// STRUCTURE API METHODS //////////////////
@@ -237,7 +282,9 @@ public final class TinkerGraph implements Graph {
     private Vertex createVertex(final long idValue, final String label, final Object... keyValues) {
         final Vertex vertex;
         if (specializedVertexFactoryByLabel.containsKey(label)) {
-            vertex = specializedVertexFactoryByLabel.get(label).createVertexRef(idValue, this);
+            final SpecializedElementFactory.ForVertex factory = specializedVertexFactoryByLabel.get(label);
+            final SpecializedTinkerVertex underlying = factory.createVertex(idValue, this);
+            vertex = factory.createVertexRef(underlying);
         } else { // vertex label not registered for a specialized factory, treating as generic vertex
             if (this.usesSpecializedElements) {
                 throw new IllegalArgumentException(

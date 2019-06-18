@@ -27,12 +27,14 @@ public class SpecializedElementFactory {
     public interface ForVertex<V extends SpecializedTinkerVertex> {
         String forLabel();
         V createVertex(Long id, TinkerGraph graph);
+        VertexRef<V> createVertexRef(V vertex);
         VertexRef<V> createVertexRef(Long id, TinkerGraph graph);
     }
 
     public interface ForEdge<E extends SpecializedTinkerEdge> {
         String forLabel();
         E createEdge(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex);
+        EdgeRef<E> createEdgeRef(E edge);
         EdgeRef<E> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex);
     }
 }
