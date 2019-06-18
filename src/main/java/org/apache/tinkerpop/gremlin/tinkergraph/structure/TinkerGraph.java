@@ -182,6 +182,9 @@ public final class TinkerGraph implements Graph {
     /** implementation note: must start with vertices, because the edges require the vertexRefs to be already present! */
     private void initElementCollections(OndiskOverflow ondiskOverflow) {
         final Set<Map.Entry<Long, byte[]>> serializedVertices = ondiskOverflow.allVertices();
+        if (!serializedVertices.isEmpty()) {
+            logger.debug("initializing " + serializedVertices.size() + " vertices from existing storage");
+        }
         vertices = new THashMap<>(serializedVertices.size());
         verticesByLabel = new THashMap<>(serializedVertices.size());
         serializedVertices.iterator().forEachRemaining(entry -> {
@@ -190,11 +193,14 @@ public final class TinkerGraph implements Graph {
                 vertices.put(vertexRef.id, vertexRef);
                 getElementsByLabel(verticesByLabel, vertexRef.label).add(vertexRef);
             } catch (IOException e) {
-                logger.error("error while initializing vertex from storage: id=" + entry.getKey());
+                throw new RuntimeException("error while initializing vertex from storage: id=" + entry.getKey(), e);
             }
         });
 
         final Set<Map.Entry<Long, byte[]>> serializedEdges = ondiskOverflow.allEdges();
+        if (!serializedEdges.isEmpty()) {
+            logger.debug("initializing " + serializedEdges.size() + " edges from existing storage");
+        }
         edges = new THashMap<>(serializedEdges.size());
         edgesByLabel = new THashMap<>(serializedEdges.size());
         serializedEdges.iterator().forEachRemaining(entry -> {
@@ -203,9 +209,11 @@ public final class TinkerGraph implements Graph {
                 edges.put(edgeRef.id, edgeRef);
                 getElementsByLabel(edgesByLabel, edgeRef.label).add(edgeRef);
             } catch (IOException e) {
-                logger.error("error while initializing edge from storage: id=" + entry.getKey());
+                throw new RuntimeException("error while initializing edge from storage: id=" + entry.getKey(), e);
             }
         });
+        if (!vertices.isEmpty() || !edges.isEmpty())
+            logger.info("initialized from existing storage: " + toString());
     }
 
     /**

@@ -85,7 +85,7 @@ public class OndiskOverflow implements AutoCloseable {
       } else if (element instanceof Edge) {
         edgeMVMap.put(id, edgeSerializer.serialize((Edge) element));
       } else {
-        new RuntimeException("unable to serialize " + element + " of type " + element.getClass());
+        throw new RuntimeException("unable to serialize " + element + " of type " + element.getClass());
       }
     }
   }

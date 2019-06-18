@@ -58,6 +58,7 @@ public class GraphSaveRestoreTest {
             assertEquals(Long.valueOf(2), graph.traversal().V().count().next());
             assertEquals(Long.valueOf(1), graph.traversal().E().count().next());
             assertEquals("Song 1", graph.vertex(vertex0Id).value(Song.NAME));
+            assertEquals("Song 2", graph.vertex(vertex1Id).value(Song.NAME));
             assertEquals(Integer.valueOf(42), graph.edge(edgeId).value(FollowedBy.WEIGHT));
             assertEquals("Song 2", graph.traversal().V(vertex0Id).out(FollowedBy.label).values(Song.NAME).next());
 

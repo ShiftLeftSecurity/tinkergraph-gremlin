@@ -43,7 +43,7 @@ public class ReferenceManagerImpl implements ReferenceManager {
   private final float heapUsageThreshold; // range 0.0 - 1.0
   public final int backpressureMillis = 500; //TODO make configurable
   public final int releaseCount = 100000; //TODO make configurable
-  private int totalReleaseCount;
+  private AtomicInteger totalReleaseCount = new AtomicInteger(0);
   private final Integer cpuCount = Runtime.getRuntime().availableProcessors();
   private final ExecutorService executorService = Executors.newFixedThreadPool(cpuCount);
   private final AtomicInteger clearingProcessCount = new AtomicInteger(0);
@@ -110,10 +110,11 @@ public class ReferenceManagerImpl implements ReferenceManager {
     // use Math.ceil to err on the larger side
     final int releaseCountPerThread = (int) Math.ceil(releaseCount / cpuCount.floatValue());
     for (int i = 0; i < cpuCount; i++) {
+      // doing this concurrently is tricky and won't be much faster since PriorityBlockingQueue is `blocking` anyway
+      final List<ElementRef> refsToClear = collectRefsToClear(releaseCountPerThread);
       futures.add(executorService.submit(() -> {
-        final int actualReleaseCount = safelyClearReferences(releaseCountPerThread);
-        totalReleaseCount += actualReleaseCount;
-        logger.info("completed clearing of "+ actualReleaseCount + " references");
+        safelyClearReferences(refsToClear);
+        logger.info("completed clearing of " + refsToClear.size() + " references");
         logger.debug("current clearable queue size: " + clearableRefs.size());
         logger.debug("references cleared in total: " + totalReleaseCount);
       }));
@@ -121,41 +122,44 @@ public class ReferenceManagerImpl implements ReferenceManager {
     return futures;
   }
 
-  /**
-   * clear references, ensuring no exception is raised
-   *
-   * @param releaseCount
-   * @return number of references cleared
-   */
-  protected int safelyClearReferences(final int releaseCount) {
-    try {
-      clearingProcessCount.incrementAndGet();
-      return clearReferences(releaseCount);
-    } catch (Exception e) {
-      logger.error("error while trying to clear " + releaseCount + " references", e);
-    } finally {
-      clearingProcessCount.decrementAndGet();
+  protected List<ElementRef> collectRefsToClear(int releaseCount) {
+    final List<ElementRef> refsToClear = new ArrayList<>(releaseCount);
+
+    while (releaseCount > 0) {
+      final ElementRef ref = clearableRefs.poll();
+      if (ref != null) {
+        refsToClear.add(ref);
+      }
+      releaseCount--;
     }
-    return 0;
+
+    return refsToClear;
   }
 
   /**
-   * @param releaseCount
-   * @return number of references cleared
+   * clear references, ensuring no exception is raised
    */
-  protected int clearReferences(int releaseCount) throws IOException {
-    logger.info("attempting to clear "+ releaseCount + " references");
-    ElementRef ref = clearableRefs.poll();
-    int actualReleaseCount = 0;
-    while (ref != null && releaseCount > 0) {
+  protected void safelyClearReferences(final List<ElementRef> refsToClear) {
+    try {
+      clearingProcessCount.incrementAndGet();
+      clearReferences(refsToClear);
+    } catch (Exception e) {
+      logger.error("error while trying to clear " + refsToClear.size() + " references", e);
+    } finally {
+      clearingProcessCount.decrementAndGet();
+    }
+  }
+
+  protected void clearReferences(final List<ElementRef> refsToClear) throws IOException {
+    logger.info("attempting to clear "+ refsToClear.size() + " references");
+    final Iterator<ElementRef> refsIterator = refsToClear.iterator();
+    while (refsIterator.hasNext()) {
+      final ElementRef ref = refsIterator.next();
       if (ref.isSet()) {
         ref.clear();
-        releaseCount--;
-        actualReleaseCount++;
+        totalReleaseCount.incrementAndGet();
       }
-      ref = clearableRefs.poll();
     }
-    return actualReleaseCount;
   }
 
   /** monitor GC, and should the heap grow above 80% usage, clear some strong references */
@@ -174,30 +178,31 @@ public class ReferenceManagerImpl implements ReferenceManager {
   private NotificationListener createNotificationListener() {
     Set<String> ignoredMemoryAreas = new HashSet<>(Arrays.asList("Code Cache", "Compressed Class Space", "Metaspace"));
     return (notification, handback) -> {
-          if (notification.getType().equals(GarbageCollectionNotificationInfo.GARBAGE_COLLECTION_NOTIFICATION)) {
-            GarbageCollectionNotificationInfo info = GarbageCollectionNotificationInfo.from((CompositeData) notification.getUserData());
+        if (notification.getType().equals(GarbageCollectionNotificationInfo.GARBAGE_COLLECTION_NOTIFICATION)) {
+          GarbageCollectionNotificationInfo info = GarbageCollectionNotificationInfo.from((CompositeData) notification.getUserData());
 
-            //sum up used and max memory across relevant memory areas
-            long totalMemUsed = 0;
-            long totalMemMax = 0;
-            for (Map.Entry<String, MemoryUsage> entry : info.getGcInfo().getMemoryUsageAfterGc().entrySet()) {
-              String name = entry.getKey();
-              if (!ignoredMemoryAreas.contains(name)) {
-                MemoryUsage detail = entry.getValue();
-                totalMemUsed += detail.getUsed();
-                totalMemMax += detail.getMax();
-              }
+          //sum up used and max memory across relevant memory areas
+          long totalMemUsed = 0;
+          long totalMemMax = 0;
+          for (Map.Entry<String, MemoryUsage> entry : info.getGcInfo().getMemoryUsageAfterGc().entrySet()) {
+            String name = entry.getKey();
+            if (!ignoredMemoryAreas.contains(name)) {
+              MemoryUsage detail = entry.getValue();
+              totalMemUsed += detail.getUsed();
+              totalMemMax += detail.getMax();
             }
-            float heapUsage = (float) totalMemUsed / (float) totalMemMax;
-            int heapUsagePercent = (int) Math.floor(heapUsage * 100f);
-            logger.trace("heap usage after GC: " + heapUsagePercent + "%");
-            maybeClearReferences(heapUsage);
           }
-        };
+          float heapUsage = (float) totalMemUsed / (float) totalMemMax;
+          int heapUsagePercent = (int) Math.floor(heapUsage * 100f);
+          logger.trace("heap usage after GC: " + heapUsagePercent + "%");
+          maybeClearReferences(heapUsage);
+        }
+      };
   }
 
 
-  /** write all references to disk overflow - useful when saving the graph */
+  /** writes all references to disk overflow, blocks until complete.
+   * useful when saving the graph */
   @Override
   public void clearAllReferences() {
     while (!clearableRefs.isEmpty()) {
