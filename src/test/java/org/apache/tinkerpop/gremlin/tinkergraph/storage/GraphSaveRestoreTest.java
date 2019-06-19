@@ -32,73 +32,75 @@ import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 
-/** save and restore a graph from disk overlay */
+/**
+ * save and restore a graph from disk overlay
+ */
 public class GraphSaveRestoreTest {
 
-    @Test
-    public void greenField() throws IOException {
-        final File overflowDb = Files.createTempFile("overflowdb", "bin").toFile();
-        overflowDb.deleteOnExit();
+  @Test
+  public void greenField() throws IOException {
+    final File overflowDb = Files.createTempFile("overflowdb", "bin").toFile();
+    overflowDb.deleteOnExit();
 
-        final Long vertex0Id;
-        final Long vertex1Id;
-        final Long edgeId;
-        // create graph and store in specified location
-        try (TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements(overflowDb)) {
-            Vertex v0 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 1");
-            Vertex v1 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 2");
-            Edge edge = v0.addEdge(FollowedBy.label, v1, FollowedBy.WEIGHT, 42);
-            vertex0Id = (Long) v0.id();
-            vertex1Id = (Long) v1.id();
-            edgeId = (Long) edge.id();
-        } // ARM auto-close will trigger saving to disk because we specified a location
+    final Long vertex0Id;
+    final Long vertex1Id;
+    final Long edgeId;
+    // create graph and store in specified location
+    try (TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements(overflowDb)) {
+      Vertex v0 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 1");
+      Vertex v1 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 2");
+      Edge edge = v0.addEdge(FollowedBy.label, v1, FollowedBy.WEIGHT, 42);
+      vertex0Id = (Long) v0.id();
+      vertex1Id = (Long) v1.id();
+      edgeId = (Long) edge.id();
+    } // ARM auto-close will trigger saving to disk because we specified a location
 
-        // reload from disk
-        try (TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements(overflowDb)) {
-            assertEquals(Long.valueOf(2), graph.traversal().V().count().next());
-            assertEquals(Long.valueOf(1), graph.traversal().E().count().next());
-            assertEquals("Song 1", graph.vertex(vertex0Id).value(Song.NAME));
-            assertEquals("Song 2", graph.vertex(vertex1Id).value(Song.NAME));
-            assertEquals(Integer.valueOf(42), graph.edge(edgeId).value(FollowedBy.WEIGHT));
-            assertEquals("Song 2", graph.traversal().V(vertex0Id).out(FollowedBy.label).values(Song.NAME).next());
+    // reload from disk
+    try (TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements(overflowDb)) {
+      assertEquals(Long.valueOf(2), graph.traversal().V().count().next());
+      assertEquals(Long.valueOf(1), graph.traversal().E().count().next());
+      assertEquals("Song 1", graph.vertex(vertex0Id).value(Song.NAME));
+      assertEquals("Song 2", graph.vertex(vertex1Id).value(Song.NAME));
+      assertEquals(Integer.valueOf(42), graph.edge(edgeId).value(FollowedBy.WEIGHT));
+      assertEquals("Song 2", graph.traversal().V(vertex0Id).out(FollowedBy.label).values(Song.NAME).next());
 
-            // ensure we can add more elements
-            Vertex v1 = graph.vertex(vertex1Id);
-            Vertex v2 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 3");
-            v1.addEdge(FollowedBy.label, v2, FollowedBy.WEIGHT, 43);
-            assertEquals("Song 3", graph.traversal().V(vertex0Id).out().out(FollowedBy.label).values(Song.NAME).next());
-        }
+      // ensure we can add more elements
+      Vertex v1 = graph.vertex(vertex1Id);
+      Vertex v2 = graph.addVertex(T.label, Song.label, Song.NAME, "Song 3");
+      v1.addEdge(FollowedBy.label, v2, FollowedBy.WEIGHT, 43);
+      assertEquals("Song 3", graph.traversal().V(vertex0Id).out().out(FollowedBy.label).values(Song.NAME).next());
     }
+  }
 
-    @Test
-    public void completeGratefulDeadGraph() throws IOException {
-        final File overflowDb = Files.createTempFile("overflowdb", "bin").toFile();
-        overflowDb.deleteOnExit();
+  @Test
+  public void completeGratefulDeadGraph() throws IOException {
+    final File overflowDb = Files.createTempFile("overflowdb", "bin").toFile();
+    overflowDb.deleteOnExit();
 
-        try (TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements(overflowDb)) {
-            loadGraphMl(graph);
-        } // ARM auto-close will trigger saving to disk because we specified a location
+    try (TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements(overflowDb)) {
+      loadGraphMl(graph);
+    } // ARM auto-close will trigger saving to disk because we specified a location
 
-      // reload from disk
-      try (TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements(overflowDb)) {
-        assertEquals(Long.valueOf(808), graph.traversal().V().count().next());
-        assertEquals(Long.valueOf(8049), graph.traversal().E().count().next());
-      }
+    // reload from disk
+    try (TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements(overflowDb)) {
+      assertEquals(Long.valueOf(808), graph.traversal().V().count().next());
+      assertEquals(Long.valueOf(8049), graph.traversal().E().count().next());
     }
+  }
 
-    private TinkerGraph newGratefulDeadGraphWithSpecializedElements(File overflowDb) {
-        Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
-        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
-        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_GRAPH_LOCATION, overflowDb.getAbsolutePath());
-        return TinkerGraph.open(
-            configuration,
-            Arrays.asList(Song.factory, Artist.factory),
-            Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
-        );
-    }
+  private TinkerGraph newGratefulDeadGraphWithSpecializedElements(File overflowDb) {
+    Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
+    configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
+    configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_GRAPH_LOCATION, overflowDb.getAbsolutePath());
+    return TinkerGraph.open(
+        configuration,
+        Arrays.asList(Song.factory, Artist.factory),
+        Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
+    );
+  }
 
-    private void loadGraphMl(TinkerGraph graph) throws IOException {
-        graph.io(IoCore.graphml()).readGraph("src/test/resources/grateful-dead.xml");
-    }
+  private void loadGraphMl(TinkerGraph graph) throws IOException {
+    graph.io(IoCore.graphml()).readGraph("src/test/resources/grateful-dead.xml");
+  }
 
 }
