@@ -44,15 +44,9 @@ public class OndiskOverflow implements AutoCloseable {
 
   public static OndiskOverflow createWithTempFile(
       final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer) {
-    return createWithTempFile(vertexSerializer, edgeSerializer, null);
-  }
-
-  public static OndiskOverflow createWithTempFile(
-      final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer, final String tmpRootDir) {
     final File mvstoreFile;
     try {
-      final File tmpRootDirFile = tmpRootDir != null ? new File(tmpRootDir) : null;
-      mvstoreFile = File.createTempFile("mvstore", ".bin", tmpRootDirFile);
+      mvstoreFile = File.createTempFile("mvstore", ".bin");
       mvstoreFile.deleteOnExit();
     } catch (IOException e) {
       throw new RuntimeException("cannot create tmp file for mvstore", e);

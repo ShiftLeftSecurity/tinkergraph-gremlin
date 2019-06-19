@@ -92,7 +92,6 @@ public final class TinkerGraph implements Graph {
     public static final String GREMLIN_TINKERGRAPH_GRAPH_LOCATION = "gremlin.tinkergraph.graphLocation";
     public static final String GREMLIN_TINKERGRAPH_GRAPH_FORMAT = "gremlin.tinkergraph.graphFormat";
     public static final String GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED = "gremlin.tinkergraph.ondiskOverflow.enabled";
-    public static final String GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR = "gremlin.tinkergraph.ondiskOverflow.rootDir";
 
     /** when heap (after GC run) is above this threshold (e.g. 80 for 80%), @see ReferenceManager will start to clear some references, i.e. write them to storage and set them to `null` */
     public static final String GREMLIN_TINKERGRAPH_OVERFLOW_HEAP_PERCENTAGE_THRESHOLD = "gremlin.tinkergraph.ondiskOverflow.heapPercentageThreshold";
@@ -155,7 +154,7 @@ public final class TinkerGraph implements Graph {
             VertexSerializer vertexSerializer = new VertexSerializer(this, specializedVertexFactoryByLabel);
             EdgeSerializer edgeSerializer = new EdgeSerializer(this, specializedEdgeFactoryByLabel);
             if (graphLocation == null) {
-                ondiskOverflow = OndiskOverflow.createWithTempFile(vertexSerializer, edgeSerializer, configuration.getString(GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR));
+                ondiskOverflow = OndiskOverflow.createWithTempFile(vertexSerializer, edgeSerializer);
                 initEmptyElementCollections();
             } else {
                 ondiskOverflow = OndiskOverflow.createWithSpecificLocation(vertexSerializer, edgeSerializer, new File(graphLocation));
