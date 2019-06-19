@@ -30,6 +30,7 @@ public class EdgeRef<E extends TinkerEdge> extends ElementRef<E> implements Edge
     super(edge);
   }
 
+  // TODO keep [in|out]VertexRef in EdgeRef (and therfor in memory all the time) - main memory usage comes from properties
   public EdgeRef(final long edgeId, final String label, final TinkerGraph graph) {
     super(edgeId, label, graph);
   }

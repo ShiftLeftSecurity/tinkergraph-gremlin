@@ -44,48 +44,57 @@ public class EdgeSerializer extends Serializer<Edge> {
 
   @Override
   public byte[] serialize(Edge edge) throws IOException {
-    MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
-    packer.packLong((Long) edge.id());
-    packer.packString(edge.label());
-    packProperties(packer, edge.properties());
-    packer.packLong((Long) edge.outVertex().id());
-    packer.packString(edge.outVertex().label());
-    packer.packLong((Long) edge.inVertex().id());
-    packer.packString(edge.inVertex().label());
+    try (MessageBufferPacker packer = MessagePack.newDefaultBufferPacker()) {
+      packer.packLong((Long) edge.id());
+      packer.packString(edge.label());
+      packer.packLong((Long) edge.outVertex().id());
+      packer.packLong((Long) edge.inVertex().id());
+      packProperties(packer, edge.properties());
 
-    serializedCount++;
-    if (serializedCount % 100000 == 0) {
-      logger.debug("stats: serialized " + serializedCount + " edges in total");
+      serializedCount++;
+      if (serializedCount % 100000 == 0) {
+        logger.debug("stats: serialized " + serializedCount + " edges in total");
+      }
+      return packer.toByteArray();
     }
-    return packer.toByteArray();
   }
 
 
   @Override
   public TinkerEdge deserialize(byte[] bytes) throws IOException {
-    MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes);
-    Long id = unpacker.unpackLong();
-    String label = unpacker.unpackString();
-    Object[] keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
-    long outVertexId = unpacker.unpackLong();
-    // TODO remove
-    String outVertexLabel = unpacker.unpackString();
-    long inVertexId = unpacker.unpackLong();
-    // TODO remove
-    String inVertexLabel = unpacker.unpackString();
-    VertexRef outVertexRef = (VertexRef) graph.vertex(outVertexId);
-    VertexRef inVertexRef = (VertexRef) graph.vertex(inVertexId);
+    try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
+      Long id = unpacker.unpackLong();
+      String label = unpacker.unpackString();
+      long outVertexId = unpacker.unpackLong();
+      long inVertexId = unpacker.unpackLong();
+      VertexRef outVertexRef = (VertexRef) graph.vertex(outVertexId);
+      VertexRef inVertexRef = (VertexRef) graph.vertex(inVertexId);
+      Object[] keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
 
-    // TODO support generic edges too
-    SpecializedTinkerEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexRef, inVertexRef);
-    ElementHelper.attachProperties(edge, keyValues);
+      // TODO support generic edges too
+      SpecializedTinkerEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexRef, inVertexRef);
+      ElementHelper.attachProperties(edge, keyValues);
 
-    edge.setModifiedSinceLastSerialization(false);
+      edge.setModifiedSinceLastSerialization(false);
 
-    deserializedCount++;
-    if (deserializedCount % 100000 == 0) {
-      logger.debug("stats: deserialized " + deserializedCount + " edges in total");
+      deserializedCount++;
+      if (deserializedCount % 100000 == 0) {
+        logger.debug("stats: deserialized " + deserializedCount + " edges in total");
+      }
+      return edge;
     }
-    return edge;
+  }
+
+  @Override
+  public EdgeRef<TinkerEdge> deserializeRef(byte[] bytes) throws IOException {
+    try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
+      Long id = unpacker.unpackLong();
+      String label = unpacker.unpackString();
+      long outVertexId = unpacker.unpackLong();
+      long inVertexId = unpacker.unpackLong();
+      VertexRef outVertexRef = (VertexRef) graph.vertex(outVertexId);
+      VertexRef inVertexRef = (VertexRef) graph.vertex(inVertexId);
+      return edgeFactoryByLabel.get(label).createEdgeRef(id, graph, outVertexRef, inVertexRef);
+    }
   }
 }

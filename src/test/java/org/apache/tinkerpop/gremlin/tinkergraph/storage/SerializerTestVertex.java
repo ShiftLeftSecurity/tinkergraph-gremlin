@@ -99,7 +99,7 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
         } else if (STRING_LIST_PROPERTY.equals(key)) {
             this.stringListProperty = (List) value;
         } else if (INT_PROPERTY.equals(key)) {
-            this.intProperty = (Integer) value;
+            this.intProperty = ((Number) value).intValue();
         } else if (INT_LIST_PROPERTY.equals(key)) {
             this.intListProperty = (List) value;
         } else {
@@ -107,7 +107,6 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
         }
         return property(key);
     }
-
 
     @Override
     protected void removeSpecificProperty(String key) {
@@ -136,8 +135,13 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
         }
 
         @Override
+        public VertexRef<SerializerTestVertex> createVertexRef(SerializerTestVertex vertex) {
+            return new VertexRef<>(vertex);
+        }
+
+        @Override
         public VertexRef<SerializerTestVertex> createVertexRef(Long id, TinkerGraph graph) {
-            return new VertexRef<>(createVertex(id, graph));
+            return new VertexRef<>(id, SerializerTestVertex.label, graph);
         }
     };
 

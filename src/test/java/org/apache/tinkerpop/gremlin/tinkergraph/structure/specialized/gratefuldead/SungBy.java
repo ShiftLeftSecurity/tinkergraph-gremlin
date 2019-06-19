@@ -61,8 +61,13 @@ public class SungBy extends SpecializedTinkerEdge implements Serializable {
         }
 
         @Override
+        public EdgeRef<SungBy> createEdgeRef(SungBy edge) {
+            return new EdgeRef<>(edge);
+        }
+
+        @Override
         public EdgeRef<SungBy> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
-            return new EdgeRef<>(createEdge(id, graph, outVertex, inVertex));
+            return new EdgeRef<>(id, SungBy.label, graph);
         }
     };
 

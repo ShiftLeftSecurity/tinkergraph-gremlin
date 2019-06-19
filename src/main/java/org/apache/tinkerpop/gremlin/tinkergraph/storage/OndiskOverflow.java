@@ -30,38 +30,51 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
 
-public class OndiskOverflow {
+public class OndiskOverflow implements AutoCloseable {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   protected final VertexSerializer vertexSerializer;
   protected final EdgeSerializer edgeSerializer;
-  private final MVStore vertexMVStore;
-  private final MVStore edgeMVStore;
+  private final MVStore mvstore;
   protected final MVMap<Long, byte[]> vertexMVMap;
   protected final MVMap<Long, byte[]> edgeMVMap;
   private boolean closed;
 
-  public OndiskOverflow(final String ondiskOverflowRootDir,
-                        final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer) {
-    this.vertexSerializer = vertexSerializer;
-    this.edgeSerializer = edgeSerializer;
+  public static OndiskOverflow createWithTempFile(
+      final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer) {
+    return createWithTempFile(vertexSerializer, edgeSerializer, null);
+  }
 
-    final File mvstoreVerticesFile;
-    final File mvstoreEdgesFile;
+  public static OndiskOverflow createWithTempFile(
+      final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer, final String tmpRootDir) {
+    final File mvstoreFile;
     try {
-      File cacheParentDir = ondiskOverflowRootDir != null ? new File(ondiskOverflowRootDir) : null;
-      mvstoreVerticesFile = File.createTempFile("vertexMVStore", ".bin", cacheParentDir);
-      mvstoreEdgesFile = File.createTempFile("edgeMVStore", ".bin", cacheParentDir);
-      mvstoreVerticesFile.deleteOnExit();
-      mvstoreEdgesFile.deleteOnExit();
-      logger.debug("on-disk cache overflow files: " + mvstoreVerticesFile + ", " + mvstoreEdgesFile);
+      final File tmpRootDirFile = tmpRootDir != null ? new File(tmpRootDir) : null;
+      mvstoreFile = File.createTempFile("mvstore", ".bin", tmpRootDirFile);
+      mvstoreFile.deleteOnExit();
     } catch (IOException e) {
       throw new RuntimeException("cannot create tmp file for mvstore", e);
     }
-    vertexMVStore = new MVStore.Builder().fileName(mvstoreVerticesFile.getAbsolutePath()).open();
-    edgeMVStore = new MVStore.Builder().fileName(mvstoreEdgesFile.getAbsolutePath()).open();
-    vertexMVMap = vertexMVStore.openMap("vertices");
-    edgeMVMap = edgeMVStore.openMap("edges");
+    return new OndiskOverflow(mvstoreFile, vertexSerializer, edgeSerializer);
+  }
+
+  /** create with specific mvstore file - which may or may not yet exist.
+   * mvstoreFile won't be deleted at the end (unlike temp file constructors above) */
+  public static OndiskOverflow createWithSpecificLocation(
+      final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer, final File mvstoreFile) {
+    return new OndiskOverflow(mvstoreFile, vertexSerializer, edgeSerializer);
+  }
+
+  private OndiskOverflow(final File mvstoreFile, final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer) {
+    this.vertexSerializer = vertexSerializer;
+    this.edgeSerializer = edgeSerializer;
+
+    logger.debug("on-disk overflow file: " + mvstoreFile);
+    mvstore = new MVStore.Builder().fileName(mvstoreFile.getAbsolutePath()).open();
+    vertexMVMap = mvstore.openMap("vertices");
+    edgeMVMap = mvstore.openMap("edges");
   }
 
   public void persist(final TinkerElement element) throws IOException {
@@ -72,7 +85,7 @@ public class OndiskOverflow {
       } else if (element instanceof Edge) {
         edgeMVMap.put(id, edgeSerializer.serialize((Edge) element));
       } else {
-        new RuntimeException("unable to serialize " + element + " of type " + element.getClass());
+        throw new RuntimeException("unable to serialize " + element + " of type " + element.getClass());
       }
     }
   }
@@ -85,10 +98,10 @@ public class OndiskOverflow {
     return (A) edgeSerializer.deserialize(edgeMVMap.get(id));
   }
 
+  @Override
   public void close() {
     closed = true;
-    vertexMVStore.close();
-    edgeMVStore.close();
+    mvstore.close();
   }
 
   public void removeVertex(final Long id) {
@@ -97,6 +110,23 @@ public class OndiskOverflow {
 
   public void removeEdge(final Long id) {
     edgeMVMap.remove(id);
+  }
+
+  public Set<Map.Entry<Long, byte[]>> allVertices() {
+    return vertexMVMap.entrySet();
+  }
+
+  public Set<Map.Entry<Long, byte[]>> allEdges() {
+    return edgeMVMap.entrySet();
+  }
+
+
+  public VertexSerializer getVertexSerializer() {
+    return vertexSerializer;
+  }
+
+  public EdgeSerializer getEdgeSerializer() {
+    return edgeSerializer;
   }
 
 }

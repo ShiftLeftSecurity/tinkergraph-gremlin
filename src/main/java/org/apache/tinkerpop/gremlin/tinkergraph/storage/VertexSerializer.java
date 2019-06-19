@@ -57,27 +57,28 @@ public class VertexSerializer extends Serializer<Vertex> {
     }
 
     long start = System.currentTimeMillis();
-    MessageBufferPacker packer = MessagePack.newDefaultBufferPacker();
+    try (MessageBufferPacker packer = MessagePack.newDefaultBufferPacker()) {
 //    ((SpecializedTinkerVertex) vertex).acquireModificationLock();
-    packer.packLong((Long) vertex.id());
-    packer.packString(vertex.label());
+      packer.packLong((Long) vertex.id());
+      packer.packString(vertex.label());
 
-    if (vertex instanceof SpecializedTinkerVertex) {
-      // optimization for better performance
-      packProperties(packer, ((SpecializedTinkerVertex) vertex).valueMap());
-    } else {
-      packProperties(packer, vertex.properties());
-    }
-    packEdgeIds(packer, vertex);
-//    ((SpecializedTinkerVertex) vertex).releaseModificationLock();
+      if (vertex instanceof SpecializedTinkerVertex) {
+        // optimization for better performance
+        packProperties(packer, ((SpecializedTinkerVertex) vertex).valueMap());
+      } else {
+        packProperties(packer, vertex.properties());
+      }
+      packEdgeIds(packer, vertex);
+  //    ((SpecializedTinkerVertex) vertex).releaseModificationLock();
 
-    serializedCount++;
-    serializationTimeSpentMillis += System.currentTimeMillis() - start;
-    if (serializedCount % 100000 == 0) {
-      float avgSerializationTime = serializationTimeSpentMillis / (float) serializedCount;
-      logger.debug("stats: serialized " + serializedCount + " vertices in total (avg time: " + avgSerializationTime + "ms)");
+      serializedCount++;
+      serializationTimeSpentMillis += System.currentTimeMillis() - start;
+      if (serializedCount % 100000 == 0) {
+        float avgSerializationTime = serializationTimeSpentMillis / (float) serializedCount;
+        logger.debug("stats: serialized " + serializedCount + " vertices in total (avg time: " + avgSerializationTime + "ms)");
+      }
+      return packer.toByteArray();
     }
-    return packer.toByteArray();
   }
 
   /** format: two `Map<Label, Array<EdgeId>>`, i.e. one Map for `IN` and one for `OUT` edges */
@@ -106,42 +107,58 @@ public class VertexSerializer extends Serializer<Vertex> {
     if (null == bytes)
       return null;
 
-    MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes);
-    Long id = unpacker.unpackLong();
-    String label = unpacker.unpackString();
-    Object[] keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
+    try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
+      Long id = unpacker.unpackLong();
+      String label = unpacker.unpackString();
+      Object[] keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
 
-    SpecializedElementFactory.ForVertex vertexFactory = vertexFactoryByLabel.get(label);
-    if (vertexFactory == null) {
-      throw new AssertionError("vertexFactory not found for id=" + id + ", label=" + label);
-    }
-    SpecializedTinkerVertex vertex = vertexFactory.createVertex(id, graph);
-    ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
-
-    Map<String, long[]> inEdgeIdsByLabel = unpackEdges(unpacker);
-    Map<String, long[]> outEdgeIdsByLabel = unpackEdges(unpacker);
-
-    inEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
-      for (long edgeId : entry.getValue()) {
-        vertex.storeInEdge(graph.edge(edgeId));
+      SpecializedElementFactory.ForVertex vertexFactory = vertexFactoryByLabel.get(label);
+      if (vertexFactory == null) {
+        throw new AssertionError("vertexFactory not found for label=" + label);
       }
-    });
+      SpecializedTinkerVertex vertex = vertexFactory.createVertex(id, graph);
+      ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
 
-    outEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
-      for (long edgeId : entry.getValue()) {
-        vertex.storeOutEdge(graph.edge(edgeId));
+      Map<String, long[]> inEdgeIdsByLabel = unpackEdges(unpacker);
+      Map<String, long[]> outEdgeIdsByLabel = unpackEdges(unpacker);
+
+      inEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
+        for (long edgeId : entry.getValue()) {
+          vertex.storeInEdge(graph.edge(edgeId));
+        }
+      });
+
+      outEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
+        for (long edgeId : entry.getValue()) {
+          vertex.storeOutEdge(graph.edge(edgeId));
+        }
+      });
+
+      vertex.setModifiedSinceLastSerialization(false);
+
+      deserializedCount++;
+      deserializationTimeSpentMillis += System.currentTimeMillis() - start;
+      if (deserializedCount % 100000 == 0) {
+        float avgDeserializationTime = deserializationTimeSpentMillis / (float) deserializedCount;
+        logger.debug("stats: deserialized " + deserializedCount + " vertices in total (avg time: " + avgDeserializationTime + "ms)");
       }
-    });
-
-    vertex.setModifiedSinceLastSerialization(false);
-
-    deserializedCount++;
-    deserializationTimeSpentMillis += System.currentTimeMillis() - start;
-    if (deserializedCount % 100000 == 0) {
-      float avgDeserializationTime = deserializationTimeSpentMillis / (float) deserializedCount;
-      logger.debug("stats: deserialized " + deserializedCount + " vertices in total (avg time: " + avgDeserializationTime + "ms)");
+      return vertex;
     }
-    return vertex;
+  }
+
+  @Override
+  public VertexRef<TinkerVertex> deserializeRef(byte[] bytes) throws IOException {
+    try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
+      Long id = unpacker.unpackLong();
+      String label = unpacker.unpackString();
+
+      SpecializedElementFactory.ForVertex vertexFactory = vertexFactoryByLabel.get(label);
+      if (vertexFactory == null) {
+        throw new AssertionError("vertexFactory not found for label=" + label);
+      }
+
+      return vertexFactory.createVertexRef(id, graph);
+    }
   }
 
   /** format: `Map<Label, Array<EdgeId>>` */

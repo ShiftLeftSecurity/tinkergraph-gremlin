@@ -50,7 +50,7 @@ public class FollowedBy extends SpecializedTinkerEdge {
     @Override
     protected <V> Property<V> updateSpecificProperty(String key, V value) {
         if (WEIGHT.equals(key)) {
-            this.weight = (Integer) value;
+            this.weight = ((Number) value).intValue();
         } else {
             throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
         }
@@ -78,8 +78,13 @@ public class FollowedBy extends SpecializedTinkerEdge {
         }
 
         @Override
+        public EdgeRef<FollowedBy> createEdgeRef(FollowedBy edge) {
+            return new EdgeRef<>(edge);
+        }
+
+        @Override
         public EdgeRef<FollowedBy> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
-            return new EdgeRef<>(createEdge(id, graph, outVertex, inVertex));
+            return new EdgeRef<>(id, FollowedBy.label, graph);
         }
     };
 }
