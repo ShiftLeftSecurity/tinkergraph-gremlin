@@ -70,7 +70,21 @@ public class GraphSaveRestoreTest {
         }
     }
 
-    // TODO import entire graph with loadGraphMl, save, compare
+    @Test
+    public void completeGratefulDeadGraph() throws IOException {
+        final File overflowDb = Files.createTempFile("overflowdb", "bin").toFile();
+        overflowDb.deleteOnExit();
+
+        try (TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements(overflowDb)) {
+            loadGraphMl(graph);
+        } // ARM auto-close will trigger saving to disk because we specified a location
+
+      // reload from disk
+      try (TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements(overflowDb)) {
+        assertEquals(Long.valueOf(808), graph.traversal().V().count().next());
+        assertEquals(Long.valueOf(8049), graph.traversal().E().count().next());
+      }
+    }
 
     private TinkerGraph newGratefulDeadGraphWithSpecializedElements(File overflowDb) {
         Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
@@ -82,7 +96,7 @@ public class GraphSaveRestoreTest {
             Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
         );
     }
-    
+
     private void loadGraphMl(TinkerGraph graph) throws IOException {
         graph.io(IoCore.graphml()).readGraph("src/test/resources/grateful-dead.xml");
     }
