@@ -180,39 +180,51 @@ public final class TinkerGraph implements Graph {
 
     /** implementation note: must start with vertices, because the edges require the vertexRefs to be already present! */
     private void initElementCollections(OndiskOverflow ondiskOverflow) {
+        long start = System.currentTimeMillis();
         final Set<Map.Entry<Long, byte[]>> serializedVertices = ondiskOverflow.allVertices();
-        if (!serializedVertices.isEmpty()) {
-            logger.debug("initializing " + serializedVertices.size() + " vertices from existing storage");
-        }
+        final Set<Map.Entry<Long, byte[]>> serializedEdges = ondiskOverflow.allEdges();
+        int elementCount = serializedVertices.size() + serializedEdges.size();
+        logger.info("initializing " + elementCount + " from existing storage - this may take some time");
+        int importCount = 0;
+
         vertices = new THashMap<>(serializedVertices.size());
         verticesByLabel = new THashMap<>(serializedVertices.size());
-        serializedVertices.iterator().forEachRemaining(entry -> {
+        final Iterator<Map.Entry<Long, byte[]>> serializedVertexIter = serializedVertices.iterator();
+        while (serializedVertexIter.hasNext()) {
+            final Map.Entry<Long, byte[]> entry = serializedVertexIter.next();
             try {
                 final VertexRef<TinkerVertex> vertexRef = ondiskOverflow.getVertexSerializer().deserializeRef(entry.getValue());
                 vertices.put(vertexRef.id, vertexRef);
                 getElementsByLabel(verticesByLabel, vertexRef.label).add(vertexRef);
+                importCount++;
+                if (importCount % 100000 == 0) {
+                    logger.debug("imported " + importCount + " elements - still running...");
+                }
             } catch (IOException e) {
                 throw new RuntimeException("error while initializing vertex from storage: id=" + entry.getKey(), e);
             }
-        });
-
-        final Set<Map.Entry<Long, byte[]>> serializedEdges = ondiskOverflow.allEdges();
-        if (!serializedEdges.isEmpty()) {
-            logger.debug("initializing " + serializedEdges.size() + " edges from existing storage");
         }
+
         edges = new THashMap<>(serializedEdges.size());
         edgesByLabel = new THashMap<>(serializedEdges.size());
-        serializedEdges.iterator().forEachRemaining(entry -> {
+        final Iterator<Map.Entry<Long, byte[]>> serializedEdgeIter = serializedEdges.iterator();
+        while (serializedEdgeIter.hasNext()) {
+            final Map.Entry<Long, byte[]> entry = serializedEdgeIter.next();
             try {
                 final EdgeRef<TinkerEdge> edgeRef = ondiskOverflow.getEdgeSerializer().deserializeRef(entry.getValue());
                 edges.put(edgeRef.id, edgeRef);
                 getElementsByLabel(edgesByLabel, edgeRef.label).add(edgeRef);
+                importCount++;
+                if (importCount % 100000 == 0) {
+                    logger.debug("imported " + importCount + " elements - still running...");
+                }
             } catch (IOException e) {
                 throw new RuntimeException("error while initializing edge from storage: id=" + entry.getKey(), e);
             }
-        });
-        if (!vertices.isEmpty() || !edges.isEmpty())
-            logger.info("initialized from existing storage: " + toString());
+        }
+
+        long elapsedMillis = System.currentTimeMillis() - start;
+        logger.info("initialized " + this.toString() + " from existing storage in " + elapsedMillis + "ms");
     }
 
     /**
