@@ -36,7 +36,7 @@ public class SerializerTest {
       Vertex vertex = graph.addVertex(
           T.label, SerializerTestVertex.label,
           SerializerTestVertex.STRING_PROPERTY, "StringValue",
-          SerializerTestVertex.INT_PROPERTY, Integer.MAX_VALUE,
+          SerializerTestVertex.INT_PROPERTY, 42,
           SerializerTestVertex.STRING_LIST_PROPERTY, Arrays.asList("stringOne", "stringTwo"),
           SerializerTestVertex.INT_LIST_PROPERTY, Arrays.asList(42, 43)
       );

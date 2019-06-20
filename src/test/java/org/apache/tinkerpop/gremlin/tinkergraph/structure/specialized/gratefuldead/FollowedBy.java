@@ -50,7 +50,7 @@ public class FollowedBy extends SpecializedTinkerEdge {
     @Override
     protected <V> Property<V> updateSpecificProperty(String key, V value) {
         if (WEIGHT.equals(key)) {
-            this.weight = ((Number) value).intValue();
+            this.weight = (Integer) value;
         } else {
             throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
         }

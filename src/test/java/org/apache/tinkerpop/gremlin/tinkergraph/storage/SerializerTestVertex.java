@@ -99,7 +99,7 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
         } else if (STRING_LIST_PROPERTY.equals(key)) {
             this.stringListProperty = (List) value;
         } else if (INT_PROPERTY.equals(key)) {
-            this.intProperty = ((Number) value).intValue();
+            this.intProperty = (Integer) value;
         } else if (INT_LIST_PROPERTY.equals(key)) {
             this.intListProperty = (List) value;
         } else {
