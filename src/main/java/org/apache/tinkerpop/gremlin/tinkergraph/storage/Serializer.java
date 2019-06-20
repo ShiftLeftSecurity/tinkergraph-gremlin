@@ -100,13 +100,21 @@ public abstract class Serializer<A extends Element> {
     }
   }
 
-  protected Object[] unpackProperties(Map<Value, Value> properties) {
-    Object[] keyValues = new Object[properties.size() * 2];
-    int idx = 0;
+  protected List unpackProperties(Map<Value, Value> properties) {
+    List keyValues = new ArrayList(properties.size() * 2); // may grow bigger if there's list entries
     for (Map.Entry<Value, Value> entry : properties.entrySet()) {
       String key = entry.getKey().asStringValue().asString();
-      keyValues[idx++] = key;
-      keyValues[idx++] = unpackProperty(entry.getValue().asArrayValue());
+      final Object unpackedProperty = unpackProperty(entry.getValue().asArrayValue());
+      // special handling for lists: create separate key/value entry for each list entry
+      if (unpackedProperty instanceof List) {
+        for (Object value : (List) unpackedProperty) {
+          keyValues.add(key);
+          keyValues.add(value);
+        }
+      } else {
+        keyValues.add(key);
+        keyValues.add(unpackedProperty);
+      }
     }
     return keyValues;
   }
