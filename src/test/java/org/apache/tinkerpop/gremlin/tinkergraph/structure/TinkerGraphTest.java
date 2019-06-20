@@ -626,7 +626,7 @@ public class TinkerGraphTest {
 
     /**
      * Coerces a {@code Color} to a {@link TinkerGraph} during serialization.  Demonstrates how custom serializers
-     * can be developed that can coerce one value to another during serialization.
+     * can be developed that can coerce one id to another during serialization.
      */
     public final static class ColorToTinkerGraphSerializer extends Serializer<Color> {
         public ColorToTinkerGraphSerializer() {

@@ -127,7 +127,7 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
         } else if (SONG_TYPE.equals(key)) {
             this.songType = (String) value;
         } else if (PERFORMANCES.equals(key)) {
-            this.performances = ((Number) value).intValue();
+            this.performances = ((Integer) value);
         } else if (TEST_PROP.equals(key)) {
             this.testProp = (int[]) value;
         } else {

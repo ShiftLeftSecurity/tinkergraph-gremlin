@@ -92,7 +92,6 @@ public final class TinkerGraph implements Graph {
     public static final String GREMLIN_TINKERGRAPH_GRAPH_LOCATION = "gremlin.tinkergraph.graphLocation";
     public static final String GREMLIN_TINKERGRAPH_GRAPH_FORMAT = "gremlin.tinkergraph.graphFormat";
     public static final String GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED = "gremlin.tinkergraph.ondiskOverflow.enabled";
-    public static final String GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR = "gremlin.tinkergraph.ondiskOverflow.rootDir";
 
     /** when heap (after GC run) is above this threshold (e.g. 80 for 80%), @see ReferenceManager will start to clear some references, i.e. write them to storage and set them to `null` */
     public static final String GREMLIN_TINKERGRAPH_OVERFLOW_HEAP_PERCENTAGE_THRESHOLD = "gremlin.tinkergraph.ondiskOverflow.heapPercentageThreshold";
@@ -155,7 +154,7 @@ public final class TinkerGraph implements Graph {
             VertexSerializer vertexSerializer = new VertexSerializer(this, specializedVertexFactoryByLabel);
             EdgeSerializer edgeSerializer = new EdgeSerializer(this, specializedEdgeFactoryByLabel);
             if (graphLocation == null) {
-                ondiskOverflow = OndiskOverflow.createWithTempFile(vertexSerializer, edgeSerializer, configuration.getString(GREMLIN_TINKERGRAPH_ONDISK_ROOT_DIR));
+                ondiskOverflow = OndiskOverflow.createWithTempFile(vertexSerializer, edgeSerializer);
                 initEmptyElementCollections();
             } else {
                 ondiskOverflow = OndiskOverflow.createWithSpecificLocation(vertexSerializer, edgeSerializer, new File(graphLocation));
@@ -181,39 +180,51 @@ public final class TinkerGraph implements Graph {
 
     /** implementation note: must start with vertices, because the edges require the vertexRefs to be already present! */
     private void initElementCollections(OndiskOverflow ondiskOverflow) {
+        long start = System.currentTimeMillis();
         final Set<Map.Entry<Long, byte[]>> serializedVertices = ondiskOverflow.allVertices();
-        if (!serializedVertices.isEmpty()) {
-            logger.debug("initializing " + serializedVertices.size() + " vertices from existing storage");
-        }
+        final Set<Map.Entry<Long, byte[]>> serializedEdges = ondiskOverflow.allEdges();
+        int elementCount = serializedVertices.size() + serializedEdges.size();
+        logger.info("initializing " + elementCount + " from existing storage - this may take some time");
+        int importCount = 0;
+
         vertices = new THashMap<>(serializedVertices.size());
         verticesByLabel = new THashMap<>(serializedVertices.size());
-        serializedVertices.iterator().forEachRemaining(entry -> {
+        final Iterator<Map.Entry<Long, byte[]>> serializedVertexIter = serializedVertices.iterator();
+        while (serializedVertexIter.hasNext()) {
+            final Map.Entry<Long, byte[]> entry = serializedVertexIter.next();
             try {
                 final VertexRef<TinkerVertex> vertexRef = ondiskOverflow.getVertexSerializer().deserializeRef(entry.getValue());
                 vertices.put(vertexRef.id, vertexRef);
                 getElementsByLabel(verticesByLabel, vertexRef.label).add(vertexRef);
+                importCount++;
+                if (importCount % 100000 == 0) {
+                    logger.debug("imported " + importCount + " elements - still running...");
+                }
             } catch (IOException e) {
                 throw new RuntimeException("error while initializing vertex from storage: id=" + entry.getKey(), e);
             }
-        });
-
-        final Set<Map.Entry<Long, byte[]>> serializedEdges = ondiskOverflow.allEdges();
-        if (!serializedEdges.isEmpty()) {
-            logger.debug("initializing " + serializedEdges.size() + " edges from existing storage");
         }
+
         edges = new THashMap<>(serializedEdges.size());
         edgesByLabel = new THashMap<>(serializedEdges.size());
-        serializedEdges.iterator().forEachRemaining(entry -> {
+        final Iterator<Map.Entry<Long, byte[]>> serializedEdgeIter = serializedEdges.iterator();
+        while (serializedEdgeIter.hasNext()) {
+            final Map.Entry<Long, byte[]> entry = serializedEdgeIter.next();
             try {
                 final EdgeRef<TinkerEdge> edgeRef = ondiskOverflow.getEdgeSerializer().deserializeRef(entry.getValue());
                 edges.put(edgeRef.id, edgeRef);
                 getElementsByLabel(edgesByLabel, edgeRef.label).add(edgeRef);
+                importCount++;
+                if (importCount % 100000 == 0) {
+                    logger.debug("imported " + importCount + " elements - still running...");
+                }
             } catch (IOException e) {
                 throw new RuntimeException("error while initializing edge from storage: id=" + entry.getKey(), e);
             }
-        });
-        if (!vertices.isEmpty() || !edges.isEmpty())
-            logger.info("initialized from existing storage: " + toString());
+        }
+
+        long elapsedMillis = System.currentTimeMillis() - start;
+        logger.info("initialized " + this.toString() + " from existing storage in " + elapsedMillis + "ms");
     }
 
     /**

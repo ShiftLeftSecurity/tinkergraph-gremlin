@@ -97,11 +97,21 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
         if (STRING_PROPERTY.equals(key)) {
             this.stringProperty = (String) value;
         } else if (STRING_LIST_PROPERTY.equals(key)) {
-            this.stringListProperty = (List) value;
+            if (value instanceof List) {
+                this.stringListProperty = (List) value;
+            } else {
+                if (this.stringListProperty == null) this.stringListProperty = new ArrayList<>();
+                this.stringListProperty.add((String) value);
+            }
         } else if (INT_PROPERTY.equals(key)) {
-            this.intProperty = ((Number) value).intValue();
+            this.intProperty = (Integer) value;
         } else if (INT_LIST_PROPERTY.equals(key)) {
-            this.intListProperty = (List) value;
+            if (value instanceof List) {
+                this.intListProperty = (List) value;
+            } else {
+                if (this.intListProperty == null) this.intListProperty = new ArrayList<>();
+                this.intListProperty.add((Integer) value);
+            }
         } else {
             throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
         }

@@ -110,14 +110,14 @@ public class VertexSerializer extends Serializer<Vertex> {
     try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
       Long id = unpacker.unpackLong();
       String label = unpacker.unpackString();
-      Object[] keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
+      List keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
 
       SpecializedElementFactory.ForVertex vertexFactory = vertexFactoryByLabel.get(label);
       if (vertexFactory == null) {
         throw new AssertionError("vertexFactory not found for label=" + label);
       }
       SpecializedTinkerVertex vertex = vertexFactory.createVertex(id, graph);
-      ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues);
+      ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, keyValues.toArray());
 
       Map<String, long[]> inEdgeIdsByLabel = unpackEdges(unpacker);
       Map<String, long[]> outEdgeIdsByLabel = unpackEdges(unpacker);

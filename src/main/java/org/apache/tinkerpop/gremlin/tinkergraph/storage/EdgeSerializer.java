@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 public class EdgeSerializer extends Serializer<Edge> {
@@ -69,11 +70,11 @@ public class EdgeSerializer extends Serializer<Edge> {
       long inVertexId = unpacker.unpackLong();
       VertexRef outVertexRef = (VertexRef) graph.vertex(outVertexId);
       VertexRef inVertexRef = (VertexRef) graph.vertex(inVertexId);
-      Object[] keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
+      List keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
 
       // TODO support generic edges too
       SpecializedTinkerEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexRef, inVertexRef);
-      ElementHelper.attachProperties(edge, keyValues);
+      ElementHelper.attachProperties(edge, keyValues.toArray());
 
       edge.setModifiedSinceLastSerialization(false);
 
