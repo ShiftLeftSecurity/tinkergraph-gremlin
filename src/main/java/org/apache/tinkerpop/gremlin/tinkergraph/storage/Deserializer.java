@@ -19,7 +19,6 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
 import org.apache.commons.lang3.NotImplementedException;
-import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.ElementRef;
 import org.msgpack.value.ArrayValue;
 import org.msgpack.value.Value;
@@ -30,7 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public abstract class Deserializer<A extends Element> {
+public abstract class Deserializer<A> {
 
   public abstract A deserialize(byte[] bytes) throws IOException;
 

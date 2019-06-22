@@ -19,7 +19,6 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
 import org.apache.commons.lang3.NotImplementedException;
-import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.msgpack.core.MessageBufferPacker;
 
@@ -29,7 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public abstract class Serializer<A extends Element> {
+public abstract class Serializer<A> {
 
   public abstract byte[] serialize(A a) throws IOException;
 
