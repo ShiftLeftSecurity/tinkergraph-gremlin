@@ -18,15 +18,15 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
+import gnu.trove.map.hash.THashMap;
+import gnu.trove.set.TLongSet;
+import gnu.trove.set.hash.TLongHashSet;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 public class EdgeSerializer extends Serializer<Edge> {
 
@@ -42,21 +42,21 @@ public class EdgeSerializer extends Serializer<Edge> {
 
   @Override
   protected Map<String, Object> getProperties(Edge edge) {
-    Map<String, Object> properties = new HashMap<>();
+    Map<String, Object> properties = new THashMap<>();
     edge.properties().forEachRemaining(property -> properties.put(property.key(), property.value()));
     return properties;
   }
 
   @Override
   /** using same format to store edgeIds as for vertices */
-  protected Map<String, Set<Long>> getEdgeIds(Edge edge, Direction direction) {
-    final Map<String, Set<Long>> edgeIds = new HashMap<>();
+  protected Map<String, TLongSet> getEdgeIds(Edge edge, Direction direction) {
+    final Map<String, TLongSet> edgeIds = new THashMap<>();
     switch (direction) {
       case IN:
-        edgeIds.put(Direction.IN.name(), new HashSet<>(Arrays.asList((Long) edge.inVertex().id())));
+        edgeIds.put(Direction.IN.name(), new TLongHashSet(Arrays.asList((long) edge.inVertex().id())));
         break;
       case OUT:
-        edgeIds.put(Direction.OUT.name(), new HashSet<>(Arrays.asList((Long) edge.outVertex().id())));
+        edgeIds.put(Direction.OUT.name(), new TLongHashSet(Arrays.asList((long) edge.outVertex().id())));
         break;
       default: throw new NotImplementedException();
     }

@@ -18,6 +18,8 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
+import gnu.trove.iterator.TLongIterator;
+import gnu.trove.set.TLongSet;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.msgpack.core.MessageBufferPacker;
@@ -29,7 +31,6 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public abstract class Serializer<A> {
   private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -39,7 +40,7 @@ public abstract class Serializer<A> {
   protected abstract long getId(A a);
   protected abstract String getLabel(A a);
   protected abstract Map<String, Object> getProperties(A a);
-  protected abstract Map<String, Set<Long>> getEdgeIds(A a, Direction direction);
+  protected abstract Map<String, TLongSet> getEdgeIds(A a, Direction direction);
 
   public byte[] serialize(A a) throws IOException {
     long start = System.currentTimeMillis();
@@ -119,15 +120,16 @@ public abstract class Serializer<A> {
    * format: two `Map<Label, Array<EdgeId>>`, i.e. one Map for `IN` and one for `OUT` edges
    */
   private void packEdgeIds(final MessageBufferPacker packer,
-                           final Map<String, Set<Long>> edgeIdsByLabel) throws IOException {
+                           final Map<String, TLongSet> edgeIdsByLabel) throws IOException {
     packer.packMapHeader(edgeIdsByLabel.size());
-    for (Map.Entry<String, Set<Long>> entry : edgeIdsByLabel.entrySet()) {
+    for (Map.Entry<String, TLongSet> entry : edgeIdsByLabel.entrySet()) {
       final String label = entry.getKey();
       packer.packString(label);
-      final Set<Long> edgeIds = entry.getValue();
+      final TLongSet edgeIds = entry.getValue();
       packer.packArrayHeader(edgeIds.size());
-      for (Long edgeId : edgeIds) {
-        packer.packLong(edgeId);
+      final TLongIterator edgeIdIter = edgeIds.iterator();
+      while (edgeIdIter.hasNext()) {
+        packer.packLong(edgeIdIter.next());
       }
     }
   }

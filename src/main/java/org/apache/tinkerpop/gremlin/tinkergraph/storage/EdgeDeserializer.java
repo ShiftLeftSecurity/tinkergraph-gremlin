@@ -44,7 +44,7 @@ public class EdgeDeserializer extends Deserializer<Edge> {
   }
 
   @Override
-  protected ElementRef createElementRef(Long id, String label, Map<String, long[]> inVertexIdsByLabel, Map<String, long[]> outVertexIdsByLabel) {
+  protected ElementRef createElementRef(long id, String label, Map<String, long[]> inVertexIdsByLabel, Map<String, long[]> outVertexIdsByLabel) {
     VertexRef outVertexRef = getVertexRef(outVertexIdsByLabel, Direction.OUT);
     VertexRef inVertexRef = getVertexRef(inVertexIdsByLabel, Direction.IN);
     return edgeFactoryByLabel.get(label).createEdgeRef(id, graph, outVertexRef, inVertexRef);

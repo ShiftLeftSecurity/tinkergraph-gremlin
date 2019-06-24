@@ -18,14 +18,14 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
+import gnu.trove.map.hash.THashMap;
+import gnu.trove.set.TLongSet;
+import gnu.trove.set.hash.TLongHashSet;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 public class VertexSerializer extends Serializer<Vertex> {
 
@@ -44,18 +44,18 @@ public class VertexSerializer extends Serializer<Vertex> {
     if (vertex instanceof SpecializedTinkerVertex) {
       return ((SpecializedTinkerVertex) vertex).valueMap();
     } else {
-      Map<String, Object> properties = new HashMap<>();
+      Map<String, Object> properties = new THashMap<>();
       vertex.properties().forEachRemaining(property -> properties.put(property.key(), property.value()));
       return properties;
     }
   }
 
   @Override
-  protected Map<String, Set<Long>> getEdgeIds(Vertex vertex, Direction direction) {
-    Map<String, Set<Long>> edgeIdsByLabel = new HashMap<>();
+  protected Map<String, TLongSet> getEdgeIds(Vertex vertex, Direction direction) {
+    Map<String, TLongSet> edgeIdsByLabel = new THashMap<>();
     vertex.edges(direction).forEachRemaining(edge -> {
-      edgeIdsByLabel.computeIfAbsent(edge.label(), label -> new HashSet<>());
-      edgeIdsByLabel.get(edge.label()).add((Long) edge.id());
+      edgeIdsByLabel.computeIfAbsent(edge.label(), label -> new TLongHashSet());
+      edgeIdsByLabel.get(edge.label()).add((long) edge.id());
     });
     return edgeIdsByLabel;
   }

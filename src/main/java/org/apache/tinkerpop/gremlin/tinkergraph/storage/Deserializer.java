@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
+import gnu.trove.map.hash.THashMap;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.ElementRef;
 import org.msgpack.core.MessagePack;
@@ -29,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +42,7 @@ public abstract class Deserializer<A> {
   protected abstract boolean elementRefRequiresAdjacentElements();
 
   /** edgeId maps are passed dependent on `elementRefRequiresAdjacentElements`*/
-  protected abstract ElementRef createElementRef(Long id,
+  protected abstract ElementRef createElementRef(long id,
                                                  String label,
                                                  Map<String, long[]> inEdgeIdsByLabel,
                                                  Map<String, long[]> outEdgeIdsByLabel);
@@ -82,7 +82,7 @@ public abstract class Deserializer<A> {
    */
   public ElementRef deserializeRef(byte[] bytes) throws IOException {
     try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
-      Long id = unpacker.unpackLong();
+      long id = unpacker.unpackLong();
       String label = unpacker.unpackString();
 
       Map<String, long[]> inEdgeIdsByLabel = null;
@@ -97,7 +97,7 @@ public abstract class Deserializer<A> {
 
   private Map<String, Object> unpackProperties(MessageUnpacker unpacker) throws IOException {
     int propertyCount = unpacker.unpackMapHeader();
-    Map<String, Object> res = new HashMap<>(propertyCount);
+    Map<String, Object> res = new THashMap<>(propertyCount);
     for (int i = 0; i < propertyCount; i++) {
       final String key = unpacker.unpackString();
       final Object unpackedProperty = unpackProperty(unpacker.unpackValue().asArrayValue());
@@ -146,7 +146,7 @@ public abstract class Deserializer<A> {
    */
   private Map<String, long[]> unpackEdgeIdsByLabel(MessageUnpacker unpacker) throws IOException {
     int labelCount = unpacker.unpackMapHeader();
-    Map<String, long[]> edgeIdsByLabel = new HashMap<>(labelCount);
+    Map<String, long[]> edgeIdsByLabel = new THashMap<>(labelCount);
     for (int i = 0; i < labelCount; i++) {
       String label = unpacker.unpackString();
       int edgeIdsCount = unpacker.unpackArrayHeader();

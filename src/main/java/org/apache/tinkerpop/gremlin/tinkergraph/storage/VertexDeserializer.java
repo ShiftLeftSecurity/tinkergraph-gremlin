@@ -42,7 +42,7 @@ public class VertexDeserializer extends Deserializer<Vertex> {
   }
 
   @Override
-  protected ElementRef createElementRef(Long id, String label, Map<String, long[]> inEdgeIdsByLabel, Map<String, long[]> outEdgeIdsByLabel) {
+  protected ElementRef createElementRef(long id, String label, Map<String, long[]> inEdgeIdsByLabel, Map<String, long[]> outEdgeIdsByLabel) {
     SpecializedElementFactory.ForVertex vertexFactory = vertexFactoryByLabel.get(label);
     if (vertexFactory == null) {
       throw new AssertionError("vertexFactory not found for label=" + label);
