@@ -195,7 +195,7 @@ public final class TinkerGraph implements Graph {
         while (serializedVertexIter.hasNext()) {
             final Map.Entry<Long, byte[]> entry = serializedVertexIter.next();
             try {
-                final VertexRef<TinkerVertex> vertexRef = ondiskOverflow.getVertexDeserializer().get().deserializeRef(entry.getValue());
+                final VertexRef<TinkerVertex> vertexRef = (VertexRef<TinkerVertex>) ondiskOverflow.getVertexDeserializer().get().deserializeRef(entry.getValue());
                 vertices.put(vertexRef.id, vertexRef);
                 getElementsByLabel(verticesByLabel, vertexRef.label).add(vertexRef);
                 importCount++;
@@ -213,7 +213,7 @@ public final class TinkerGraph implements Graph {
         while (serializedEdgeIter.hasNext()) {
             final Map.Entry<Long, byte[]> entry = serializedEdgeIter.next();
             try {
-                final EdgeRef<TinkerEdge> edgeRef = ondiskOverflow.getEdgeDeserializer().get().deserializeRef(entry.getValue());
+                final EdgeRef<TinkerEdge> edgeRef = (EdgeRef<TinkerEdge>) ondiskOverflow.getEdgeDeserializer().get().deserializeRef(entry.getValue());
                 edges.put(edgeRef.id, edgeRef);
                 getElementsByLabel(edgesByLabel, edgeRef.label).add(edgeRef);
                 importCount++;

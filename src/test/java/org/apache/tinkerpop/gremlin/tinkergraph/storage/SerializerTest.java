@@ -43,7 +43,7 @@ public class SerializerTest {
       );
 
       byte[] bytes = serializer.serialize(vertex);
-      TinkerVertex deserialized = deserializer.deserialize(bytes);
+      Vertex deserialized = deserializer.deserialize(bytes);
 
       Vertex underlyingVertexDb = ((VertexRef<TinkerVertex>) vertex).get();
       assertEquals(underlyingVertexDb, deserialized);
@@ -65,7 +65,7 @@ public class SerializerTest {
       Edge edge = v0.addEdge(SerializerTestEdge.label, v1, SerializerTestEdge.LONG_PROPERTY, Long.MAX_VALUE);
 
       byte[] bytes = serializer.serialize(edge);
-      TinkerEdge deserialized = deserializer.deserialize(bytes);
+      Edge deserialized = deserializer.deserialize(bytes);
 
       Edge underlyingEdgeDb = ((EdgeRef<TinkerEdge>) edge).get();
       assertEquals(underlyingEdgeDb, deserialized);
@@ -88,7 +88,7 @@ public class SerializerTest {
       Edge edge1 = vertex1.addEdge(SerializerTestEdge.label, vertex0);
 
       byte[] bytes = serializer.serialize(vertex0);
-      TinkerVertex deserialized = deserializer.deserialize(bytes);
+      Vertex deserialized = deserializer.deserialize(bytes);
 
       Vertex underlyingVertexDb = ((VertexRef<TinkerVertex>) vertex0).get();
       assertEquals(underlyingVertexDb, deserialized);

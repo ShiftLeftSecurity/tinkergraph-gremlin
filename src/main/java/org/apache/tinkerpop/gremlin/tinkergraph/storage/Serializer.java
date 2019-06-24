@@ -19,23 +19,53 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
 import org.apache.commons.lang3.NotImplementedException;
-import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.msgpack.core.MessageBufferPacker;
+import org.msgpack.core.MessagePack;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public abstract class Serializer<A> {
+  private final Logger logger = LoggerFactory.getLogger(getClass());
+  private int serializedCount = 0;
+  private long serializationTimeSpentMillis = 0;
 
-  public abstract byte[] serialize(A a) throws IOException;
+  protected abstract long getId(A a);
+  protected abstract String getLabel(A a);
+  protected abstract Map<String, Object> getProperties(A a);
+  protected abstract Map<String, Set<Long>> getEdgeIds(A a, Direction direction);
 
-  /** when deserializing, msgpack can't differentiate between e.g. int and long, so we need to encode the type as well - doing that with an array
-   *  i.e. format is: Map[PropertyName, Array(TypeId, PropertyValue)]
-   * */
-  protected void packProperties(MessageBufferPacker packer, Map<String, Object> properties) throws IOException {
+  public byte[] serialize(A a) throws IOException {
+    long start = System.currentTimeMillis();
+    try (MessageBufferPacker packer = MessagePack.newDefaultBufferPacker()) {
+      packer.packLong(getId(a));
+      packer.packString(getLabel(a));
+
+      packEdgeIds(packer, getEdgeIds(a, Direction.IN));
+      packEdgeIds(packer, getEdgeIds(a, Direction.OUT));
+      packProperties(packer, getProperties(a));
+
+      serializedCount++;
+      serializationTimeSpentMillis += System.currentTimeMillis() - start;
+      if (serializedCount % 100000 == 0) {
+        float avgSerializationTime = serializationTimeSpentMillis / (float) serializedCount;
+        logger.debug("stats: serialized " + serializedCount + " instances in total (avg time: " + avgSerializationTime + "ms)");
+      }
+      return packer.toByteArray();
+    }
+  }
+
+  /**
+   * when deserializing, msgpack can't differentiate between e.g. int and long, so we need to encode the type as well - doing that with an array
+   * i.e. format is: Map[PropertyName, Array(TypeId, PropertyValue)]
+   */
+  private void packProperties(MessageBufferPacker packer, Map<String, Object> properties) throws IOException {
     packer.packMapHeader(properties.size());
     for (Map.Entry<String, Object> property : properties.entrySet()) {
       packer.packString(property.getKey());
@@ -43,16 +73,9 @@ public abstract class Serializer<A> {
     }
   }
 
-  protected void packProperties(MessageBufferPacker packer, Iterator<? extends Property> propertyIterator) throws IOException {
-    Map<String, Object> properties = new HashMap<>();
-    while (propertyIterator.hasNext()) {
-      Property property = propertyIterator.next();
-      properties.put(property.key(), property.value());
-    }
-    packProperties(packer, properties);
-  }
-
-  /** format: `[ValueType.id, value]` */
+  /**
+   * format: `[ValueType.id, value]`
+   */
   private void packPropertyValue(final MessageBufferPacker packer, final Object value) throws IOException {
     packer.packArrayHeader(2);
     if (value instanceof Boolean) {
@@ -89,6 +112,23 @@ public abstract class Serializer<A> {
       }
     } else {
       throw new NotImplementedException("id type `" + value.getClass() + "` not yet supported");
+    }
+  }
+
+  /**
+   * format: two `Map<Label, Array<EdgeId>>`, i.e. one Map for `IN` and one for `OUT` edges
+   */
+  private void packEdgeIds(final MessageBufferPacker packer,
+                           final Map<String, Set<Long>> edgeIdsByLabel) throws IOException {
+    packer.packMapHeader(edgeIdsByLabel.size());
+    for (Map.Entry<String, Set<Long>> entry : edgeIdsByLabel.entrySet()) {
+      final String label = entry.getKey();
+      packer.packString(label);
+      final Set<Long> edgeIds = entry.getValue();
+      packer.packArrayHeader(edgeIds.size());
+      for (Long edgeId : edgeIds) {
+        packer.packLong(edgeId);
+      }
     }
   }
 

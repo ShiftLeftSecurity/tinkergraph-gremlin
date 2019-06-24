@@ -18,28 +18,20 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.EdgeRef;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.ElementRef;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerEdge;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.VertexRef;
-import org.msgpack.core.MessagePack;
-import org.msgpack.core.MessageUnpacker;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 public class EdgeDeserializer extends Deserializer<Edge> {
-  private final Logger logger = LoggerFactory.getLogger(getClass());
   protected final TinkerGraph graph;
   protected final Map<String, SpecializedElementFactory.ForEdge> edgeFactoryByLabel;
-  private int deserializedCount = 0;
 
   public EdgeDeserializer(TinkerGraph graph, Map<String, SpecializedElementFactory.ForEdge> edgeFactoryByLabel) {
     this.graph = graph;
@@ -47,40 +39,32 @@ public class EdgeDeserializer extends Deserializer<Edge> {
   }
 
   @Override
-  public TinkerEdge deserialize(byte[] bytes) throws IOException {
-    try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
-      Long id = unpacker.unpackLong();
-      String label = unpacker.unpackString();
-      long outVertexId = unpacker.unpackLong();
-      long inVertexId = unpacker.unpackLong();
-      VertexRef outVertexRef = (VertexRef) graph.vertex(outVertexId);
-      VertexRef inVertexRef = (VertexRef) graph.vertex(inVertexId);
-      List keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
-
-      // TODO support generic edges too
-      SpecializedTinkerEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexRef, inVertexRef);
-      ElementHelper.attachProperties(edge, keyValues.toArray());
-
-      edge.setModifiedSinceLastSerialization(false);
-
-      deserializedCount++;
-      if (deserializedCount % 100000 == 0) {
-        logger.debug("stats: deserialized " + deserializedCount + " edges in total");
-      }
-      return edge;
-    }
+  protected boolean elementRefRequiresAdjacentElements() {
+    return true;
   }
 
   @Override
-  public EdgeRef<TinkerEdge> deserializeRef(byte[] bytes) throws IOException {
-    try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
-      Long id = unpacker.unpackLong();
-      String label = unpacker.unpackString();
-      long outVertexId = unpacker.unpackLong();
-      long inVertexId = unpacker.unpackLong();
-      VertexRef outVertexRef = (VertexRef) graph.vertex(outVertexId);
-      VertexRef inVertexRef = (VertexRef) graph.vertex(inVertexId);
-      return edgeFactoryByLabel.get(label).createEdgeRef(id, graph, outVertexRef, inVertexRef);
-    }
+  protected ElementRef createElementRef(Long id, String label, Map<String, long[]> inVertexIdsByLabel, Map<String, long[]> outVertexIdsByLabel) {
+    VertexRef outVertexRef = getVertexRef(outVertexIdsByLabel, Direction.OUT);
+    VertexRef inVertexRef = getVertexRef(inVertexIdsByLabel, Direction.IN);
+    return edgeFactoryByLabel.get(label).createEdgeRef(id, graph, outVertexRef, inVertexRef);
   }
+
+  @Override
+  protected Edge createElement(long id, String label, Map<String, Object> properties, Map<String, long[]> inVertexIdsByLabel, Map<String, long[]> outVertexIdsByLabel) {
+    VertexRef outVertexRef = getVertexRef(outVertexIdsByLabel, Direction.OUT);
+    VertexRef inVertexRef = getVertexRef(inVertexIdsByLabel, Direction.IN);
+    SpecializedTinkerEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexRef, inVertexRef);
+    ElementHelper.attachProperties(edge, toTinkerpopKeyValues(properties));
+
+    edge.setModifiedSinceLastSerialization(false);
+    return edge;
+  }
+
+  private VertexRef getVertexRef(Map<String, long[]> vertexIdsByLabel, Direction direction) {
+    final long[] vertexIds = vertexIdsByLabel.get(direction.name());
+    assert vertexIds.length == 1;
+    return (VertexRef) graph.vertex(vertexIds[0]);
+  }
+
 }
