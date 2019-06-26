@@ -18,84 +18,49 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
+import gnu.trove.map.hash.THashMap;
+import gnu.trove.set.TLongSet;
+import gnu.trove.set.hash.TLongHashSet;
+import org.apache.commons.lang.NotImplementedException;
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
-import org.msgpack.core.MessageBufferPacker;
-import org.msgpack.core.MessagePack;
-import org.msgpack.core.MessageUnpacker;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Map;
 
 public class EdgeSerializer extends Serializer<Edge> {
-  private final Logger logger = LoggerFactory.getLogger(getClass());
-  protected final TinkerGraph graph;
-  protected final Map<String, SpecializedElementFactory.ForEdge> edgeFactoryByLabel;
-  private int serializedCount = 0;
-  private int deserializedCount = 0;
 
-  public EdgeSerializer(TinkerGraph graph, Map<String, SpecializedElementFactory.ForEdge> edgeFactoryByLabel) {
-    this.graph = graph;
-    this.edgeFactoryByLabel = edgeFactoryByLabel;
+  @Override
+  protected long getId(Edge edge) {
+    return (long) edge.id();
   }
 
   @Override
-  public byte[] serialize(Edge edge) throws IOException {
-    try (MessageBufferPacker packer = MessagePack.newDefaultBufferPacker()) {
-      packer.packLong((Long) edge.id());
-      packer.packString(edge.label());
-      packer.packLong((Long) edge.outVertex().id());
-      packer.packLong((Long) edge.inVertex().id());
-      packProperties(packer, edge.properties());
-
-      serializedCount++;
-      if (serializedCount % 100000 == 0) {
-        logger.debug("stats: serialized " + serializedCount + " edges in total");
-      }
-      return packer.toByteArray();
-    }
-  }
-
-
-  @Override
-  public TinkerEdge deserialize(byte[] bytes) throws IOException {
-    try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
-      Long id = unpacker.unpackLong();
-      String label = unpacker.unpackString();
-      long outVertexId = unpacker.unpackLong();
-      long inVertexId = unpacker.unpackLong();
-      VertexRef outVertexRef = (VertexRef) graph.vertex(outVertexId);
-      VertexRef inVertexRef = (VertexRef) graph.vertex(inVertexId);
-      List keyValues = unpackProperties(unpacker.unpackValue().asMapValue().map());
-
-      // TODO support generic edges too
-      SpecializedTinkerEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexRef, inVertexRef);
-      ElementHelper.attachProperties(edge, keyValues.toArray());
-
-      edge.setModifiedSinceLastSerialization(false);
-
-      deserializedCount++;
-      if (deserializedCount % 100000 == 0) {
-        logger.debug("stats: deserialized " + deserializedCount + " edges in total");
-      }
-      return edge;
-    }
+  protected String getLabel(Edge edge) {
+    return edge.label();
   }
 
   @Override
-  public EdgeRef<TinkerEdge> deserializeRef(byte[] bytes) throws IOException {
-    try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
-      Long id = unpacker.unpackLong();
-      String label = unpacker.unpackString();
-      long outVertexId = unpacker.unpackLong();
-      long inVertexId = unpacker.unpackLong();
-      VertexRef outVertexRef = (VertexRef) graph.vertex(outVertexId);
-      VertexRef inVertexRef = (VertexRef) graph.vertex(inVertexId);
-      return edgeFactoryByLabel.get(label).createEdgeRef(id, graph, outVertexRef, inVertexRef);
-    }
+  protected Map<String, Object> getProperties(Edge edge) {
+    Map<String, Object> properties = new THashMap<>();
+    edge.properties().forEachRemaining(property -> properties.put(property.key(), property.value()));
+    return properties;
   }
+
+  @Override
+  /** using same format to store edgeIds as for vertices */
+  protected Map<String, TLongSet> getEdgeIds(Edge edge, Direction direction) {
+    final Map<String, TLongSet> edgeIds = new THashMap<>();
+    switch (direction) {
+      case IN:
+        edgeIds.put(Direction.IN.name(), new TLongHashSet(Arrays.asList((long) edge.inVertex().id())));
+        break;
+      case OUT:
+        edgeIds.put(Direction.OUT.name(), new TLongHashSet(Arrays.asList((long) edge.outVertex().id())));
+        break;
+      default: throw new NotImplementedException();
+    }
+    return edgeIds;
+  }
+
 }

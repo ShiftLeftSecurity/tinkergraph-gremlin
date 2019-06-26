@@ -31,41 +31,58 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class OndiskOverflow implements AutoCloseable {
   private final Logger logger = LoggerFactory.getLogger(getClass());
-  protected final VertexSerializer vertexSerializer;
-  protected final EdgeSerializer edgeSerializer;
+  protected final VertexSerializer vertexSerializer = new VertexSerializer();
+  protected final EdgeSerializer edgeSerializer = new EdgeSerializer();
+  protected final Optional<VertexDeserializer> vertexDeserializer;
+  protected final Optional<EdgeDeserializer> edgeDeserializer;
+
   private final MVStore mvstore;
   protected final MVMap<Long, byte[]> vertexMVMap;
   protected final MVMap<Long, byte[]> edgeMVMap;
   private boolean closed;
 
-  public static OndiskOverflow createWithTempFile(
-      final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer) {
-    final File mvstoreFile;
-    try {
-      mvstoreFile = File.createTempFile("mvstore", ".bin");
-      mvstoreFile.deleteOnExit();
-    } catch (IOException e) {
-      throw new RuntimeException("cannot create tmp file for mvstore", e);
-    }
-    return new OndiskOverflow(mvstoreFile, vertexSerializer, edgeSerializer);
+  public static OndiskOverflow createWithTempFile(final VertexDeserializer vertexDeserializer, final EdgeDeserializer edgeDeserializer) {
+    return new OndiskOverflow(Optional.empty(), Optional.ofNullable(vertexDeserializer), Optional.ofNullable(edgeDeserializer));
   }
 
   /** create with specific mvstore file - which may or may not yet exist.
    * mvstoreFile won't be deleted at the end (unlike temp file constructors above) */
   public static OndiskOverflow createWithSpecificLocation(
-      final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer, final File mvstoreFile) {
-    return new OndiskOverflow(mvstoreFile, vertexSerializer, edgeSerializer);
+      final VertexDeserializer vertexDeserializer, final EdgeDeserializer edgeDeserializer, final File mvstoreFile) {
+    return new OndiskOverflow(Optional.ofNullable(mvstoreFile), Optional.ofNullable(vertexDeserializer), Optional.ofNullable(edgeDeserializer));
   }
 
-  private OndiskOverflow(final File mvstoreFile, final VertexSerializer vertexSerializer, final EdgeSerializer edgeSerializer) {
-    this.vertexSerializer = vertexSerializer;
-    this.edgeSerializer = edgeSerializer;
+  /** create with specific mvstore file - which may or may not yet exist.
+   * mvstoreFile won't be deleted at the end (unlike temp file constructors above) */
+  public static OndiskOverflow createWithSpecificLocation(final File mvstoreFile) {
+    return new OndiskOverflow(Optional.ofNullable(mvstoreFile), Optional.empty(), Optional.empty());
+  }
 
+  private OndiskOverflow(
+      final Optional<File> mvstoreFileMaybe,
+      final Optional<VertexDeserializer> vertexDeserializer,
+      final Optional<EdgeDeserializer> edgeDeserializer) {
+    this.vertexDeserializer = vertexDeserializer;
+    this.edgeDeserializer = edgeDeserializer;
+
+    final File mvstoreFile;
+    if (mvstoreFileMaybe.isPresent()) {
+      mvstoreFile = mvstoreFileMaybe.get();
+    } else {
+      try {
+        mvstoreFile = File.createTempFile("mvstore", ".bin");
+        mvstoreFile.deleteOnExit();
+      } catch (IOException e) {
+        throw new RuntimeException("cannot create tmp file for mvstore", e);
+      }
+    }
     logger.debug("on-disk overflow file: " + mvstoreFile);
+
     mvstore = new MVStore.Builder().fileName(mvstoreFile.getAbsolutePath()).open();
     vertexMVMap = mvstore.openMap("vertices");
     edgeMVMap = mvstore.openMap("edges");
@@ -85,17 +102,22 @@ public class OndiskOverflow implements AutoCloseable {
   }
 
   public <A extends TinkerVertex> A readVertex(final long id) throws IOException {
-    return (A) vertexSerializer.deserialize(vertexMVMap.get(id));
+    return (A) vertexDeserializer.get().deserialize(vertexMVMap.get(id));
   }
 
   public <A extends TinkerEdge> A readEdge(final long id) throws IOException {
-    return (A) edgeSerializer.deserialize(edgeMVMap.get(id));
+    return (A) edgeDeserializer.get().deserialize(edgeMVMap.get(id));
   }
 
   @Override
   public void close() {
     closed = true;
+    logger.info("closing " + getClass().getSimpleName());
     mvstore.close();
+  }
+
+  public File getStorageFile() {
+    return new File(mvstore.getFileStore().getFileName());
   }
 
   public void removeVertex(final Long id) {
@@ -114,7 +136,6 @@ public class OndiskOverflow implements AutoCloseable {
     return edgeMVMap.entrySet();
   }
 
-
   public VertexSerializer getVertexSerializer() {
     return vertexSerializer;
   }
@@ -123,4 +144,20 @@ public class OndiskOverflow implements AutoCloseable {
     return edgeSerializer;
   }
 
+  public MVMap<Long, byte[]> getVertexMVMap() {
+    return vertexMVMap;
+  }
+
+  public MVMap<Long, byte[]> getEdgeMVMap() {
+    return edgeMVMap;
+  }
+
+
+  public Optional<VertexDeserializer> getVertexDeserializer() {
+    return vertexDeserializer;
+  }
+
+  public Optional<EdgeDeserializer> getEdgeDeserializer() {
+    return edgeDeserializer;
+  }
 }

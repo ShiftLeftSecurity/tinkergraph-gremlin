@@ -42,9 +42,11 @@ import org.apache.tinkerpop.gremlin.tinkergraph.process.computer.TinkerGraphComp
 import org.apache.tinkerpop.gremlin.tinkergraph.process.computer.TinkerGraphComputerView;
 import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optimization.TinkerGraphCountStrategy;
 import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optimization.TinkerGraphStepStrategy;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.EdgeDeserializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.EdgeSerializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.OndiskOverflow;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.SerializationStats;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexDeserializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexSerializer;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.apache.tinkerpop.gremlin.util.iterator.MultiIterator;
@@ -151,13 +153,13 @@ public final class TinkerGraph implements Graph {
         if (ondiskOverflowEnabled) {
             graphFormat = GRAPH_FORMAT_MVSTORE;
             referenceManager = new ReferenceManagerImpl(configuration.getInt(GREMLIN_TINKERGRAPH_OVERFLOW_HEAP_PERCENTAGE_THRESHOLD));
-            VertexSerializer vertexSerializer = new VertexSerializer(this, specializedVertexFactoryByLabel);
-            EdgeSerializer edgeSerializer = new EdgeSerializer(this, specializedEdgeFactoryByLabel);
+            VertexDeserializer vertexDeserializer = new VertexDeserializer(this, specializedVertexFactoryByLabel);
+            EdgeDeserializer edgeDeserializer = new EdgeDeserializer(this, specializedEdgeFactoryByLabel);
             if (graphLocation == null) {
-                ondiskOverflow = OndiskOverflow.createWithTempFile(vertexSerializer, edgeSerializer);
+                ondiskOverflow = OndiskOverflow.createWithTempFile(vertexDeserializer, edgeDeserializer);
                 initEmptyElementCollections();
             } else {
-                ondiskOverflow = OndiskOverflow.createWithSpecificLocation(vertexSerializer, edgeSerializer, new File(graphLocation));
+                ondiskOverflow = OndiskOverflow.createWithSpecificLocation(vertexDeserializer, edgeDeserializer, new File(graphLocation));
                 initElementCollections(ondiskOverflow);
             }
         } else {
@@ -184,7 +186,7 @@ public final class TinkerGraph implements Graph {
         final Set<Map.Entry<Long, byte[]>> serializedVertices = ondiskOverflow.allVertices();
         final Set<Map.Entry<Long, byte[]>> serializedEdges = ondiskOverflow.allEdges();
         int elementCount = serializedVertices.size() + serializedEdges.size();
-        logger.info("initializing " + elementCount + " from existing storage - this may take some time");
+        logger.info("initializing " + elementCount + " elements from existing storage - this may take some time");
         int importCount = 0;
 
         vertices = new THashMap<>(serializedVertices.size());
@@ -193,7 +195,7 @@ public final class TinkerGraph implements Graph {
         while (serializedVertexIter.hasNext()) {
             final Map.Entry<Long, byte[]> entry = serializedVertexIter.next();
             try {
-                final VertexRef<TinkerVertex> vertexRef = ondiskOverflow.getVertexSerializer().deserializeRef(entry.getValue());
+                final VertexRef<TinkerVertex> vertexRef = (VertexRef<TinkerVertex>) ondiskOverflow.getVertexDeserializer().get().deserializeRef(entry.getValue());
                 vertices.put(vertexRef.id, vertexRef);
                 getElementsByLabel(verticesByLabel, vertexRef.label).add(vertexRef);
                 importCount++;
@@ -211,7 +213,7 @@ public final class TinkerGraph implements Graph {
         while (serializedEdgeIter.hasNext()) {
             final Map.Entry<Long, byte[]> entry = serializedEdgeIter.next();
             try {
-                final EdgeRef<TinkerEdge> edgeRef = ondiskOverflow.getEdgeSerializer().deserializeRef(entry.getValue());
+                final EdgeRef<TinkerEdge> edgeRef = (EdgeRef<TinkerEdge>) ondiskOverflow.getEdgeDeserializer().get().deserializeRef(entry.getValue());
                 edges.put(edgeRef.id, edgeRef);
                 getElementsByLabel(edgesByLabel, edgeRef.label).add(edgeRef);
                 importCount++;
