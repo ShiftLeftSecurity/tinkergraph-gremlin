@@ -112,6 +112,7 @@ public class OndiskOverflow implements AutoCloseable {
   @Override
   public void close() {
     closed = true;
+    logger.info("closing " + getClass().getSimpleName());
     mvstore.close();
   }
 
@@ -142,6 +143,15 @@ public class OndiskOverflow implements AutoCloseable {
   public EdgeSerializer getEdgeSerializer() {
     return edgeSerializer;
   }
+
+  public MVMap<Long, byte[]> getVertexMVMap() {
+    return vertexMVMap;
+  }
+
+  public MVMap<Long, byte[]> getEdgeMVMap() {
+    return edgeMVMap;
+  }
+
 
   public Optional<VertexDeserializer> getVertexDeserializer() {
     return vertexDeserializer;

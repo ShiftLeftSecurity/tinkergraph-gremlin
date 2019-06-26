@@ -63,6 +63,7 @@ public class EdgeDeserializer extends Deserializer<Edge> {
 
   private VertexRef getVertexRef(Map<String, long[]> vertexIdsByLabel, Direction direction) {
     final long[] vertexIds = vertexIdsByLabel.get(direction.name());
+    assert vertexIds != null;
     assert vertexIds.length == 1;
     return (VertexRef) graph.vertex(vertexIds[0]);
   }

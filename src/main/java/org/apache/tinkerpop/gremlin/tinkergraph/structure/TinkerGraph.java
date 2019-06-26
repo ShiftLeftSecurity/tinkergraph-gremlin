@@ -186,7 +186,7 @@ public final class TinkerGraph implements Graph {
         final Set<Map.Entry<Long, byte[]>> serializedVertices = ondiskOverflow.allVertices();
         final Set<Map.Entry<Long, byte[]>> serializedEdges = ondiskOverflow.allEdges();
         int elementCount = serializedVertices.size() + serializedEdges.size();
-        logger.info("initializing " + elementCount + " from existing storage - this may take some time");
+        logger.info("initializing " + elementCount + " elements from existing storage - this may take some time");
         int importCount = 0;
 
         vertices = new THashMap<>(serializedVertices.size());
