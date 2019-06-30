@@ -375,11 +375,10 @@ public final class TinkerGraph implements Graph {
     public void close() {
         this.closed = true;
         if (ondiskOverflowEnabled) {
-            if (logger.isDebugEnabled()) logger.debug(getSerializationStats().toString());
-            referenceManager.clearAllReferences();
+            if (graphLocation != null) referenceManager.clearAllReferences();
             referenceManager.close();
             ondiskOverflow.close();
-
+            if (logger.isDebugEnabled()) logger.debug(getSerializationStats().toString());
         } else {
             if (graphLocation != null) saveGraph();
         }
