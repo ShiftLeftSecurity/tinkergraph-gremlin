@@ -63,7 +63,7 @@ public abstract class Deserializer<A> {
       final String label = unpacker.unpackString();
       final Map<String, long[]> inEdgeIdsByLabel = unpackEdgeIdsByLabel(unpacker);
       final Map<String, long[]> outEdgeIdsByLabel = unpackEdgeIdsByLabel(unpacker);
-      final Map<String, Object> properties = unpackProperties(unpacker);
+      final Map<String, Object> properties = unpackAllProperties(unpacker);
 
       A a = createElement(id, label, properties, inEdgeIdsByLabel, outEdgeIdsByLabel);
 
@@ -95,7 +95,34 @@ public abstract class Deserializer<A> {
     }
   }
 
-  private Map<String, Object> unpackProperties(MessageUnpacker unpacker) throws IOException {
+  /**
+   * only deserialize one specific property, identified by it's name
+   */
+  public Object unpackSpecificProperty(byte[] bytes, String name) throws IOException {
+    try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
+      // skip over values we don't care about
+      unpacker.skipValue(2); // id and label
+      if (elementRefRequiresAdjacentElements()) {
+        unpacker.skipValue(2); // [in|out]edgeIdsByLabel maps
+      }
+
+      // skip to correct property
+      // TODO: make more efficient by using fixed ids/offsets for the properties rather than comparing strings
+      int propertyCount = unpacker.unpackMapHeader();
+      for (int i = 0; i < propertyCount; i++) {
+        final String key = unpacker.unpackString();
+        if (key.equals(name)) {
+          return unpackProperty(unpacker.unpackValue().asArrayValue());
+        } else {
+          unpacker.skipValue();
+        }
+      }
+    }
+
+    throw new AssertionError("property " + name + " not found in binary");
+  }
+
+  private Map<String, Object> unpackAllProperties(MessageUnpacker unpacker) throws IOException {
     int propertyCount = unpacker.unpackMapHeader();
     Map<String, Object> res = new THashMap<>(propertyCount);
     for (int i = 0; i < propertyCount; i++) {
