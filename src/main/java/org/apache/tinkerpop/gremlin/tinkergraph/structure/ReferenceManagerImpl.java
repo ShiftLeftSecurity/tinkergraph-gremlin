@@ -112,12 +112,14 @@ public class ReferenceManagerImpl implements ReferenceManager {
     for (int i = 0; i < cpuCount; i++) {
       // doing this concurrently is tricky and won't be much faster since PriorityBlockingQueue is `blocking` anyway
       final List<ElementRef> refsToClear = collectRefsToClear(releaseCountPerThread);
-      futures.add(executorService.submit(() -> {
-        safelyClearReferences(refsToClear);
-        logger.info("completed clearing of " + refsToClear.size() + " references");
-        logger.debug("current clearable queue size: " + clearableRefs.size());
-        logger.debug("references cleared in total: " + totalReleaseCount);
-      }));
+      if (!refsToClear.isEmpty()) {
+        futures.add(executorService.submit(() -> {
+          safelyClearReferences(refsToClear);
+          logger.info("completed clearing of " + refsToClear.size() + " references");
+          logger.debug("current clearable queue size: " + clearableRefs.size());
+          logger.debug("references cleared in total: " + totalReleaseCount);
+        }));
+      }
     }
     return futures;
   }
