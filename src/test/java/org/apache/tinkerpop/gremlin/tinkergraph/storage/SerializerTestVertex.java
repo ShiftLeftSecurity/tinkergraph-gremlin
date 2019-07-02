@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
+import gnu.trove.map.hash.THashMap;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.FollowedBy;
@@ -27,6 +28,9 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.io.Serializable;
 import java.util.*;
+
+import static org.apache.tinkerpop.gremlin.tinkergraph.storage.PropertyStatus.Defined;
+import static org.apache.tinkerpop.gremlin.tinkergraph.storage.PropertyStatus.Undefined;
 
 public class SerializerTestVertex extends SpecializedTinkerVertex implements Serializable {
     public static final String label = "testVertex";
@@ -38,12 +42,23 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
     public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(STRING_PROPERTY, INT_PROPERTY, STRING_LIST_PROPERTY, INT_LIST_PROPERTY));
     public static final Set<String> ALLOWED_IN_EDGE_LABELS = new HashSet<>(Arrays.asList(SerializerTestEdge.label));
     public static final Set<String> ALLOWED_OUT_EDGE_LABELS = new HashSet<>(Arrays.asList(SerializerTestEdge.label));
+    public static final int STRING_PROPERTY_IDX = 0;
+    public static final int INT_PROPERTY_IDX = 1;
+    public static final int STRING_LIST_PROPERTY_IDX = 2;
+    public static final int INT_LIST_PROPERTY_IDX = 3;
 
     // properties
     private String stringProperty;
     private Integer intProperty;
     private List<String> stringListProperty;
     private List<Integer> intListProperty;
+
+    // property status handling
+    // TODO use bitset to relate XYZ_PROPERTY_IDX with status instead?
+    private PropertyStatus stringPropertyStatus = Undefined;
+    private PropertyStatus intPropertyStatus = Undefined;
+    private PropertyStatus stringListPropertyStatus = Undefined;
+    private PropertyStatus intListPropertyStatus = Undefined;
 
     public SerializerTestVertex(Long id, TinkerGraph graph) {
         super(id, SerializerTestVertex.label, graph);
@@ -89,6 +104,16 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
         if (intProperty != null) properties.put(INT_PROPERTY, intProperty);
         if (intListProperty != null) properties.put(INT_LIST_PROPERTY, intListProperty);
         return properties;
+    }
+
+    @Override
+    public SortedMap<Integer, Object> propertiesByStorageIdx() {
+        SortedMap<Integer, Object> ret = new TreeMap<>();
+        if (stringPropertyStatus == Defined) ret.put(STRING_PROPERTY_IDX, stringProperty);
+        if (intPropertyStatus == Defined) ret.put(INT_PROPERTY_IDX, intProperty);
+        if (stringListPropertyStatus == Defined) ret.put(STRING_LIST_PROPERTY_IDX, stringListProperty);
+        if (intListPropertyStatus == Defined) ret.put(INT_LIST_PROPERTY_IDX, intListProperty);
+        return ret;
     }
 
     @Override
@@ -152,6 +177,16 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
         @Override
         public VertexRef<SerializerTestVertex> createVertexRef(Long id, TinkerGraph graph) {
             return new VertexRef<>(id, SerializerTestVertex.label, graph);
+        }
+
+        @Override
+        public Map<Integer, Class> propertyTypeByIndex() {
+            final Map<Integer, Class> ret = new THashMap<>(1);
+            ret.put(STRING_PROPERTY_IDX, String.class);
+            ret.put(INT_PROPERTY_IDX, String.class);
+            ret.put(STRING_LIST_PROPERTY_IDX, List.class);
+            ret.put(INT_LIST_PROPERTY_IDX, List.class);
+            return ret;
         }
     };
 
