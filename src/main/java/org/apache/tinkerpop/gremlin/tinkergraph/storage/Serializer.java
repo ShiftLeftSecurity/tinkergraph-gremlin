@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
 
 public abstract class Serializer<A> {
   private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -39,7 +40,12 @@ public abstract class Serializer<A> {
 
   protected abstract long getId(A a);
   protected abstract String getLabel(A a);
-  protected abstract Map<String, Object> getProperties(A a);
+
+  /**
+   * Map<PropertyIndex, PropertyValue>, sorted by it's index so we can write it efficiently
+   */
+  protected abstract SortedMap<Integer, Object> getProperties(A a);
+
   protected abstract Map<String, TLongSet> getEdgeIds(A a, Direction direction);
 
   public byte[] serialize(A a) throws IOException {
@@ -63,48 +69,45 @@ public abstract class Serializer<A> {
   }
 
   /**
-   * when deserializing, msgpack can't differentiate between e.g. int and long, so we need to encode the type as well - doing that with an array
-   * i.e. format is: Map[PropertyName, Array(TypeId, PropertyValue)]
+   * packing as Array[PropertyValue] - each property is identified by it's index
    */
-  private void packProperties(MessageBufferPacker packer, Map<String, Object> properties) throws IOException {
-    packer.packMapHeader(properties.size());
-    for (Map.Entry<String, Object> property : properties.entrySet()) {
-      packer.packString(property.getKey());
+  private void packProperties(MessageBufferPacker packer, SortedMap<Integer, Object> properties) throws IOException {
+    packer.packArrayHeader(properties.size());
+    int currentIdx = 0;
+    for (Map.Entry<Integer, Object> property : properties.entrySet()) {
+      // to ensure we write the properties with correct index, fill the void with Nil values
+      final Integer propertyIdx = property.getKey();
+      while (propertyIdx < currentIdx) {
+        packer.packNil();
+      }
+
       packPropertyValue(packer, property.getValue());
+      currentIdx++;
     }
   }
 
   /**
-   * format: `[ValueType.id, value]`
+   * writing just the value itself
+   * every element type hard-codes the index and type for each property, so it can be deserialized again
    */
   private void packPropertyValue(final MessageBufferPacker packer, final Object value) throws IOException {
-    packer.packArrayHeader(2);
     if (value instanceof Boolean) {
-      packer.packByte(ValueTypes.BOOLEAN.id);
       packer.packBoolean((Boolean) value);
     } else if (value instanceof String) {
-      packer.packByte(ValueTypes.STRING.id);
       packer.packString((String) value);
     } else if (value instanceof Byte) {
-      packer.packByte(ValueTypes.BYTE.id);
       packer.packByte((byte) value);
     } else if (value instanceof Short) {
-      packer.packByte(ValueTypes.SHORT.id);
       packer.packShort((short) value);
     } else if (value instanceof Integer) {
-      packer.packByte(ValueTypes.INTEGER.id);
       packer.packInt((int) value);
     } else if (value instanceof Long) {
-      packer.packByte(ValueTypes.LONG.id);
       packer.packLong((long) value);
     } else if (value instanceof Float) {
-      packer.packByte(ValueTypes.FLOAT.id);
       packer.packFloat((float) value);
     } else if (value instanceof Double) {
-      packer.packByte(ValueTypes.DOUBLE.id);
       packer.packFloat((float) value); //msgpack doesn't support double, but we still want to deserialize it as a double later
     } else if (value instanceof List) {
-      packer.packByte(ValueTypes.LIST.id);
       List listValue = (List) value;
       packer.packArrayHeader(listValue.size());
       final Iterator listIter = listValue.iterator();

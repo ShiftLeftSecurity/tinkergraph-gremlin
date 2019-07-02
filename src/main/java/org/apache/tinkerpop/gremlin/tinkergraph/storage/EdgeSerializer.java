@@ -24,9 +24,11 @@ import gnu.trove.set.hash.TLongHashSet;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.SortedMap;
 
 public class EdgeSerializer extends Serializer<Edge> {
 
@@ -41,10 +43,12 @@ public class EdgeSerializer extends Serializer<Edge> {
   }
 
   @Override
-  protected Map<String, Object> getProperties(Edge edge) {
-    Map<String, Object> properties = new THashMap<>();
-    edge.properties().forEachRemaining(property -> properties.put(property.key(), property.value()));
-    return properties;
+  protected SortedMap<Integer, Object> getProperties(Edge edge) {
+    if (edge instanceof SpecializedTinkerEdge) {
+      return ((SpecializedTinkerEdge) edge).propertiesByStorageIdx();
+    } else {
+      throw new org.apache.commons.lang3.NotImplementedException("EdgeSerializer.getProperties for generic edges");
+    }
   }
 
   @Override

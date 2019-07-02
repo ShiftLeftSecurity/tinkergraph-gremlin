@@ -77,7 +77,11 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     /* implement in concrete specialised instance to avoid using generic HashMaps */
     protected abstract <V> Iterator<VertexProperty<V>> specificProperties(String key);
 
+    // TODO drop?
     public abstract Map<String, Object> valueMap();
+
+    /** used for serializing this vertex - must be consistent between serializing and deserializing */
+    public abstract SortedMap<Integer, Object> propertiesByStorageIdx();
 
     @Override
     public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {

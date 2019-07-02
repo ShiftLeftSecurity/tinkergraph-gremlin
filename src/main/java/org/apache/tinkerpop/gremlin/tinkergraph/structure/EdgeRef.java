@@ -36,8 +36,8 @@ public class EdgeRef<E extends TinkerEdge> extends ElementRef<E> implements Edge
   }
 
   @Override
-  protected E readFromDisk(final long edgeId) throws IOException {
-    return graph.ondiskOverflow.readEdge(edgeId);
+  protected E readFromDisk(final long edgeId, final boolean readProperties) throws IOException {
+    return graph.ondiskOverflow.readEdge(edgeId, readProperties);
   }
 
   @Override

@@ -24,6 +24,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.ElementRef;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
 import org.msgpack.value.ArrayValue;
+import org.msgpack.value.ImmutableValue;
 import org.msgpack.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +34,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public abstract class Deserializer<A> {
   private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -41,7 +43,9 @@ public abstract class Deserializer<A> {
 
   protected abstract boolean elementRefRequiresAdjacentElements();
 
-  /** edgeId maps are passed dependent on `elementRefRequiresAdjacentElements`*/
+  /**
+   * edgeId maps are passed dependent on `elementRefRequiresAdjacentElements`
+   */
   protected abstract ElementRef createElementRef(long id,
                                                  String label,
                                                  Map<String, long[]> inEdgeIdsByLabel,
@@ -49,11 +53,13 @@ public abstract class Deserializer<A> {
 
   protected abstract A createElement(long id,
                                      String label,
-                                     Map<String, Object> properties,
+                                     Optional<List<Object>> properties,
                                      Map<String, long[]> inEdgeIdsByLabel,
                                      Map<String, long[]> outEdgeIdsByLabel);
 
-  public A deserialize(byte[] bytes) throws IOException {
+  protected abstract Map<Integer, Class> propertyTypeByIndex(String label);
+
+  public A deserialize(final byte[] bytes, final boolean readProperties) throws IOException {
     long start = System.currentTimeMillis();
     if (null == bytes)
       return null;
@@ -63,7 +69,13 @@ public abstract class Deserializer<A> {
       final String label = unpacker.unpackString();
       final Map<String, long[]> inEdgeIdsByLabel = unpackEdgeIdsByLabel(unpacker);
       final Map<String, long[]> outEdgeIdsByLabel = unpackEdgeIdsByLabel(unpacker);
-      final Map<String, Object> properties = unpackAllProperties(unpacker);
+
+      final Optional<List<Object>> properties;
+      if (readProperties) {
+        properties = Optional.of(unpackAllProperties(unpacker, propertyTypeByIndex(label)));
+      } else {
+        properties = Optional.empty();
+      }
 
       A a = createElement(id, label, properties, inEdgeIdsByLabel, outEdgeIdsByLabel);
 
@@ -80,7 +92,7 @@ public abstract class Deserializer<A> {
   /**
    * only deserialize the part we're keeping in memory, used during startup when initializing from disk
    */
-  public ElementRef deserializeRef(byte[] bytes) throws IOException {
+  public ElementRef deserializeRef(final byte[] bytes) throws IOException {
     try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
       long id = unpacker.unpackLong();
       String label = unpacker.unpackString();
@@ -95,76 +107,68 @@ public abstract class Deserializer<A> {
     }
   }
 
-  /**
-   * only deserialize one specific property, identified by it's name
-   */
-  public Object unpackSpecificProperty(byte[] bytes, String name) throws IOException {
-    try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
-      // skip over values we don't care about
-      unpacker.skipValue(2); // id and label
-      if (elementRefRequiresAdjacentElements()) {
-        unpacker.skipValue(2); // [in|out]edgeIdsByLabel maps
-      }
-
-      // skip to correct property
-      // TODO: make more efficient by using fixed ids/offsets for the properties rather than comparing strings
-      int propertyCount = unpacker.unpackMapHeader();
-      for (int i = 0; i < propertyCount; i++) {
-        final String key = unpacker.unpackString();
-        if (key.equals(name)) {
-          return unpackProperty(unpacker.unpackValue().asArrayValue());
-        } else {
-          unpacker.skipValue();
-        }
-      }
-    }
-
-    throw new AssertionError("property " + name + " not found in binary");
-  }
-
-  private Map<String, Object> unpackAllProperties(MessageUnpacker unpacker) throws IOException {
-    int propertyCount = unpacker.unpackMapHeader();
-    Map<String, Object> res = new THashMap<>(propertyCount);
-    for (int i = 0; i < propertyCount; i++) {
-      final String key = unpacker.unpackString();
-      final Object unpackedProperty = unpackProperty(unpacker.unpackValue().asArrayValue());
-      res.put(key, unpackedProperty);
+  private List<Object> unpackAllProperties(final MessageUnpacker unpacker, final Map<Integer, Class> propertyTypeByIndex) throws IOException {
+    int propertyCount = unpacker.unpackArrayHeader();
+    List<Object> res = new ArrayList(propertyCount);
+    for (int idx = 0; idx < propertyCount; idx++) {
+      final Class propertyType = propertyTypeByIndex.get(idx);
+      res.add(idx, unpackProperty(unpacker.unpackValue(), propertyType));
     }
     return res;
   }
 
-  private Object unpackProperty(final ArrayValue packedValueAndType) {
-    final Iterator<Value> iter = packedValueAndType.iterator();
-    final byte valueTypeId = iter.next().asIntegerValue().asByte();
-    final Value value = iter.next();
+  /**
+   * only deserialize one specific property, identified by it's index
+   */
+  public Object unpackSpecificProperty(byte[] bytes, int idx, final Map<Integer, Class> propertyTypeByIndex) throws IOException {
+    try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
+      // skip over values we don't care about
+      unpacker.skipValue(2); // id and label
+      if (elementRefRequiresAdjacentElements()) {
+        unpacker.skipValue(2); // [in|out]EdgeIdsByLabel maps
+      }
+      unpacker.skipValue(idx); // skip to required property
 
-    switch (ValueTypes.lookup(valueTypeId)) {
-      case BOOLEAN:
-        return value.asBooleanValue().getBoolean();
-      case STRING:
-        return value.asStringValue().asString();
-      case BYTE:
-        return value.asIntegerValue().asByte();
-      case SHORT:
-        return value.asIntegerValue().asShort();
-      case INTEGER:
-        return value.asIntegerValue().asInt();
-      case LONG:
-        return value.asIntegerValue().asLong();
-      case FLOAT:
-        return value.asFloatValue().toFloat();
-      case DOUBLE:
-        return Double.valueOf(value.asFloatValue().toFloat());
-      case LIST:
+      final Class propertyType = propertyTypeByIndex.get(idx); //TODO speed up by not using a Map lookup
+      return unpackProperty(unpacker.unpackValue(), propertyType);
+    }
+  }
+
+  /**
+   * `nil` in the binary is mapped to `null`
+   */
+  private Object unpackProperty(final ImmutableValue value, final Class propertyType) {
+    if (value.isNilValue()) {
+      return null;
+    } else if (propertyType.equals(Boolean.class)) {
+      return value.asBooleanValue().getBoolean();
+    } else if (propertyType.equals(String.class)) {
+      return value.asStringValue().asString();
+    } else if (propertyType.equals(Byte.class)) {
+      return value.asIntegerValue().asByte();
+    } else if (propertyType.equals(Short.class)) {
+      return value.asIntegerValue().asShort();
+    } else if (propertyType.equals(Integer.class)) {
+      return value.asIntegerValue().asInt();
+    } else if (propertyType.equals(Long.class)) {
+      return value.asIntegerValue().asLong();
+    } else if (propertyType.equals(Float.class)) {
+      return value.asFloatValue().toFloat();
+    } else if (propertyType.equals(Double.class)) {
+      return Double.valueOf(value.asFloatValue().toFloat());
+    } else if (propertyType.equals(List.class)) {
         final ArrayValue arrayValue = value.asArrayValue();
         List deserializedArray = new ArrayList(arrayValue.size());
         final Iterator<Value> valueIterator = arrayValue.iterator();
         while (valueIterator.hasNext()) {
-          deserializedArray.add(unpackProperty(valueIterator.next().asArrayValue()));
+          // TODO impl - just unpack as Object is fine, thanks to type erasure
+          throw new NotImplementedException("TODO");
+//          valueIterator.next()
+//          deserializedArray.add(unpackProperty(valueIterator.next()));
         }
         return deserializedArray;
-      default:
-        throw new NotImplementedException("unknown valueTypeId=`" + valueTypeId);
+    } else {
+        throw new NotImplementedException("unknown propertyType=`" + propertyType + " for value=" + value);
     }
   }
 

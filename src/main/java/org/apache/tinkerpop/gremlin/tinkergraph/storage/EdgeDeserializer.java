@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
@@ -27,7 +28,9 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.VertexRef;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class EdgeDeserializer extends Deserializer<Edge> {
   protected final TinkerGraph graph;
@@ -51,14 +54,21 @@ public class EdgeDeserializer extends Deserializer<Edge> {
   }
 
   @Override
-  protected Edge createElement(long id, String label, Map<String, Object> properties, Map<String, long[]> inVertexIdsByLabel, Map<String, long[]> outVertexIdsByLabel) {
+  protected Edge createElement(long id, String label, Optional<List<Object>> properties, Map<String, long[]> inVertexIdsByLabel, Map<String, long[]> outVertexIdsByLabel) {
     VertexRef outVertexRef = getVertexRef(outVertexIdsByLabel, Direction.OUT);
     VertexRef inVertexRef = getVertexRef(inVertexIdsByLabel, Direction.IN);
     SpecializedTinkerEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexRef, inVertexRef);
-    ElementHelper.attachProperties(edge, toTinkerpopKeyValues(properties));
 
-    edge.setModifiedSinceLastSerialization(false);
-    return edge;
+    throw new NotImplementedException("TODO map property index back to their name");
+//    ElementHelper.attachProperties(edge, toTinkerpopKeyValues(properties));
+
+//    edge.setModifiedSinceLastSerialization(false);
+//    return edge;
+  }
+
+  @Override
+  protected Map<Integer, Class> propertyTypeByIndex(String label) {
+    return edgeFactoryByLabel.get(label).propertyTypeByIndex();
   }
 
   private VertexRef getVertexRef(Map<String, long[]> vertexIdsByLabel, Direction direction) {

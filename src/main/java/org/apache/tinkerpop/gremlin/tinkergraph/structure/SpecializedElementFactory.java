@@ -18,7 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.tinkerpop.gremlin.structure.Vertex;
+import java.util.Map;
 
 /* To make use of specialized elements (for better memory/performance characteristics), you need to
  * create instances of these factories and register them with TinkerGraph. That way it will instantiate
@@ -29,6 +29,9 @@ public class SpecializedElementFactory {
         V createVertex(Long id, TinkerGraph graph);
         VertexRef<V> createVertexRef(V vertex);
         VertexRef<V> createVertexRef(Long id, TinkerGraph graph);
+
+        /** allows us to deserialize the correct property types without having to store that information in the binary */
+        Map<Integer, Class> propertyTypeByIndex();
     }
 
     public interface ForEdge<E extends SpecializedTinkerEdge> {
@@ -36,6 +39,9 @@ public class SpecializedElementFactory {
         E createEdge(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex);
         EdgeRef<E> createEdgeRef(E edge);
         EdgeRef<E> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex);
+
+        /** allows us to deserialize the correct property types without having to store that information in the binary */
+        Map<Integer, Class> propertyTypeByIndex();
     }
 }
 

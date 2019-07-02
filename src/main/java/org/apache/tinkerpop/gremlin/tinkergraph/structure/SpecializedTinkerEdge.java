@@ -32,6 +32,9 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
     private boolean modifiedSinceLastSerialization = true;
     private Semaphore modificationSemaphore = new Semaphore(1);
 
+    /** used for serializing this vertex - must be consistent between serializing and deserializing */
+    public abstract SortedMap<Integer, Object> propertiesByStorageIdx();
+
     private final Set<String> specificKeys;
 
     protected SpecializedTinkerEdge(TinkerGraph graph, Long id, Vertex outVertex, String label, Vertex inVertex, Set<String> specificKeys) {

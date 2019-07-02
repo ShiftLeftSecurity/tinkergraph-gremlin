@@ -35,8 +35,8 @@ public class VertexRef<V extends TinkerVertex> extends ElementRef<V> implements 
   }
 
   @Override
-  protected V readFromDisk(final long vertexId) throws IOException {
-    return graph.ondiskOverflow.readVertex(vertexId);
+  protected V readFromDisk(final long vertexId, final boolean readProperties) throws IOException {
+    return graph.ondiskOverflow.readVertex(vertexId, readProperties);
   }
 
   @Override

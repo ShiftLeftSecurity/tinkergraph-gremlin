@@ -21,11 +21,13 @@ package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.set.TLongSet;
 import gnu.trove.set.hash.TLongHashSet;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
 
 import java.util.Map;
+import java.util.SortedMap;
 
 public class VertexSerializer extends Serializer<Vertex> {
 
@@ -39,14 +41,15 @@ public class VertexSerializer extends Serializer<Vertex> {
     return vertex.label();
   }
 
+  /**
+   * Map<PropertyIndex, PropertyValue>, sorted by it's index so we can write it efficiently
+   */
   @Override
-  protected Map<String, Object> getProperties(Vertex vertex) {
+  protected SortedMap<Integer, Object> getProperties(Vertex vertex) {
     if (vertex instanceof SpecializedTinkerVertex) {
-      return ((SpecializedTinkerVertex) vertex).valueMap();
+      return ((SpecializedTinkerVertex) vertex).propertiesByStorageIdx();
     } else {
-      Map<String, Object> properties = new THashMap<>();
-      vertex.properties().forEachRemaining(property -> properties.put(property.key(), property.value()));
-      return properties;
+      throw new NotImplementedException("VertexSerializer.getProperties for generic vertices");
     }
   }
 

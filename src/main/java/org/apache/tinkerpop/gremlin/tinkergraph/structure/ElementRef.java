@@ -20,6 +20,8 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import java.io.IOException;
 import java.lang.ref.SoftReference;
+import java.util.Map;
+
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
@@ -76,12 +78,17 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
   }
 
   public E get() {
+    final boolean readProperties = true;
+    return get(readProperties);
+  }
+
+  public E get(final boolean readProperties) {
     E ref = reference;
     if (ref != null) {
       return ref;
     } else {
       try {
-        final E element = readFromDisk(id);
+        final E element = readFromDisk(id, readProperties);
         if (element == null) throw new IllegalStateException("unable to read element from disk; id=" + id);
         this.reference = element;
         this.lastDeserializedTime = System.currentTimeMillis();
@@ -101,7 +108,7 @@ public abstract class ElementRef<E extends TinkerElement> implements Element {
     return lastDeserializedTime;
   }
 
-  protected abstract E readFromDisk(long elementId) throws IOException;
+  protected abstract E readFromDisk(final long elementId, final boolean readProperties) throws IOException;
 
   @Override
   public Object id() {
