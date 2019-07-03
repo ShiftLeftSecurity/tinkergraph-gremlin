@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
+// TODO delete?
 /* when serializing properties we need to encode the id type in a separate entry, to ensure we can deserialize it
  * back to the very same type. I would have hoped that MsgPack does that for us, but that's only partly the case.
  * E.g. the different integer types cannot be distinguished other than by their value. When we deserialize `42`,

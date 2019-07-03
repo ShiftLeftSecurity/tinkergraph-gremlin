@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
@@ -120,6 +121,11 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
     }
 
     @Override
+    public SortedMap<Integer, Object> propertiesByStorageIdx() {
+        throw new NotImplementedException("TODO");
+    }
+
+    @Override
     protected <V> VertexProperty<V> updateSpecificProperty(
       VertexProperty.Cardinality cardinality, String key, V value) {
         if (NAME.equals(key)) {
@@ -171,6 +177,11 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
         @Override
         public VertexRef<Song> createVertexRef(Long id, TinkerGraph graph) {
             return new VertexRef<>(id, Song.label, graph);
+        }
+
+        @Override
+        public Map<Integer, Class> propertyTypeByIndex() {
+            throw new NotImplementedException("TODO");
         }
     };
 

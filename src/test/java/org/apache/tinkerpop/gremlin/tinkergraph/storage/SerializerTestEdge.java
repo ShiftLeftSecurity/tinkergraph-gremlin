@@ -18,23 +18,41 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
-
-import java.util.*;
-
+import gnu.trove.map.hash.THashMap;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.EdgeRef;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerProperty;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.VertexRef;
+
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 public class SerializerTestEdge extends SpecializedTinkerEdge {
     public static final String label = "testEdge";
 
     public static final String LONG_PROPERTY = "longProperty";
     public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(LONG_PROPERTY));
+    public static final int LONG_PROPERTY_IDX = 0;
 
     private Long longProperty;
 
     public SerializerTestEdge(TinkerGraph graph, long id, Vertex outVertex, Vertex inVertex) {
         super(graph, id, outVertex, label, inVertex, SPECIFIC_KEYS);
+    }
+
+    @Override
+    public SortedMap<Integer, Object> propertiesByStorageIdx() {
+        SortedMap<Integer, Object> ret = new TreeMap<>();
+        if (longProperty != null) ret.put(LONG_PROPERTY_IDX, longProperty);
+        return ret;
     }
 
     @Override
@@ -85,6 +103,13 @@ public class SerializerTestEdge extends SpecializedTinkerEdge {
         @Override
         public EdgeRef<SerializerTestEdge> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
             return new EdgeRef<>(id, SerializerTestEdge.label, graph);
+        }
+
+        @Override
+        public Map<Integer, Class> propertyTypeByIndex() {
+            final Map<Integer, Class> ret = new THashMap<>(1);
+            ret.put(LONG_PROPERTY_IDX, Long.class);
+            return ret;
         }
     };
 }

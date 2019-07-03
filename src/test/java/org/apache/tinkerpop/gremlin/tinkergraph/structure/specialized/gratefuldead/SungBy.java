@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
@@ -32,6 +33,11 @@ public class SungBy extends SpecializedTinkerEdge implements Serializable {
 
     public SungBy(TinkerGraph graph, long id, Vertex outVertex, Vertex inVertex) {
         super(graph, id, outVertex, label, inVertex, SPECIFIC_KEYS);
+    }
+
+    @Override
+    public SortedMap<Integer, Object> propertiesByStorageIdx() {
+        throw new NotImplementedException("TODO");
     }
 
     @Override
@@ -68,6 +74,11 @@ public class SungBy extends SpecializedTinkerEdge implements Serializable {
         @Override
         public EdgeRef<SungBy> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
             return new EdgeRef<>(id, SungBy.label, graph);
+        }
+
+        @Override
+        public Map<Integer, Class> propertyTypeByIndex() {
+            throw new NotImplementedException("TODO");
         }
     };
 

@@ -24,7 +24,10 @@ import gnu.trove.set.hash.TLongHashSet;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.ElementRef;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerVertex;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.VertexRef;
 
 import java.util.Map;
 import java.util.SortedMap;
@@ -46,6 +49,9 @@ public class VertexSerializer extends Serializer<Vertex> {
    */
   @Override
   protected SortedMap<Integer, Object> getProperties(Vertex vertex) {
+    if (vertex instanceof ElementRef) {
+      vertex = ((ElementRef<TinkerVertex>) vertex).get();
+    }
     if (vertex instanceof SpecializedTinkerVertex) {
       return ((SpecializedTinkerVertex) vertex).propertiesByStorageIdx();
     } else {
