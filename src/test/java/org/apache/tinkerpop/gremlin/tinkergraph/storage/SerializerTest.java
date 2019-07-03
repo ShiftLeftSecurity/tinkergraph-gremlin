@@ -74,6 +74,11 @@ public class SerializerTest {
       final ElementRef<TinkerEdge> deserializedRef = deserializer.deserializeRef(bytes);
       assertEquals(edge.id(), deserializedRef.id);
       assertEquals(SerializerTestEdge.label, deserializedRef.label());
+
+      SerializerTestEdge deserializedWithoutProps = (SerializerTestEdge) deserializer.deserialize(bytes, false);
+      assertNull("property should not have been initialized", deserializedWithoutProps.longProperty);
+      Long value = deserializedWithoutProps.value(SerializerTestEdge.LONG_PROPERTY); // triggers reading from storage
+      assertEquals(Long.MAX_VALUE, value.longValue());
     }
   }
 

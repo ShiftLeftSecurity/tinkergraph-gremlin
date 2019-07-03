@@ -87,18 +87,29 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
     protected <V> Iterator<VertexProperty<V>> specificProperties(String key) {
-        final VertexProperty<V> ret;
-        if (STRING_PROPERTY.equals(key) && stringProperty != null) {
-            return IteratorUtils.of(new TinkerVertexProperty(this, key, stringProperty));
-        } else if (key == STRING_LIST_PROPERTY && stringListProperty != null) {
-            return IteratorUtils.of(new TinkerVertexProperty(this, key, stringListProperty));
-        } else if (key == INT_PROPERTY && intProperty != null) {
-            return IteratorUtils.of(new TinkerVertexProperty(this, key, intProperty));
-        } else if (key == INT_LIST_PROPERTY && intListProperty != null) {
-            return IteratorUtils.of(new TinkerVertexProperty(this, key, intListProperty));
-        } else {
-            return Collections.emptyIterator();
+        final Object value;
+        final boolean mandatory;
+        switch (key) {
+            case STRING_PROPERTY:
+                value = stringProperty;
+                mandatory = true;
+                break;
+            case STRING_LIST_PROPERTY:
+                value = stringListProperty;
+                mandatory = false;
+                break;
+            case INT_PROPERTY:
+                value = intProperty;
+                mandatory = true;
+                break;
+            case INT_LIST_PROPERTY:
+                value = intListProperty;
+                mandatory = false;
+                break;
+            default: return Collections.emptyIterator();
         }
+        if (mandatory) validateMandatoryProperty(key, value);
+        return IteratorUtils.of(new TinkerVertexProperty(this, key, value));
     }
 
     @Override

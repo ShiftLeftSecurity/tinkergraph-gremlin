@@ -42,7 +42,7 @@ public class SerializerTestEdge extends SpecializedTinkerEdge {
     public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(LONG_PROPERTY));
     public static final int LONG_PROPERTY_IDX = 0;
 
-    private Long longProperty;
+    protected Long longProperty;
 
     public SerializerTestEdge(TinkerGraph graph, long id, Vertex outVertex, Vertex inVertex) {
         super(graph, id, outVertex, label, inVertex, SPECIFIC_KEYS);
@@ -57,8 +57,8 @@ public class SerializerTestEdge extends SpecializedTinkerEdge {
 
     @Override
     protected <V> Property<V> specificProperty(String key) {
-        // note: use the statically defined strings to take advantage of `==` (pointer comparison) over `.equals` (String content comparison) for performance
-        if (LONG_PROPERTY.equals(key) && longProperty != null) {
+        if (LONG_PROPERTY.equals(key)) {
+            validateMandatoryProperty(key, longProperty);
             return new TinkerProperty(this, key, longProperty);
         } else {
             return Property.empty();

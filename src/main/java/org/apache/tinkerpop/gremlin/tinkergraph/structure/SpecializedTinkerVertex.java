@@ -298,4 +298,10 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     public void setModifiedSinceLastSerialization(boolean modifiedSinceLastSerialization) {
         this.modifiedSinceLastSerialization = modifiedSinceLastSerialization;
     }
+
+    protected void validateMandatoryProperty(String key, Object mandatoryValue) {
+        if (mandatoryValue == null) {
+            throw new MandatoryPropertyUndefinedException((long) id, label, key);
+        }
+    }
 }

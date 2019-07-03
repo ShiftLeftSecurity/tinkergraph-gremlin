@@ -127,4 +127,10 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
       modificationSemaphore.release();
     }
 
+    protected void validateMandatoryProperty(String key, Object mandatoryValue) {
+        if (mandatoryValue == null) {
+            throw new MandatoryPropertyUndefinedException((long) id, label, key);
+        }
+    }
+
 }
