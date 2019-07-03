@@ -27,6 +27,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerVertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.VertexRef;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,11 +60,11 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
     public static final int OPTIONAL_LONG_PROPERTY_IDX = 4;
 
     // properties
-    private String stringProperty;
-    private Integer intProperty;
-    private List<String> stringListProperty;
-    private List<Integer> intListProperty;
-    private Optional<Long> optionalLongProperty;
+    String stringProperty;
+    Integer intProperty;
+    List<String> stringListProperty;
+    List<Integer> intListProperty;
+    Optional<Long> optionalLongProperty;
 
     public SerializerTestVertex(Long id, TinkerGraph graph) {
         super(id, SerializerTestVertex.label, graph);
@@ -87,29 +88,47 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
     /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
     @Override
     protected <V> Iterator<VertexProperty<V>> specificProperties(String key) {
-        final Object value;
-        final boolean mandatory;
-        switch (key) {
-            case STRING_PROPERTY:
-                value = stringProperty;
-                mandatory = true;
-                break;
-            case STRING_LIST_PROPERTY:
-                value = stringListProperty;
-                mandatory = false;
-                break;
-            case INT_PROPERTY:
-                value = intProperty;
-                mandatory = true;
-                break;
-            case INT_LIST_PROPERTY:
-                value = intListProperty;
-                mandatory = false;
-                break;
-            default: return Collections.emptyIterator();
+        try {
+            final Object value;
+            final boolean mandatory;
+            switch (key) {
+                case STRING_PROPERTY:
+                    if (stringProperty == null) stringProperty = (String) graph.readProperty(this, STRING_PROPERTY_IDX, String.class);
+                    value = stringProperty;
+                    mandatory = true;
+                    break;
+                case STRING_LIST_PROPERTY:
+                    if (stringListProperty == null) stringListProperty = (List) graph.readProperty(this, STRING_LIST_PROPERTY_IDX, String.class);
+                    value = stringListProperty;
+                    mandatory = false;
+                    break;
+                case INT_PROPERTY:
+                    if (intProperty == null) intProperty = (Integer) graph.readProperty(this, INT_PROPERTY_IDX, Integer.class);
+                    value = intProperty;
+                    mandatory = true;
+                    break;
+                case INT_LIST_PROPERTY:
+                    if (intListProperty == null) intListProperty = (List) graph.readProperty(this, INT_LIST_PROPERTY_IDX, Integer.class);
+                    value = intListProperty;
+                    mandatory = false;
+                    break;
+                case OPTIONAL_LONG_PROPERTY:
+                    if (optionalLongProperty == null) optionalLongProperty = Optional.ofNullable((Long) graph.readProperty(this, OPTIONAL_LONG_PROPERTY_IDX, Long.class));
+                    if (!optionalLongProperty.isPresent()) {
+                        return Collections.emptyIterator();
+                    } else {
+                        value = optionalLongProperty.get();
+                        mandatory = false;
+                    }
+                    break;
+                default:
+                    return Collections.emptyIterator();
+            }
+            if (mandatory) validateMandatoryProperty(key, value);
+            return IteratorUtils.of(new TinkerVertexProperty(this, key, value));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
-        if (mandatory) validateMandatoryProperty(key, value);
-        return IteratorUtils.of(new TinkerVertexProperty(this, key, value));
     }
 
     @Override

@@ -129,10 +129,8 @@ public abstract class Deserializer<A> {
     try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
       // skip over values we don't care about
       unpacker.skipValue(2); // id and label
-      if (elementRefRequiresAdjacentElements()) {
-        unpacker.skipValue(2); // [in|out]EdgeIdsByLabel maps
-      }
-      unpacker.unpackArrayHeader(); // array header for property count
+      unpacker.skipValue(2); // [in|out]EdgeIdsByLabel maps
+      unpacker.unpackArrayHeader(); // skip over array header (for property count)
       unpacker.skipValue(propertyIdx); // skip to required property
 
       return unpackProperty(unpacker.unpackValue(), propertyType);

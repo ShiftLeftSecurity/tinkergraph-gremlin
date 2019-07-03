@@ -43,7 +43,7 @@ public class SerializerTestEdge extends SpecializedTinkerEdge {
     public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(LONG_PROPERTY));
     public static final int LONG_PROPERTY_IDX = 0;
 
-    protected Long longProperty;
+    Long longProperty;
 
     public SerializerTestEdge(TinkerGraph graph, long id, Vertex outVertex, Vertex inVertex) {
         super(graph, id, outVertex, label, inVertex, SPECIFIC_KEYS);
@@ -58,16 +58,17 @@ public class SerializerTestEdge extends SpecializedTinkerEdge {
 
     @Override
     protected <V> Property<V> specificProperty(String key) {
-        final Object value;
-        final boolean mandatory;
         try {
+            final Object value;
+            final boolean mandatory;
             switch (key) {
                 case LONG_PROPERTY:
                     if (longProperty == null) longProperty = (Long) graph.readProperty(this, LONG_PROPERTY_IDX, Long.class);
                     value = longProperty;
                     mandatory = true;
                     break;
-                default: return Property.empty();
+                default:
+                    return Property.empty();
             }
 
             if (mandatory) validateMandatoryProperty(key, value);
