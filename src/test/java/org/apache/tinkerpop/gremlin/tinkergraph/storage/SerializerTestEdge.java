@@ -28,6 +28,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.VertexRef;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
@@ -57,11 +58,22 @@ public class SerializerTestEdge extends SpecializedTinkerEdge {
 
     @Override
     protected <V> Property<V> specificProperty(String key) {
-        if (LONG_PROPERTY.equals(key)) {
-            validateMandatoryProperty(key, longProperty);
-            return new TinkerProperty(this, key, longProperty);
-        } else {
-            return Property.empty();
+        final Object value;
+        final boolean mandatory;
+        try {
+            switch (key) {
+                case LONG_PROPERTY:
+                    if (longProperty == null) longProperty = (Long) graph.readProperty(this, LONG_PROPERTY_IDX, Long.class);
+                    value = longProperty;
+                    mandatory = true;
+                    break;
+                default: return Property.empty();
+            }
+
+            if (mandatory) validateMandatoryProperty(key, value);
+            return new TinkerProperty(this, key, value);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

@@ -75,8 +75,13 @@ public class SerializerTest {
       assertEquals(edge.id(), deserializedRef.id);
       assertEquals(SerializerTestEdge.label, deserializedRef.label());
 
+      // test reading of specific properties
       SerializerTestEdge deserializedWithoutProps = (SerializerTestEdge) deserializer.deserialize(bytes, false);
       assertNull("property should not have been initialized", deserializedWithoutProps.longProperty);
+      assertEquals(Long.MAX_VALUE, deserializer.unpackSpecificProperty(bytes, SerializerTestEdge.LONG_PROPERTY_IDX, Long.class));
+
+      // simulate normal case where bytes are read from storage
+      graph.getOndiskOverflow().getEdgeMVMap().put((Long) edge.id(), bytes);
       Long value = deserializedWithoutProps.value(SerializerTestEdge.LONG_PROPERTY); // triggers reading from storage
       assertEquals(Long.MAX_VALUE, value.longValue());
     }

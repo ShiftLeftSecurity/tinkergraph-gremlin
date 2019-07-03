@@ -125,16 +125,16 @@ public abstract class Deserializer<A> {
   /**
    * only deserialize one specific property, identified by it's index
    */
-  public Object unpackSpecificProperty(byte[] bytes, int idx, final Map<Integer, Class> propertyTypeByIndex) throws IOException {
+  public Object unpackSpecificProperty(byte[] bytes, int propertyIdx, final Class propertyType) throws IOException {
     try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
       // skip over values we don't care about
       unpacker.skipValue(2); // id and label
       if (elementRefRequiresAdjacentElements()) {
         unpacker.skipValue(2); // [in|out]EdgeIdsByLabel maps
       }
-      unpacker.skipValue(idx); // skip to required property
+      unpacker.unpackArrayHeader(); // array header for property count
+      unpacker.skipValue(propertyIdx); // skip to required property
 
-      final Class propertyType = propertyTypeByIndex.get(idx); //TODO speed up by not using a Map lookup
       return unpackProperty(unpacker.unpackValue(), propertyType);
     }
   }
@@ -149,9 +149,7 @@ public abstract class Deserializer<A> {
       final ArrayValue arrayValue = value.asArrayValue();
       List deserializedArray = new ArrayList(arrayValue.size());
       final Iterator<Value> valueIterator = arrayValue.iterator();
-      while (valueIterator.hasNext()) {
-        deserializedArray.add(unpackProperty(valueIterator.next(), propertyType));
-      }
+      while (valueIterator.hasNext()) deserializedArray.add(unpackProperty(valueIterator.next(), propertyType));
       return deserializedArray;
     } else if (propertyType.equals(Boolean.class)) {
       return value.asBooleanValue().getBoolean();
