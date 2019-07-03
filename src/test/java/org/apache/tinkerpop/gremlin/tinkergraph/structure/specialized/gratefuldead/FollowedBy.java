@@ -19,6 +19,7 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
 import gnu.trove.map.hash.THashMap;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
@@ -103,5 +104,10 @@ public class FollowedBy extends SpecializedTinkerEdge {
         ret.put(WEIGHT_IDX, Integer.class);
         return ret;
       }
+
+        @Override
+        public Map<Integer, String> propertyNamesByIndex() {
+            throw new NotImplementedException("TODO");
+        }
     };
 }

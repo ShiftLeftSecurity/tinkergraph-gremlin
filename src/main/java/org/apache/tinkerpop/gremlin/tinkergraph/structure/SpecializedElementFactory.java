@@ -32,6 +32,9 @@ public class SpecializedElementFactory {
 
         /** allows us to deserialize the correct property types without having to store that information in the binary */
         Map<Integer, Class> propertyTypeByIndex();
+
+        /** mapping from property index to property name */
+        Map<Integer, String> propertyNamesByIndex();
     }
 
     public interface ForEdge<E extends SpecializedTinkerEdge> {
@@ -42,6 +45,9 @@ public class SpecializedElementFactory {
 
         /** allows us to deserialize the correct property types without having to store that information in the binary */
         Map<Integer, Class> propertyTypeByIndex();
+
+        /** mapping from property index to property name */
+        Map<Integer, String> propertyNamesByIndex();
     }
 }
 

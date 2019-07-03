@@ -111,5 +111,12 @@ public class SerializerTestEdge extends SpecializedTinkerEdge {
             ret.put(LONG_PROPERTY_IDX, Long.class);
             return ret;
         }
+
+        @Override
+        public Map<Integer, String> propertyNamesByIndex() {
+            final Map<Integer, String> ret = new THashMap<>(1);
+            ret.put(LONG_PROPERTY_IDX, LONG_PROPERTY);
+            return ret;
+        }
     };
 }

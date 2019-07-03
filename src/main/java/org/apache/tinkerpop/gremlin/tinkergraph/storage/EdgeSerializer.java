@@ -24,7 +24,9 @@ import gnu.trove.set.hash.TLongHashSet;
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.ElementRef;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerEdge;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -44,6 +46,9 @@ public class EdgeSerializer extends Serializer<Edge> {
 
   @Override
   protected SortedMap<Integer, Object> getProperties(Edge edge) {
+    if (edge instanceof ElementRef) {
+      edge = ((ElementRef<TinkerEdge>) edge).get();
+    }
     if (edge instanceof SpecializedTinkerEdge) {
       return ((SpecializedTinkerEdge) edge).propertiesByStorageIdx();
     } else {

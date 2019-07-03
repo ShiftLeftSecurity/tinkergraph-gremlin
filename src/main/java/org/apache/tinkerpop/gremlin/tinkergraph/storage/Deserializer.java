@@ -24,7 +24,6 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.ElementRef;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
 import org.msgpack.value.ArrayValue;
-import org.msgpack.value.ImmutableValue;
 import org.msgpack.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,11 +52,13 @@ public abstract class Deserializer<A> {
 
   protected abstract A createElement(long id,
                                      String label,
-                                     Optional<List<Object>> properties,
+                                     Optional<Map<String, Object>> properties,
                                      Map<String, long[]> inEdgeIdsByLabel,
                                      Map<String, long[]> outEdgeIdsByLabel);
 
+  // TODO speedup by restructuring or memoizing the results
   protected abstract Map<Integer, Class> propertyTypeByIndex(String label);
+  protected abstract Map<Integer, String> propertyNamesByIndex(String label);
 
   public A deserialize(final byte[] bytes, final boolean readProperties) throws IOException {
     long start = System.currentTimeMillis();
@@ -70,9 +71,10 @@ public abstract class Deserializer<A> {
       final Map<String, long[]> inEdgeIdsByLabel = unpackEdgeIdsByLabel(unpacker);
       final Map<String, long[]> outEdgeIdsByLabel = unpackEdgeIdsByLabel(unpacker);
 
-      final Optional<List<Object>> properties;
+      final Optional<Map<String, Object>> properties;
       if (readProperties) {
-        properties = Optional.of(unpackAllProperties(unpacker, propertyTypeByIndex(label)));
+        final Map<Integer, Object> valuesByPropertyIndex = unpackAllProperties(unpacker, propertyTypeByIndex(label));
+        properties = Optional.of(convertPropertyIndexToPropertyNames(valuesByPropertyIndex, propertyNamesByIndex(label)));
       } else {
         properties = Optional.empty();
       }
@@ -107,12 +109,15 @@ public abstract class Deserializer<A> {
     }
   }
 
-  private List<Object> unpackAllProperties(final MessageUnpacker unpacker, final Map<Integer, Class> propertyTypeByIndex) throws IOException {
+  /**
+   * @return propertyValue by propertyIndex. properties are complete, but (therefor) values may be `null`
+   */
+  private Map<Integer, Object> unpackAllProperties(final MessageUnpacker unpacker, final Map<Integer, Class> propertyTypeByIndex) throws IOException {
     int propertyCount = unpacker.unpackArrayHeader();
-    List<Object> res = new ArrayList(propertyCount);
+    Map<Integer, Object> res = new THashMap<>(propertyCount);
     for (int idx = 0; idx < propertyCount; idx++) {
       final Class propertyType = propertyTypeByIndex.get(idx);
-      res.add(idx, unpackProperty(unpacker.unpackValue(), propertyType));
+      res.put(idx, unpackProperty(unpacker.unpackValue(), propertyType));
     }
     return res;
   }
@@ -206,6 +211,11 @@ public abstract class Deserializer<A> {
     return keyValues.toArray();
   }
 
+  private Map<String, Object> convertPropertyIndexToPropertyNames(Map<Integer, Object> valuesByPropertyIndex, Map<Integer, String> propertyNamesByIndex) {
+    Map<String, Object> valuesByPropertyName = new THashMap<>(valuesByPropertyIndex.size());
+    valuesByPropertyIndex.forEach((index, value) -> valuesByPropertyName.put(propertyNamesByIndex.get(index), value));
+    return valuesByPropertyName;
+  }
 
 }
 

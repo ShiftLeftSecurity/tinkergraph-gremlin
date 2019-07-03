@@ -18,7 +18,6 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
@@ -27,7 +26,6 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFact
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -56,37 +54,39 @@ public class VertexDeserializer extends Deserializer<Vertex> {
   }
 
   @Override
-  protected Vertex createElement(long id, String label, Optional<List<Object>> properties, Map<String, long[]> inEdgeIdsByLabel, Map<String, long[]> outEdgeIdsByLabel) {
+  protected Vertex createElement(long id, String label, Optional<Map<String, Object>> properties, Map<String, long[]> inEdgeIdsByLabel, Map<String, long[]> outEdgeIdsByLabel) {
     SpecializedElementFactory.ForVertex vertexFactory = vertexFactoryByLabel.get(label);
     if (vertexFactory == null) {
       throw new AssertionError("vertexFactory not found for label=" + label);
     }
     SpecializedTinkerVertex vertex = vertexFactory.createVertex(id, graph);
-    properties.ifPresent(props -> {
-//    throw new NotImplementedException("TODO map property index back to their name");
-    ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, toTinkerpopKeyValues(props));
+    properties.ifPresent(props -> ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, toTinkerpopKeyValues(props)));
+
+    inEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
+      for (long edgeId : entry.getValue()) {
+        vertex.storeInEdge(graph.edge(edgeId));
+      }
     });
 
-//    inEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
-//      for (long edgeId : entry.getValue()) {
-//        vertex.storeInEdge(graph.edge(edgeId));
-//      }
-//    });
-//
-//    outEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
-//      for (long edgeId : entry.getValue()) {
-//        vertex.storeOutEdge(graph.edge(edgeId));
-//      }
-//    });
-//
-//    vertex.setModifiedSinceLastSerialization(false);
-//
-//    return vertex;
+    outEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
+      for (long edgeId : entry.getValue()) {
+        vertex.storeOutEdge(graph.edge(edgeId));
+      }
+    });
+
+    vertex.setModifiedSinceLastSerialization(false);
+
+    return vertex;
   }
 
   @Override
   protected Map<Integer, Class> propertyTypeByIndex(String label) {
     return vertexFactoryByLabel.get(label).propertyTypeByIndex();
+  }
+
+  @Override
+  protected Map<Integer, String> propertyNamesByIndex(String label) {
+    return vertexFactoryByLabel.get(label).propertyNamesByIndex();
   }
 
 }

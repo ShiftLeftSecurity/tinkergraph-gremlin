@@ -183,6 +183,11 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
         public Map<Integer, Class> propertyTypeByIndex() {
             throw new NotImplementedException("TODO");
         }
+
+        @Override
+        public Map<Integer, String> propertyNamesByIndex() {
+            throw new NotImplementedException("TODO");
+        }
     };
 
 }
