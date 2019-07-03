@@ -137,9 +137,17 @@ public abstract class Deserializer<A> {
   /**
    * `nil` in the binary is mapped to `null`
    */
-  private Object unpackProperty(final ImmutableValue value, final Class propertyType) {
+  private Object unpackProperty(final Value value, final Class propertyType) {
     if (value.isNilValue()) {
       return null;
+    } else if (value.isArrayValue()) {
+      final ArrayValue arrayValue = value.asArrayValue();
+      List deserializedArray = new ArrayList(arrayValue.size());
+      final Iterator<Value> valueIterator = arrayValue.iterator();
+      while (valueIterator.hasNext()) {
+        deserializedArray.add(unpackProperty(valueIterator.next(), propertyType));
+      }
+      return deserializedArray;
     } else if (propertyType.equals(Boolean.class)) {
       return value.asBooleanValue().getBoolean();
     } else if (propertyType.equals(String.class)) {
@@ -156,17 +164,6 @@ public abstract class Deserializer<A> {
       return value.asFloatValue().toFloat();
     } else if (propertyType.equals(Double.class)) {
       return Double.valueOf(value.asFloatValue().toFloat());
-    } else if (propertyType.equals(List.class)) {
-        final ArrayValue arrayValue = value.asArrayValue();
-        List deserializedArray = new ArrayList(arrayValue.size());
-        final Iterator<Value> valueIterator = arrayValue.iterator();
-        while (valueIterator.hasNext()) {
-          // TODO impl - just unpack as Object is fine, thanks to type erasure
-          throw new NotImplementedException("TODO");
-//          valueIterator.next()
-//          deserializedArray.add(unpackProperty(valueIterator.next()));
-        }
-        return deserializedArray;
     } else {
         throw new NotImplementedException("unknown propertyType=`" + propertyType + " for value=" + value);
     }

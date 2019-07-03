@@ -198,9 +198,9 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
         public Map<Integer, Class> propertyTypeByIndex() {
             final Map<Integer, Class> ret = new THashMap<>(1);
             ret.put(STRING_PROPERTY_IDX, String.class);
-            ret.put(INT_PROPERTY_IDX, String.class);
-            ret.put(STRING_LIST_PROPERTY_IDX, List.class);
-            ret.put(INT_LIST_PROPERTY_IDX, List.class);
+            ret.put(INT_PROPERTY_IDX, Integer.class);
+            ret.put(STRING_LIST_PROPERTY_IDX, String.class);
+            ret.put(INT_LIST_PROPERTY_IDX, Integer.class);
             ret.put(OPTIONAL_LONG_PROPERTY_IDX, Long.class);
             return ret;
         }

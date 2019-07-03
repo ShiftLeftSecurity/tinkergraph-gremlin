@@ -62,9 +62,10 @@ public class VertexDeserializer extends Deserializer<Vertex> {
       throw new AssertionError("vertexFactory not found for label=" + label);
     }
     SpecializedTinkerVertex vertex = vertexFactory.createVertex(id, graph);
-
-    throw new NotImplementedException("TODO map property index back to their name");
-//    ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, toTinkerpopKeyValues(properties));
+    properties.ifPresent(props -> {
+//    throw new NotImplementedException("TODO map property index back to their name");
+    ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, toTinkerpopKeyValues(props));
+    });
 
 //    inEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
 //      for (long edgeId : entry.getValue()) {
