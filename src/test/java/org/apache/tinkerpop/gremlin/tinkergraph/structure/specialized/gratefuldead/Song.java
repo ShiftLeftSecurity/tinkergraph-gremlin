@@ -33,16 +33,17 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
     public static final String NAME = "name";
     public static final String SONG_TYPE = "songType";
     public static final String PERFORMANCES = "performances";
-    public static final String TEST_PROP = "testProperty";
-    public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(NAME, SONG_TYPE, PERFORMANCES, TEST_PROP));
+    public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(NAME, SONG_TYPE, PERFORMANCES));
     public static final Set<String> ALLOWED_IN_EDGE_LABELS = new HashSet<>(Arrays.asList(FollowedBy.label));
     public static final Set<String> ALLOWED_OUT_EDGE_LABELS = new HashSet<>(Arrays.asList(FollowedBy.label, SungBy.label, WrittenBy.label));
+    public static final int NAME_IDX = 0;
+    public static final int SONG_TYPE_IDX = 1;
+    public static final int PERFORMANCES_IDX = 2;
 
     // properties
     private String name;
     private String songType;
     private Integer performances;
-    private int[] testProp;
 
     public Song(Long id, TinkerGraph graph) {
         super(id, Song.label, graph);
@@ -76,8 +77,6 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
         return performances;
     }
 
-    public int[] getTestProp() { return testProp; }
-
     @Override
     protected Set<String> specificKeys() {
         return SPECIFIC_KEYS;
@@ -103,8 +102,6 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
             return IteratorUtils.of(new TinkerVertexProperty(this, key, songType));
         } else if (key == PERFORMANCES && performances != null) {
             return IteratorUtils.of(new TinkerVertexProperty(this, key, performances));
-        } else if (key == TEST_PROP && testProp != null) {
-            return IteratorUtils.of(new TinkerVertexProperty(this, key, testProp));
         } else {
             return Collections.emptyIterator();
         }
@@ -116,13 +113,16 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
         if (name != null) properties.put(NAME, name);
         if (songType != null) properties.put(SONG_TYPE, songType);
         if (performances != null) properties.put(PERFORMANCES, performances);
-        if (testProp != null) properties.put(TEST_PROP, testProp);
         return properties;
     }
 
     @Override
     public SortedMap<Integer, Object> propertiesByStorageIdx() {
-        throw new NotImplementedException("TODO");
+        SortedMap<Integer, Object> ret = new TreeMap<>();
+        if (name != null) ret.put(NAME_IDX, name);
+        if (songType != null) ret.put(SONG_TYPE_IDX, songType);
+        if (performances != null) ret.put(PERFORMANCES_IDX, performances);
+        return ret;
     }
 
     @Override
@@ -134,8 +134,6 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
             this.songType = (String) value;
         } else if (PERFORMANCES.equals(key)) {
             this.performances = ((Integer) value);
-        } else if (TEST_PROP.equals(key)) {
-            this.testProp = (int[]) value;
         } else {
             throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
         }
@@ -151,8 +149,6 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
             this.songType = null;
         } else if (PERFORMANCES.equals(key)) {
             this.performances = null;
-        } else if (TEST_PROP.equals(key)) {
-            this.testProp = null;
         } else {
             throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
         }
