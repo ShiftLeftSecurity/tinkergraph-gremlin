@@ -29,7 +29,13 @@ import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-public abstract class SpecializedTinkerVertex extends TinkerVertex {
+import static org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerElement.elementAlreadyRemoved;
+
+public abstract class SpecializedTinkerVertex implements Vertex {
+
+    private final Object id;
+    private final TinkerGraph graph;
+    private boolean removed = false;
 
     /** property keys for a specialized vertex  */
     protected abstract Set<String> specificKeys();
@@ -44,11 +50,23 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     // TODO re-implement/verify this optimization: only re-serialize if element has been changed
     private boolean modifiedSinceLastSerialization = true;
 
-    protected SpecializedTinkerVertex(long id, String label, TinkerGraph graph) {
-        super(id, label, graph);
+    protected SpecializedTinkerVertex(long id, TinkerGraph graph) {
+        this.id = id;
+        this.graph = graph;
+
         if (graph != null && graph.referenceManager != null) {
             graph.referenceManager.applyBackpressureMaybe();
         }
+    }
+
+    @Override
+    public Graph graph() {
+        return graph;
+    }
+
+    @Override
+    public Object id() {
+        return this.id;
     }
 
     @Override
@@ -177,12 +195,9 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
             modifiedSinceLastSerialization = true;
             return edge;
         } else { // edge label not registered for a specialized factory, treating as generic edge
-            if (graph.usesSpecializedElements) {
-                throw new IllegalArgumentException(
-                    "this instance of TinkerGraph uses specialized elements, but doesn't have a factory for label " + label
-                        + ". Mixing specialized and generic elements is not (yet) supported");
-            }
-            return super.addEdge(label, inVertex, keyValues);
+            throw new IllegalArgumentException(
+                "this instance of TinkerGraph uses specialized elements, but doesn't have a factory for label " + label
+                    + ". Mixing specialized and generic elements is not (yet) supported");
         }
     }
 
@@ -286,8 +301,24 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     @Override
     public void remove() {
-        super.remove();
-        graph.getElementsByLabel(graph.verticesByLabel, label).remove(this);
+        final List<Edge> edges = new ArrayList<>();
+        this.edges(Direction.BOTH).forEachRemaining(edges::add);
+        edges.stream().filter(edge -> {
+            if (edge instanceof ElementRef) {
+                return !((ElementRef<TinkerEdge>) edge).isRemoved();
+            } else {
+                return !((TinkerEdge) edge).removed;
+            }
+        }).forEach(Edge::remove);
+        TinkerHelper.removeElementIndex(this);
+        graph.vertices.remove(id());
+        graph.getElementsByLabel(graph.verticesByLabel, label()).remove(this);
+
+        if (graph.ondiskOverflowEnabled) {
+            graph.ondiskOverflow.removeVertex((Long) id);
+        }
+        this.removed = true;
+        graph.getElementsByLabel(graph.verticesByLabel, label()).remove(this);
         this.modifiedSinceLastSerialization = true;
     }
 
