@@ -36,7 +36,7 @@ public class Artist extends SpecializedTinkerVertex {
     private String name;
 
     public Artist(Long id, TinkerGraph graph) {
-        super(id, Artist.label, graph);
+        super(id, graph);
     }
 
     public String getName() {
@@ -50,6 +50,7 @@ public class Artist extends SpecializedTinkerVertex {
     public List<WrittenBy> writtenByIn() {
         return specializedEdges(Direction.IN, WrittenBy.label);
     }
+
 
     @Override
     protected Set<String> specificKeys() {
@@ -71,7 +72,7 @@ public class Artist extends SpecializedTinkerVertex {
     protected <V> Iterator<VertexProperty<V>> specificProperties(String key) {
         final VertexProperty<V> ret;
         if (NAME.equals(key) && name != null) {
-            return IteratorUtils.of(new TinkerVertexProperty(this, key, name));
+            return IteratorUtils.of(new SpecializedVertexProperty(this, key, name));
         } else {
             return Collections.emptyIterator();
         }
@@ -126,4 +127,8 @@ public class Artist extends SpecializedTinkerVertex {
         }
     };
 
+    @Override
+    public String label() {
+        return Artist.label;
+    }
 }

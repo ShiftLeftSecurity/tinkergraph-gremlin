@@ -44,7 +44,7 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
     private int[] testProp;
 
     public Song(Long id, TinkerGraph graph) {
-        super(id, Song.label, graph);
+        super(id, graph);
     }
 
     public List<FollowedBy> followedByIn() {
@@ -97,13 +97,13 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
     protected <V> Iterator<VertexProperty<V>> specificProperties(String key) {
         final VertexProperty<V> ret;
         if (NAME.equals(key) && name != null) {
-            return IteratorUtils.of(new TinkerVertexProperty(this, key, name));
+            return IteratorUtils.of(new SpecializedVertexProperty(this, key, name));
         } else if (key == SONG_TYPE && songType != null) {
-            return IteratorUtils.of(new TinkerVertexProperty(this, key, songType));
+            return IteratorUtils.of(new SpecializedVertexProperty(this, key, songType));
         } else if (key == PERFORMANCES && performances != null) {
-            return IteratorUtils.of(new TinkerVertexProperty(this, key, performances));
+            return IteratorUtils.of(new SpecializedVertexProperty(this, key, performances));
         } else if (key == TEST_PROP && testProp != null) {
-            return IteratorUtils.of(new TinkerVertexProperty(this, key, testProp));
+            return IteratorUtils.of(new SpecializedVertexProperty(this, key, testProp));
         } else {
             return Collections.emptyIterator();
         }
@@ -174,4 +174,8 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
         }
     };
 
+    @Override
+    public String label() {
+        return Song.label;
+    }
 }

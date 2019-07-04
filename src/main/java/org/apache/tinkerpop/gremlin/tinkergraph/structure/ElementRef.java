@@ -27,7 +27,7 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
  * Wrapper for an element reference, which may be set to `null` by @ReferenceManager to avoid OutOfMemory errors.
  * When it's cleared, it will be persisted to an on-disk storage.
  */
-public abstract class ElementRef<E extends TinkerElement> implements Element {
+public abstract class ElementRef<E extends Element> implements Element {
   public final long id;
   public final String label;
 
