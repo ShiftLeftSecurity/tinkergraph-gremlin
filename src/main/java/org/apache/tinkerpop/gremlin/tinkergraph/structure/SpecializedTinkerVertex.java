@@ -43,7 +43,6 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
     /** `dirty` flag for serialization to avoid superfluous serialization */
     // TODO re-implement/verify this optimization: only re-serialize if element has been changed
     private boolean modifiedSinceLastSerialization = true;
-    private Semaphore modificationSemaphore = new Semaphore(1);
 
     protected SpecializedTinkerVertex(long id, String label, TinkerGraph graph) {
         super(id, label, graph);
@@ -103,22 +102,22 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
         if (this.removed) throw elementAlreadyRemoved(Vertex.class, id);
         ElementHelper.legalPropertyKeyValueArray(keyValues);
         ElementHelper.validateProperty(key, value);
-        acquireModificationLock();
-        this.modifiedSinceLastSerialization = true;
-        final VertexProperty<V> vp = updateSpecificProperty(cardinality, key, value);
-        TinkerHelper.autoUpdateIndex(this, key, value, null);
-        releaseModificationLock();
-        return vp;
+        synchronized (this) {
+            this.modifiedSinceLastSerialization = true;
+            final VertexProperty<V> vp = updateSpecificProperty(cardinality, key, value);
+            TinkerHelper.autoUpdateIndex(this, key, value, null);
+            return vp;
+        }
     }
 
     protected abstract <V> VertexProperty<V> updateSpecificProperty(
       VertexProperty.Cardinality cardinality, String key, V value);
 
     public void removeProperty(String key) {
-        acquireModificationLock();
-        modifiedSinceLastSerialization = true;
-        removeSpecificProperty(key);
-        releaseModificationLock();
+        synchronized (this) {
+            modifiedSinceLastSerialization = true;
+            removeSpecificProperty(key);
+        }
     }
 
     protected abstract void removeSpecificProperty(String key);
@@ -294,17 +293,5 @@ public abstract class SpecializedTinkerVertex extends TinkerVertex {
 
     public void setModifiedSinceLastSerialization(boolean modifiedSinceLastSerialization) {
         this.modifiedSinceLastSerialization = modifiedSinceLastSerialization;
-    }
-
-    public void acquireModificationLock() {
-        try {
-            modificationSemaphore.acquire();
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    public void releaseModificationLock() {
-        modificationSemaphore.release();
     }
 }

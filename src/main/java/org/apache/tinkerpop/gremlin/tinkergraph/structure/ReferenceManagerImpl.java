@@ -41,12 +41,12 @@ public class ReferenceManagerImpl implements ReferenceManager {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private Map<NotificationEmitter, NotificationListener> gcNotificationListeners = new HashMap<>(2);
   private final float heapUsageThreshold; // range 0.0 - 1.0
-  public final int backpressureMillis = 500; //TODO make configurable
   public final int releaseCount = 100000; //TODO make configurable
   private AtomicInteger totalReleaseCount = new AtomicInteger(0);
   private final Integer cpuCount = Runtime.getRuntime().availableProcessors();
   private final ExecutorService executorService = Executors.newFixedThreadPool(cpuCount);
-  private final AtomicInteger clearingProcessCount = new AtomicInteger(0);
+  private int clearingProcessCount = 0;
+  private final Object backPressureSyncObject = new Object();
 
   /** prioritize references by
    * 1) serializationCount, i.e. elements that have been serialized more often will be serialized later
@@ -78,19 +78,22 @@ public class ReferenceManagerImpl implements ReferenceManager {
    * faster than old ones are serialized away, we're applying some backpressure in those situation */
   @Override
   public void applyBackpressureMaybe() {
-    if (clearingProcessCount.get() > 0) {
-      try {
-        logger.trace("applying " + backpressureMillis + "ms backpressure");
-        Thread.sleep(backpressureMillis);
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
+    synchronized (backPressureSyncObject) {
+      while (clearingProcessCount > 0) {
+        try {
+          logger.trace("wait until ref clearing completed");
+          backPressureSyncObject.wait();
+          logger.trace("continue");
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        }
       }
     }
   }
 
   protected void maybeClearReferences(final float heapUsage) {
     if (heapUsage > heapUsageThreshold) {
-      if (clearingProcessCount.get() > 0) {
+      if (clearingProcessCount > 0) {
         logger.debug("cleaning in progress, will only queue up more references to clear after that's completed");
       } else if (clearableRefs.isEmpty()) {
         logger.debug("clearableRefs queue is empty - nothing to clear at the moment");
@@ -143,12 +146,19 @@ public class ReferenceManagerImpl implements ReferenceManager {
    */
   protected void safelyClearReferences(final List<ElementRef> refsToClear) {
     try {
-      clearingProcessCount.incrementAndGet();
+      synchronized (backPressureSyncObject) {
+        clearingProcessCount += 1;
+      }
       clearReferences(refsToClear);
     } catch (Exception e) {
       logger.error("error while trying to clear " + refsToClear.size() + " references", e);
     } finally {
-      clearingProcessCount.decrementAndGet();
+      synchronized (backPressureSyncObject) {
+        clearingProcessCount -= 1;
+        if (clearingProcessCount == 0) {
+          backPressureSyncObject.notifyAll();
+        }
+      }
     }
   }
 
