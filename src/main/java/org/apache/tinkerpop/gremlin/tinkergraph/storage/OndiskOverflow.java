@@ -106,7 +106,7 @@ public class OndiskOverflow implements AutoCloseable {
     return (A) vertexDeserializer.get().deserialize(vertexMVMap.get(id));
   }
 
-  public <A extends TinkerEdge> A readEdge(final long id) throws IOException {
+  public <A extends Edge> A readEdge(final long id) throws IOException {
     return (A) edgeDeserializer.get().deserialize(edgeMVMap.get(id));
   }
 

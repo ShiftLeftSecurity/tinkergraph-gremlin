@@ -305,9 +305,9 @@ public abstract class SpecializedTinkerVertex implements Vertex {
         this.edges(Direction.BOTH).forEachRemaining(edges::add);
         edges.stream().filter(edge -> {
             if (edge instanceof ElementRef) {
-                return !((ElementRef<TinkerEdge>) edge).isRemoved();
+                return !((ElementRef<SpecializedTinkerEdge>) edge).isRemoved();
             } else {
-                return !((TinkerEdge) edge).removed;
+                return !((SpecializedTinkerEdge) edge).isRemoved();
             }
         }).forEach(Edge::remove);
         TinkerHelper.removeElementIndex(this);
@@ -318,7 +318,6 @@ public abstract class SpecializedTinkerVertex implements Vertex {
             graph.ondiskOverflow.removeVertex((Long) id);
         }
         this.removed = true;
-        graph.getElementsByLabel(graph.verticesByLabel, label()).remove(this);
         this.modifiedSinceLastSerialization = true;
     }
 

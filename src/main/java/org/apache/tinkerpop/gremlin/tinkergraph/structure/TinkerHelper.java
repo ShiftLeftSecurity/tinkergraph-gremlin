@@ -118,7 +118,7 @@ public final class TinkerHelper {
         return null == vertex.properties ? Collections.emptyMap() : vertex.properties;
     }
 
-    public static void autoUpdateIndex(final TinkerEdge edge, final String key, final Object newValue, final Object oldValue) {
+    public static void autoUpdateIndex(final Edge edge, final String key, final Object newValue, final Object oldValue) {
         final TinkerGraph graph = (TinkerGraph) edge.graph();
 
         if (graph.edgeIndex != null)
@@ -137,7 +137,7 @@ public final class TinkerHelper {
             graph.vertexIndex.removeElement(vertex);
     }
 
-    public static void removeElementIndex(final TinkerEdge edge) {
+    public static void removeElementIndex(final Edge edge) {
         final TinkerGraph graph = (TinkerGraph) edge.graph();
         if (graph.edgeIndex != null)
             graph.edgeIndex.removeElement(edge);
