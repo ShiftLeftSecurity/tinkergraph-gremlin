@@ -25,6 +25,7 @@ import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
 import org.msgpack.value.ArrayValue;
 import org.msgpack.value.Value;
+import org.msgpack.value.ValueType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -141,6 +142,7 @@ public abstract class Deserializer<A> {
    * `nil` in the binary is mapped to `null`
    */
   private Object unpackProperty(final Value value, final Class propertyType) {
+    final ValueType valueType = value.getValueType();
     if (value.isNilValue()) {
       return null;
     } else if (value.isArrayValue()) {
@@ -150,20 +152,28 @@ public abstract class Deserializer<A> {
       while (valueIterator.hasNext()) deserializedArray.add(unpackProperty(valueIterator.next(), propertyType));
       return deserializedArray;
     } else if (propertyType.equals(Boolean.class)) {
+      if (!valueType.isBooleanType()) throw new UnexpectedPropertyTypeException(propertyType, value);
       return value.asBooleanValue().getBoolean();
     } else if (propertyType.equals(String.class)) {
+      if (!valueType.isStringType()) throw new UnexpectedPropertyTypeException(propertyType, value);
       return value.asStringValue().asString();
     } else if (propertyType.equals(Byte.class)) {
+      if (!valueType.isIntegerType()) throw new UnexpectedPropertyTypeException(propertyType, value);
       return value.asIntegerValue().asByte();
     } else if (propertyType.equals(Short.class)) {
+      if (!valueType.isIntegerType()) throw new UnexpectedPropertyTypeException(propertyType, value);
       return value.asIntegerValue().asShort();
     } else if (propertyType.equals(Integer.class)) {
+      if (!valueType.isIntegerType()) throw new UnexpectedPropertyTypeException(propertyType, value);
       return value.asIntegerValue().asInt();
     } else if (propertyType.equals(Long.class)) {
+      if (!valueType.isIntegerType()) throw new UnexpectedPropertyTypeException(propertyType, value);
       return value.asIntegerValue().asLong();
     } else if (propertyType.equals(Float.class)) {
+      if (!valueType.isFloatType()) throw new UnexpectedPropertyTypeException(propertyType, value);
       return value.asFloatValue().toFloat();
     } else if (propertyType.equals(Double.class)) {
+      if (!valueType.isFloatType()) throw new UnexpectedPropertyTypeException(propertyType, value);
       return Double.valueOf(value.asFloatValue().toFloat());
     } else {
         throw new NotImplementedException("unknown propertyType=`" + propertyType + " for value=" + value);

@@ -77,8 +77,9 @@ public abstract class Serializer<A> {
     for (Map.Entry<Integer, Object> property : properties.entrySet()) {
       // to ensure we write the properties with correct index, fill the void with Nil values
       final Integer propertyIdx = property.getKey();
-      while (propertyIdx < currentIdx) {
+      while (propertyIdx > currentIdx) {
         packer.packNil();
+        currentIdx++;
       }
 
       packPropertyValue(packer, property.getValue());
