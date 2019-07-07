@@ -28,6 +28,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.VertexRef;
 
 import java.util.Map;
+import java.util.Optional;
 
 public class EdgeDeserializer extends Deserializer<Edge> {
   protected final TinkerGraph graph;
@@ -51,14 +52,23 @@ public class EdgeDeserializer extends Deserializer<Edge> {
   }
 
   @Override
-  protected Edge createElement(long id, String label, Map<String, Object> properties, Map<String, long[]> inVertexIdsByLabel, Map<String, long[]> outVertexIdsByLabel) {
+  protected Edge createElement(long id, String label, Optional<Map<String, Object>> properties, Map<String, long[]> inVertexIdsByLabel, Map<String, long[]> outVertexIdsByLabel) {
     VertexRef outVertexRef = getVertexRef(outVertexIdsByLabel, Direction.OUT);
     VertexRef inVertexRef = getVertexRef(inVertexIdsByLabel, Direction.IN);
     SpecializedTinkerEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexRef, inVertexRef);
-    ElementHelper.attachProperties(edge, toTinkerpopKeyValues(properties));
-
+    properties.ifPresent(props -> ElementHelper.attachProperties(edge, toTinkerpopKeyValues(props)));
     edge.setModifiedSinceLastSerialization(false);
     return edge;
+  }
+
+  @Override
+  protected Map<Integer, Class> propertyTypeByIndex(String label) {
+    return edgeFactoryByLabel.get(label).propertyTypeByIndex();
+  }
+
+  @Override
+  protected Map<Integer, String> propertyNamesByIndex(String label) {
+    return edgeFactoryByLabel.get(label).propertyNamesByIndex();
   }
 
   private VertexRef getVertexRef(Map<String, long[]> vertexIdsByLabel, Direction direction) {

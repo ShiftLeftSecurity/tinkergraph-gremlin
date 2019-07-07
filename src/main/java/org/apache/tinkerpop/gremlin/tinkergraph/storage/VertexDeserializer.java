@@ -25,7 +25,9 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.ElementRef;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
+
 import java.util.Map;
+import java.util.Optional;
 
 public class VertexDeserializer extends Deserializer<Vertex> {
   protected final TinkerGraph graph;
@@ -52,13 +54,13 @@ public class VertexDeserializer extends Deserializer<Vertex> {
   }
 
   @Override
-  protected Vertex createElement(long id, String label, Map<String, Object> properties, Map<String, long[]> inEdgeIdsByLabel, Map<String, long[]> outEdgeIdsByLabel) {
+  protected Vertex createElement(long id, String label, Optional<Map<String, Object>> properties, Map<String, long[]> inEdgeIdsByLabel, Map<String, long[]> outEdgeIdsByLabel) {
     SpecializedElementFactory.ForVertex vertexFactory = vertexFactoryByLabel.get(label);
     if (vertexFactory == null) {
       throw new AssertionError("vertexFactory not found for label=" + label);
     }
     SpecializedTinkerVertex vertex = vertexFactory.createVertex(id, graph);
-    ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, toTinkerpopKeyValues(properties));
+    properties.ifPresent(props -> ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, toTinkerpopKeyValues(props)));
 
     inEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
       for (long edgeId : entry.getValue()) {
@@ -75,6 +77,16 @@ public class VertexDeserializer extends Deserializer<Vertex> {
     vertex.setModifiedSinceLastSerialization(false);
 
     return vertex;
+  }
+
+  @Override
+  protected Map<Integer, Class> propertyTypeByIndex(String label) {
+    return vertexFactoryByLabel.get(label).propertyTypeByIndex();
+  }
+
+  @Override
+  protected Map<Integer, String> propertyNamesByIndex(String label) {
+    return vertexFactoryByLabel.get(label).propertyNamesByIndex();
   }
 
 }

@@ -433,30 +433,30 @@ public class SpecializedElementsWithOndiskTest {
     // with overflow that number should be tremendously larger, because only the reference wrappers are helt in memory
     // it'll be much slower due to the serialization to disk, but should not crash
     // important: use all the following vm opts:  `-XX:+UseG1GC -Xms256m -Xmx256m -XX:+HeapDumpOnOutOfMemoryError`
-    public void shouldAllowGraphsLargerThanMemory() throws InterruptedException {
-        int vertexCount = 300000;
-//        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
-        Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
-//        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, false);
-        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
-        TinkerGraph graph = TinkerGraph.open(
-                configuration,
-                Arrays.asList(Song.factory, Artist.factory),
-                Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
-        );
-
-        for (long i = 0; i < vertexCount; i++) {
-            if (i % 50000 == 0) {
-                System.out.println(i + " vertices created");
-                Thread.sleep(1000); // in lieu of other application usage
-            }
-            Vertex v = graph.addVertex(Song.label);
-//            v.property(Song.NAME, UUID.randomUUID().toString());
-//            v.property(Song.SONG_TYPE, UUID.randomUUID().toString());
-            v.property(Song.TEST_PROP, new int[200]);
-        }
-        graph.close();
-    }
+//    public void shouldAllowGraphsLargerThanMemory() throws InterruptedException {
+//        int vertexCount = 300000;
+////        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
+//        Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
+////        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, false);
+//        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
+//        TinkerGraph graph = TinkerGraph.open(
+//                configuration,
+//                Arrays.asList(Song.factory, Artist.factory),
+//                Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
+//        );
+//
+//        for (long i = 0; i < vertexCount; i++) {
+//            if (i % 50000 == 0) {
+//                System.out.println(i + " vertices created");
+//                Thread.sleep(1000); // in lieu of other application usage
+//            }
+//            Vertex v = graph.addVertex(Song.label);
+////            v.property(Song.NAME, UUID.randomUUID().toString());
+////            v.property(Song.SONG_TYPE, UUID.randomUUID().toString());
+//            v.property(Song.TEST_PROP, new int[200]);
+//        }
+//        graph.close();
+//    }
 
     private TinkerGraph newGratefulDeadGraphWithSpecializedElements() {
         Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();

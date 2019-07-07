@@ -42,6 +42,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.process.computer.TinkerGraphComp
 import org.apache.tinkerpop.gremlin.tinkergraph.process.computer.TinkerGraphComputerView;
 import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optimization.TinkerGraphCountStrategy;
 import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optimization.TinkerGraphStepStrategy;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.Deserializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.EdgeDeserializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.EdgeSerializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.OndiskOverflow;
@@ -50,6 +51,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexDeserializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexSerializer;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.apache.tinkerpop.gremlin.util.iterator.MultiIterator;
+import org.h2.mvstore.MVMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -539,6 +541,32 @@ public final class TinkerGraph implements Graph {
 
     public boolean isClosed() {
         return closed;
+    }
+
+    /** reads specific property value from storage
+     * @param propertyType the base type - note that return value might be a `List<ThatType>`, which is why this method returns `Object`... :( */
+    public Object readProperty(final Element element, final int propertyIdx, final Class propertyType) throws IOException {
+        final MVMap<Long, byte[]> mvMap;
+        final Deserializer deserializer;
+        if (Vertex.class.isAssignableFrom(element.getClass())) {
+            mvMap = ondiskOverflow.getVertexMVMap();
+            deserializer = ondiskOverflow.getVertexDeserializer().get();
+        }
+        else if (Edge.class.isAssignableFrom(element.getClass())) {
+            mvMap = ondiskOverflow.getEdgeMVMap();
+            deserializer = ondiskOverflow.getEdgeDeserializer().get();
+        }
+        else throw new AssertionError("expected vertex or edge, but got " + element.getClass());
+
+        /** TODO: improve performance by reading only the relevant parts from disk
+         *  easiest option is probably to store properties in separate MVMap
+         *  positive side effect: we won't need to skip over the properties in `deserializer.unpackSpecificProperty` */
+        final byte[] bytes = mvMap.get(element.id());
+        return deserializer.unpackSpecificProperty(bytes, propertyIdx, propertyType);
+    }
+
+    public OndiskOverflow getOndiskOverflow() {
+        return ondiskOverflow;
     }
 
     public class TinkerGraphFeatures implements Features {

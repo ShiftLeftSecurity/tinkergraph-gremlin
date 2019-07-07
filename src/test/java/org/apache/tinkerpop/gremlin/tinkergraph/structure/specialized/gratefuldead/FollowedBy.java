@@ -18,17 +18,19 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
+import gnu.trove.map.hash.THashMap;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
 
-import java.io.Serializable;
 import java.util.*;
 
 public class FollowedBy extends SpecializedTinkerEdge {
     public static final String label = "followedBy";
 
     public static final String WEIGHT = "weight";
+    public static final int WEIGHT_IDX = 0;
     public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(WEIGHT));
 
     private Integer weight;
@@ -38,8 +40,17 @@ public class FollowedBy extends SpecializedTinkerEdge {
     }
 
     @Override
+    public SortedMap<Integer, Object> propertiesByStorageIdx() {
+        SortedMap<Integer, Object> ret = new TreeMap<>();
+        if (weight != null) {
+            ret.put(WEIGHT_IDX, weight);
+        }
+        return ret;
+    }
+
+    @Override
     protected <V> Property<V> specificProperty(String key) {
-        // note: use the statically defined strings to take advantage of `==` (pointer comparison) over `.equals` (String content comparison) for performance 
+        // note: use the statically defined strings to take advantage of `==` (pointer comparison) over `.equals` (String content comparison) for performance
         if (WEIGHT.equals(key) && weight != null) {
             return new TinkerProperty(this, key, weight);
         } else {
@@ -85,6 +96,18 @@ public class FollowedBy extends SpecializedTinkerEdge {
         @Override
         public EdgeRef<FollowedBy> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
             return new EdgeRef<>(id, FollowedBy.label, graph);
+        }
+
+      @Override
+      public Map<Integer, Class> propertyTypeByIndex() {
+        final Map<Integer, Class> ret = new THashMap<>(1);
+        ret.put(WEIGHT_IDX, Integer.class);
+        return ret;
+      }
+
+        @Override
+        public Map<Integer, String> propertyNamesByIndex() {
+            throw new NotImplementedException("TODO");
         }
     };
 }

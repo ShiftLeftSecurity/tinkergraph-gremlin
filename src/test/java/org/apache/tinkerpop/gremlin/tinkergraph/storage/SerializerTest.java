@@ -39,11 +39,12 @@ public class SerializerTest {
           SerializerTestVertex.STRING_PROPERTY, "StringValue",
           SerializerTestVertex.INT_PROPERTY, 42,
           SerializerTestVertex.STRING_LIST_PROPERTY, Arrays.asList("stringOne", "stringTwo"),
-          SerializerTestVertex.INT_LIST_PROPERTY, Arrays.asList(42, 43)
+          SerializerTestVertex.INT_LIST_PROPERTY, Arrays.asList(43, 44),
+          SerializerTestVertex.OPTIONAL_LONG_PROPERTY, 45l
       );
 
       byte[] bytes = serializer.serialize(vertex);
-      Vertex deserialized = deserializer.deserialize(bytes);
+      Vertex deserialized = deserializer.deserialize(bytes, true);
 
       Vertex underlyingVertexDb = ((VertexRef<TinkerVertex>) vertex).get();
       assertEquals(underlyingVertexDb, deserialized);
@@ -51,6 +52,25 @@ public class SerializerTest {
       final ElementRef<TinkerVertex> deserializedRef = deserializer.deserializeRef(bytes);
       assertEquals(vertex.id(), deserializedRef.id);
       assertEquals(SerializerTestVertex.label, deserializedRef.label());
+
+
+      // test reading of specific properties
+      SerializerTestVertex deserializedWithoutProps = (SerializerTestVertex) deserializer.deserialize(bytes, false);
+      assertNull("property should not have been initialized", deserializedWithoutProps.stringProperty);
+      assertNull("property should not have been initialized", deserializedWithoutProps.intProperty);
+      assertNull("property should not have been initialized", deserializedWithoutProps.stringListProperty);
+      assertNull("property should not have been initialized", deserializedWithoutProps.intListProperty);
+      assertNull("property should not have been initialized", deserializedWithoutProps.optionalLongProperty);
+      assertEquals("StringValue", deserializer.unpackSpecificProperty(bytes, SerializerTestVertex.STRING_PROPERTY_IDX, String.class));
+      assertEquals(42, deserializer.unpackSpecificProperty(bytes, SerializerTestVertex.INT_PROPERTY_IDX, Integer.class));
+      assertEquals(Arrays.asList("stringOne", "stringTwo"), deserializer.unpackSpecificProperty(bytes, SerializerTestVertex.STRING_LIST_PROPERTY_IDX, String.class));
+      assertEquals(Arrays.asList(43, 44), deserializer.unpackSpecificProperty(bytes, SerializerTestVertex.INT_LIST_PROPERTY_IDX, Integer.class));
+      assertEquals(45l, deserializer.unpackSpecificProperty(bytes, SerializerTestVertex.OPTIONAL_LONG_PROPERTY_IDX, Long.class));
+
+      // simulate normal case where bytes are lazily read from storage
+      graph.getOndiskOverflow().getVertexMVMap().put((Long) vertex.id(), bytes);
+      assertEquals("StringValue", deserializedWithoutProps.value(SerializerTestVertex.STRING_PROPERTY));
+      assertEquals(Arrays.asList(43, 44), deserializedWithoutProps.value(SerializerTestVertex.INT_LIST_PROPERTY));
     }
   }
 
@@ -65,7 +85,7 @@ public class SerializerTest {
       Edge edge = v0.addEdge(SerializerTestEdge.label, v1, SerializerTestEdge.LONG_PROPERTY, Long.MAX_VALUE);
 
       byte[] bytes = serializer.serialize(edge);
-      Edge deserialized = deserializer.deserialize(bytes);
+      Edge deserialized = deserializer.deserialize(bytes, true);
 
       Edge underlyingEdgeDb = ((EdgeRef<TinkerEdge>) edge).get();
       assertEquals(underlyingEdgeDb, deserialized);
@@ -73,6 +93,16 @@ public class SerializerTest {
       final ElementRef<TinkerEdge> deserializedRef = deserializer.deserializeRef(bytes);
       assertEquals(edge.id(), deserializedRef.id);
       assertEquals(SerializerTestEdge.label, deserializedRef.label());
+
+      // test reading of specific properties
+      SerializerTestEdge deserializedWithoutProps = (SerializerTestEdge) deserializer.deserialize(bytes, false);
+      assertNull("property should not have been initialized", deserializedWithoutProps.longProperty);
+      assertEquals(Long.MAX_VALUE, deserializer.unpackSpecificProperty(bytes, SerializerTestEdge.LONG_PROPERTY_IDX, Long.class));
+
+      // simulate normal case where bytes are lazily read from storage
+      graph.getOndiskOverflow().getEdgeMVMap().put((Long) edge.id(), bytes);
+      Long value = deserializedWithoutProps.value(SerializerTestEdge.LONG_PROPERTY); // triggers reading from storage
+      assertEquals(Long.MAX_VALUE, value.longValue());
     }
   }
 
@@ -88,7 +118,7 @@ public class SerializerTest {
       Edge edge1 = vertex1.addEdge(SerializerTestEdge.label, vertex0);
 
       byte[] bytes = serializer.serialize(vertex0);
-      Vertex deserialized = deserializer.deserialize(bytes);
+      Vertex deserialized = deserializer.deserialize(bytes, true);
 
       Vertex underlyingVertexDb = ((VertexRef<TinkerVertex>) vertex0).get();
       assertEquals(underlyingVertexDb, deserialized);
