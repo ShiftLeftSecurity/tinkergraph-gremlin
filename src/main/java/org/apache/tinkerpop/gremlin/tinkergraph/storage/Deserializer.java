@@ -203,15 +203,17 @@ public abstract class Deserializer<A> {
     for (Map.Entry<String, Object> entry : properties.entrySet()) {
       final String key = entry.getKey();
       final Object property = entry.getValue();
-      // special handling for lists: create separate key/value entry for each list entry
-      if (property instanceof List) {
-        for (Object value : (List) property) {
+      if (property != null) {
+        // special handling for lists: create separate key/value entry for each list entry
+        if (property instanceof List) {
+          for (Object value : (List) property) {
+            keyValues.add(key);
+            keyValues.add(value);
+          }
+        } else {
           keyValues.add(key);
-          keyValues.add(value);
+          keyValues.add(property);
         }
-      } else {
-        keyValues.add(key);
-        keyValues.add(property);
       }
     }
     return keyValues.toArray();
