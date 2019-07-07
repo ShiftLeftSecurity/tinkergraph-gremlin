@@ -19,6 +19,7 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerEdge;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerElement;
@@ -88,7 +89,7 @@ public class OndiskOverflow implements AutoCloseable {
     edgeMVMap = mvstore.openMap("edges");
   }
 
-  public void persist(final TinkerElement element) throws IOException {
+  public void persist(final Element element) throws IOException {
     if (!closed) {
       final Long id = (Long) element.id();
       if (element instanceof Vertex) {
@@ -101,11 +102,11 @@ public class OndiskOverflow implements AutoCloseable {
     }
   }
 
-  public <A extends TinkerVertex> A readVertex(final long id) throws IOException {
+  public <A extends Vertex> A readVertex(final long id) throws IOException {
     return (A) vertexDeserializer.get().deserialize(vertexMVMap.get(id));
   }
 
-  public <A extends TinkerEdge> A readEdge(final long id) throws IOException {
+  public <A extends Edge> A readEdge(final long id) throws IOException {
     return (A) edgeDeserializer.get().deserialize(edgeMVMap.get(id));
   }
 

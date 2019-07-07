@@ -46,7 +46,11 @@ public class SerializerTest {
       Vertex deserialized = deserializer.deserialize(bytes);
 
       Vertex underlyingVertexDb = ((VertexRef<TinkerVertex>) vertex).get();
-      assertEquals(underlyingVertexDb, deserialized);
+
+      assertEquals(underlyingVertexDb.id(), deserialized.id());
+      assertEquals(underlyingVertexDb.label(), deserialized.label());
+      assertEquals(((SerializerTestVertex) underlyingVertexDb).valueMap(),
+          ((SerializerTestVertex) deserialized).valueMap());
 
       final ElementRef<TinkerVertex> deserializedRef = deserializer.deserializeRef(bytes);
       assertEquals(vertex.id(), deserializedRef.id);
@@ -68,7 +72,9 @@ public class SerializerTest {
       Edge deserialized = deserializer.deserialize(bytes);
 
       Edge underlyingEdgeDb = ((EdgeRef<TinkerEdge>) edge).get();
-      assertEquals(underlyingEdgeDb, deserialized);
+      assertEquals(underlyingEdgeDb.id(), deserialized.id());
+      assertEquals(underlyingEdgeDb.label(), deserialized.label());
+      assertEquals(Long.MAX_VALUE, (long) deserialized.value(SerializerTestEdge.LONG_PROPERTY));
 
       final ElementRef<TinkerEdge> deserializedRef = deserializer.deserializeRef(bytes);
       assertEquals(edge.id(), deserializedRef.id);
@@ -91,7 +97,11 @@ public class SerializerTest {
       Vertex deserialized = deserializer.deserialize(bytes);
 
       Vertex underlyingVertexDb = ((VertexRef<TinkerVertex>) vertex0).get();
-      assertEquals(underlyingVertexDb, deserialized);
+      assertEquals(underlyingVertexDb.id(), deserialized.id());
+      assertEquals(underlyingVertexDb.label(), deserialized.label());
+      assertEquals(((SerializerTestVertex) underlyingVertexDb).valueMap(),
+          ((SerializerTestVertex) deserialized).valueMap());
+
       assertEquals(edge0, deserialized.edges(Direction.OUT, SerializerTestEdge.label).next());
       assertEquals(edge1, deserialized.edges(Direction.IN, SerializerTestEdge.label).next());
       assertEquals(vertex1, deserialized.vertices(Direction.OUT, SerializerTestEdge.label).next());

@@ -24,7 +24,7 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import java.io.IOException;
 import java.util.Iterator;
 
-public class EdgeRef<E extends TinkerEdge> extends ElementRef<E> implements Edge {
+public class EdgeRef<E extends Edge> extends ElementRef<E> implements Edge {
 
   public EdgeRef(E edge) {
     super(edge);

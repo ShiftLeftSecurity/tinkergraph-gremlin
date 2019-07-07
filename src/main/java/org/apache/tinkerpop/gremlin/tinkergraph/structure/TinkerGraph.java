@@ -188,6 +188,7 @@ public final class TinkerGraph implements Graph {
         int elementCount = serializedVertices.size() + serializedEdges.size();
         logger.info("initializing " + elementCount + " elements from existing storage - this may take some time");
         int importCount = 0;
+        long maxId = currentId.get();
 
         vertices = new THashMap<>(serializedVertices.size());
         verticesByLabel = new THashMap<>(serializedVertices.size());
@@ -202,6 +203,7 @@ public final class TinkerGraph implements Graph {
                 if (importCount % 100000 == 0) {
                     logger.debug("imported " + importCount + " elements - still running...");
                 }
+                if (vertexRef.id > maxId) maxId = vertexRef.id;
             } catch (IOException e) {
                 throw new RuntimeException("error while initializing vertex from storage: id=" + entry.getKey(), e);
             }
@@ -220,11 +222,12 @@ public final class TinkerGraph implements Graph {
                 if (importCount % 100000 == 0) {
                     logger.debug("imported " + importCount + " elements - still running...");
                 }
+                if (edgeRef.id > maxId) maxId = edgeRef.id;
             } catch (IOException e) {
                 throw new RuntimeException("error while initializing edge from storage: id=" + entry.getKey(), e);
             }
         }
-
+        currentId.set(maxId + 1);
         long elapsedMillis = System.currentTimeMillis() - start;
         logger.info("initialized " + this.toString() + " from existing storage in " + elapsedMillis + "ms");
     }

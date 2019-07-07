@@ -46,7 +46,7 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
     private List<Integer> intListProperty;
 
     public SerializerTestVertex(Long id, TinkerGraph graph) {
-        super(id, SerializerTestVertex.label, graph);
+        super(id, graph);
     }
 
     @Override
@@ -69,13 +69,13 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
     protected <V> Iterator<VertexProperty<V>> specificProperties(String key) {
         final VertexProperty<V> ret;
         if (STRING_PROPERTY.equals(key) && stringProperty != null) {
-            return IteratorUtils.of(new TinkerVertexProperty(this, key, stringProperty));
+            return IteratorUtils.of(new SpecializedVertexProperty(this, key, stringProperty));
         } else if (key == STRING_LIST_PROPERTY && stringListProperty != null) {
-            return IteratorUtils.of(new TinkerVertexProperty(this, key, stringListProperty));
+            return IteratorUtils.of(new SpecializedVertexProperty(this, key, stringListProperty));
         } else if (key == INT_PROPERTY && intProperty != null) {
-            return IteratorUtils.of(new TinkerVertexProperty(this, key, intProperty));
+            return IteratorUtils.of(new SpecializedVertexProperty(this, key, intProperty));
         } else if (key == INT_LIST_PROPERTY && intListProperty != null) {
-            return IteratorUtils.of(new TinkerVertexProperty(this, key, intListProperty));
+            return IteratorUtils.of(new SpecializedVertexProperty(this, key, intListProperty));
         } else {
             return Collections.emptyIterator();
         }
@@ -155,4 +155,8 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
         }
     };
 
+    @Override
+    public String label() {
+        return SerializerTestVertex.label;
+    }
 }

@@ -24,7 +24,7 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import java.io.IOException;
 import java.util.Iterator;
 
-public class VertexRef<V extends TinkerVertex> extends ElementRef<V> implements Vertex {
+public class VertexRef<V extends Vertex> extends ElementRef<V> implements Vertex {
 
   public VertexRef(V vertex) {
     super(vertex);

@@ -25,21 +25,43 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import java.util.*;
 import java.util.concurrent.Semaphore;
 
-public abstract class SpecializedTinkerEdge extends TinkerEdge {
+import static org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerElement.elementAlreadyRemoved;
+
+public abstract class SpecializedTinkerEdge implements Edge {
+    private final Object id;
+    private final TinkerGraph graph;
+    private final Vertex inVertex;
+    private final Vertex outVertex;
+    private final String label;
+    private boolean removed = false;
 
     /** `dirty` flag for serialization to avoid superfluous serialization */
     // TODO re-implement/verify this optimization: only re-serialize if element has been changed
     private boolean modifiedSinceLastSerialization = true;
-    private Semaphore modificationSemaphore = new Semaphore(1);
 
     private final Set<String> specificKeys;
 
     protected SpecializedTinkerEdge(TinkerGraph graph, Long id, Vertex outVertex, String label, Vertex inVertex, Set<String> specificKeys) {
-        super(graph, id, outVertex, label, inVertex);
+        this.id = id;
+        this.graph = graph;
+        this.inVertex = inVertex;
+        this.outVertex = outVertex;
+        this.label = label;
+
         this.specificKeys = specificKeys;
         if (graph.referenceManager != null) {
             graph.referenceManager.applyBackpressureMaybe();
         }
+    }
+
+    @Override
+    public Object id() {
+        return id;
+    }
+
+    @Override
+    public String label() {
+        return label;
     }
 
     @Override
@@ -72,22 +94,21 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
     public <V> Property<V> property(String key, V value) {
         if (this.removed) throw elementAlreadyRemoved(Edge.class, id);
         ElementHelper.validateProperty(key, value);
-        final Property oldProperty = super.property(key);
-        acquireModificationLock();
-        modifiedSinceLastSerialization = true;
-        final Property<V> p = updateSpecificProperty(key, value);
-        TinkerHelper.autoUpdateIndex(this, key, value, oldProperty.isPresent() ? oldProperty.value() : null);
-        releaseModificationLock();
-        return p;
+        synchronized (this) {
+            modifiedSinceLastSerialization = true;
+            final Property<V> p = updateSpecificProperty(key, value);
+            TinkerHelper.autoUpdateIndex(this, key, value, null);
+            return p;
+        }
     }
 
     protected abstract <V> Property<V> updateSpecificProperty(String key, V value);
 
     public void removeProperty(String key) {
-        acquireModificationLock();
-        modifiedSinceLastSerialization = true;
-        removeSpecificProperty(key);
-        releaseModificationLock();
+        synchronized (this) {
+            modifiedSinceLastSerialization = true;
+            removeSpecificProperty(key);
+        }
     }
 
     protected abstract void removeSpecificProperty(String key);
@@ -98,10 +119,59 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
     }
 
     @Override
+    public Iterator<Vertex> vertices(final Direction direction) {
+        if (removed) return Collections.emptyIterator();
+        switch (direction) {
+            case OUT:
+                return IteratorUtils.of(outVertex);
+            case IN:
+                return IteratorUtils.of(inVertex);
+            default:
+                return IteratorUtils.of(outVertex, inVertex);
+        }
+    }
+
+    @Override
     public void remove() {
-        super.remove();
+        final SpecializedTinkerVertex outVertex;
+        final SpecializedTinkerVertex inVertex;
+        if (this.outVertex instanceof ElementRef) {
+            outVertex = ((ElementRef<SpecializedTinkerVertex>) this.outVertex).get();
+        } else {
+            outVertex = (SpecializedTinkerVertex) this.outVertex;
+        }
+        if (this.inVertex instanceof ElementRef) {
+            inVertex = ((ElementRef<SpecializedTinkerVertex>) this.inVertex).get();
+        } else {
+            inVertex = (SpecializedTinkerVertex) this.inVertex;
+        }
+
+        if (null != outVertex && null != outVertex.outEdgesByLabel) {
+            final List<Edge> edges = outVertex.outEdgesByLabel.get(label());
+            if (edges != null) {
+                edges.remove(this);
+            }
+        }
+        if (null != inVertex && null != inVertex.inEdgesByLabel) {
+            final List<Edge> edges = inVertex.inEdgesByLabel.get(label());
+            if (null != edges)
+                edges.remove(this);
+        }
+
+        TinkerHelper.removeElementIndex(this);
+        graph.edges.remove(id);
         graph.getElementsByLabel(graph.edgesByLabel, label).remove(this);
+        if (graph.ondiskOverflowEnabled) {
+            graph.ondiskOverflow.removeEdge((Long) id);
+        }
+
+        this.removed = true;
+
         modifiedSinceLastSerialization = true;
+    }
+
+    public boolean isRemoved() {
+        return removed;
     }
 
     public void setModifiedSinceLastSerialization(boolean modifiedSinceLastSerialization) {
@@ -110,18 +180,6 @@ public abstract class SpecializedTinkerEdge extends TinkerEdge {
 
     public boolean isModifiedSinceLastSerialization() {
       return modifiedSinceLastSerialization;
-    }
-
-    public void acquireModificationLock() {
-      try {
-        modificationSemaphore.acquire();
-      } catch (InterruptedException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    public void releaseModificationLock() {
-      modificationSemaphore.release();
     }
 
 }
