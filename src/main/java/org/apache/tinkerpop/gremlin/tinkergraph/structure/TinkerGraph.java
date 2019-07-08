@@ -18,7 +18,9 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
+import gnu.trove.map.TLongObjectMap;
 import gnu.trove.map.hash.THashMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
 import gnu.trove.set.hash.THashSet;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
@@ -58,6 +60,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
+
+import static com.sun.org.apache.xml.internal.security.keys.keyresolver.KeyResolver.iterator;
 
 /**
  * A fork of the in-memory reference implementation TinkerGraph featuring:
@@ -105,8 +109,8 @@ public final class TinkerGraph implements Graph {
     protected AtomicLong currentId = new AtomicLong(-1L);
     // TODO: replace with the more memory efficient `TLongHashMap`
     // note: if on-disk overflow enabled, these [Vertex|Edge] values are [VertexRef|ElementRef]
-    protected Map<Object, Vertex> vertices;
-    protected Map<Object, Edge> edges;
+    protected TLongObjectMap<Vertex> vertices;
+    protected TLongObjectMap<Edge> edges;
     protected THashMap<String, Set<Vertex>> verticesByLabel;
     protected THashMap<String, Set<Edge>> edgesByLabel;
 
@@ -174,8 +178,8 @@ public final class TinkerGraph implements Graph {
     }
 
     private void initEmptyElementCollections() {
-        vertices = new THashMap<>();
-        edges = new THashMap<>();
+        vertices = new TLongObjectHashMap<>();
+        edges = new TLongObjectHashMap<>();
         verticesByLabel = new THashMap<>(100);
         edgesByLabel = new THashMap<>(100);
     }
@@ -190,7 +194,7 @@ public final class TinkerGraph implements Graph {
         int importCount = 0;
         long maxId = currentId.get();
 
-        vertices = new THashMap<>(serializedVertices.size());
+        vertices = new TLongObjectHashMap<>(serializedVertices.size());
         verticesByLabel = new THashMap<>(serializedVertices.size());
         final Iterator<Map.Entry<Long, byte[]>> serializedVertexIter = serializedVertices.iterator();
         while (serializedVertexIter.hasNext()) {
@@ -209,7 +213,7 @@ public final class TinkerGraph implements Graph {
             }
         }
 
-        edges = new THashMap<>(serializedEdges.size());
+        edges = new TLongObjectHashMap<>(serializedEdges.size());
         edgesByLabel = new THashMap<>(serializedEdges.size());
         final Iterator<Map.Entry<Long, byte[]>> serializedEdgeIter = serializedEdges.iterator();
         while (serializedEdgeIter.hasNext()) {
@@ -298,7 +302,7 @@ public final class TinkerGraph implements Graph {
         currentId.set(Long.max(idValue, currentId.get()));
 
         final Vertex vertex = createVertex(idValue, label, keyValues);
-        vertices.put(vertex.id(), vertex);
+        vertices.put((long)vertex.id(), vertex);
         getElementsByLabel(verticesByLabel, label).add(vertex);
         return vertex;
     }
@@ -473,12 +477,12 @@ public final class TinkerGraph implements Graph {
     }
 
     private <T extends Element> Iterator<T> createElementIterator(final Class<T> clazz,
-                                                                  final Map<Object, T> elements,
+                                                                  final TLongObjectMap<T> elements,
                                                                   final IdManager idManager,
                                                                   final Object... ids) {
         final Iterator<T> iterator;
         if (0 == ids.length) {
-            iterator = elements.values().iterator();
+            iterator = elements.valueCollection().iterator();
         } else {
             final List<Object> idList = Arrays.asList(ids);
             validateHomogenousIds(idList);
@@ -488,8 +492,8 @@ public final class TinkerGraph implements Graph {
             // stuff - doesn't seem likely someone would detach a Titan vertex then try to expect that
             // vertex to be findable in OrientDB
             return clazz.isAssignableFrom(ids[0].getClass()) ?
-                    IteratorUtils.filter(IteratorUtils.map(idList, id -> elements.get(clazz.cast(id).id())).iterator(), Objects::nonNull)
-                    : IteratorUtils.filter(IteratorUtils.map(idList, id -> elements.get(idManager.convert(id))).iterator(), Objects::nonNull);
+                    IteratorUtils.filter(IteratorUtils.map(idList, id -> elements.get((long)clazz.cast(id).id())).iterator(), Objects::nonNull)
+                    : IteratorUtils.filter(IteratorUtils.map(idList, id -> elements.get((long)idManager.convert(id))).iterator(), Objects::nonNull);
         }
         return TinkerHelper.inComputerMode(this) ?
                 (Iterator<T>) (clazz.equals(Vertex.class) ?

@@ -98,7 +98,7 @@ public class TinkerEdge extends TinkerElement implements Edge {
         }
 
         TinkerHelper.removeElementIndex(this);
-        graph.edges.remove(id);
+        graph.edges.remove((long)id);
         graph.getElementsByLabel(graph.edgesByLabel, label).remove(this);
         if (graph.ondiskOverflowEnabled) {
             graph.ondiskOverflow.removeEdge((Long) id);

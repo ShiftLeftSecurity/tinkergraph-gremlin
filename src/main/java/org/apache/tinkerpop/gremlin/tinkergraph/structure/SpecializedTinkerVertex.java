@@ -185,7 +185,7 @@ public abstract class SpecializedTinkerVertex implements Vertex {
                 edge = factory.createEdge(idValue, graph, outVertexRef, inVertexRef);
             }
             ElementHelper.attachProperties(edge, keyValues);
-            graph.edges.put(edge.id(), edge);
+            graph.edges.put((long)edge.id(), edge);
             graph.getElementsByLabel(graph.edgesByLabel, label).add(edge);
 
 //            acquireModificationLock();
@@ -311,7 +311,7 @@ public abstract class SpecializedTinkerVertex implements Vertex {
             }
         }).forEach(Edge::remove);
         TinkerHelper.removeElementIndex(this);
-        graph.vertices.remove(id());
+        graph.vertices.remove((long)id());
         graph.getElementsByLabel(graph.verticesByLabel, label()).remove(this);
 
         if (graph.ondiskOverflowEnabled) {
