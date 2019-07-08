@@ -165,12 +165,12 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
 
         @Override
         public VertexRef<Song> createVertexRef(Song vertex) {
-            return new VertexRef<>(vertex);
+            return new VertexRefWithLabel<>(vertex.id(), vertex.graph(), vertex, Song.label);
         }
 
         @Override
         public VertexRef<Song> createVertexRef(Long id, TinkerGraph graph) {
-            return new VertexRef<>(id, Song.label, graph);
+            return new VertexRefWithLabel<>(id, graph, null, Song.label);
         }
     };
 

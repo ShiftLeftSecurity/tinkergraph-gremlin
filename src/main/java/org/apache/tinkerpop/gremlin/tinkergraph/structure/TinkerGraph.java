@@ -198,7 +198,7 @@ public final class TinkerGraph implements Graph {
             try {
                 final VertexRef<TinkerVertex> vertexRef = (VertexRef<TinkerVertex>) ondiskOverflow.getVertexDeserializer().get().deserializeRef(entry.getValue());
                 vertices.put(vertexRef.id, vertexRef);
-                getElementsByLabel(verticesByLabel, vertexRef.label).add(vertexRef);
+                getElementsByLabel(verticesByLabel, vertexRef.label()).add(vertexRef);
                 importCount++;
                 if (importCount % 100000 == 0) {
                     logger.debug("imported " + importCount + " elements - still running...");
@@ -217,7 +217,7 @@ public final class TinkerGraph implements Graph {
             try {
                 final EdgeRef<TinkerEdge> edgeRef = (EdgeRef<TinkerEdge>) ondiskOverflow.getEdgeDeserializer().get().deserializeRef(entry.getValue());
                 edges.put(edgeRef.id, edgeRef);
-                getElementsByLabel(edgesByLabel, edgeRef.label).add(edgeRef);
+                getElementsByLabel(edgesByLabel, edgeRef.label()).add(edgeRef);
                 importCount++;
                 if (importCount % 100000 == 0) {
                     logger.debug("imported " + importCount + " elements - still running...");

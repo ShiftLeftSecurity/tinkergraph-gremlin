@@ -45,8 +45,11 @@ public class ReferenceManagerTest {
 
 
     private class DummyElementRef extends ElementRef {
+        private final String label;
+
         public DummyElementRef(TinkerElement element) {
-            super(element);
+            super(element.id(), element.graph(), element);
+            this.label = element.label;
         }
 
         @Override
@@ -62,6 +65,11 @@ public class ReferenceManagerTest {
         @Override
         public Iterator<? extends Property<?>> properties(String... propertyKeys) {
             throw new NotImplementedException("");
+        }
+
+        @Override
+        public String label() {
+            return label;
         }
     }
 }

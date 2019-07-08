@@ -29,25 +29,20 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
  */
 public abstract class ElementRef<E extends Element> implements Element {
   public final long id;
-  public final String label;
 
   protected final TinkerGraph graph;
   protected E reference;
   private boolean removed = false;
 
-  public ElementRef(E element) {
-    this.id = (long) element.id();
-    this.label = element.label();
-    this.graph = (TinkerGraph) element.graph();
+  /** used when creating a reference without the underlying reference at hand, set element to null
+   *  and please ensure it's available on disk */
+  public ElementRef(final Object id, final Graph graph, E element) {
+    this.id = (long)id;
+    this.graph = (TinkerGraph)graph;
     this.reference = element;
-    graph.referenceManager.registerRef(this);
-  }
-
-  /** used when creating a reference without the underlying reference at hand - please ensure it's available on disk */
-  protected ElementRef(final long id, final String label, final TinkerGraph graph) {
-    this.id = id;
-    this.label = label;
-    this.graph = graph;
+    if (element != null) {
+      this.graph.referenceManager.registerRef(this);
+    }
   }
 
   public boolean isSet() {
@@ -98,11 +93,6 @@ public abstract class ElementRef<E extends Element> implements Element {
   @Override
   public Graph graph() {
     return graph;
-  }
-
-  @Override
-  public String label() {
-    return label;
   }
 
   // delegate methods start
