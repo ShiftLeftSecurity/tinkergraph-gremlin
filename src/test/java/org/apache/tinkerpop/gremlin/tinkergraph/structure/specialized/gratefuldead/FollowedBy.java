@@ -79,12 +79,12 @@ public class FollowedBy extends SpecializedTinkerEdge {
 
         @Override
         public EdgeRef<FollowedBy> createEdgeRef(FollowedBy edge) {
-            return new EdgeRef<>(edge);
+            return new EdgeRefWithLabel<>(edge.id(), edge.graph(), edge, FollowedBy.label);
         }
 
         @Override
         public EdgeRef<FollowedBy> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
-            return new EdgeRef<>(id, FollowedBy.label, graph);
+            return new EdgeRefWithLabel<>(id, graph, null, FollowedBy.label);
         }
     };
 }

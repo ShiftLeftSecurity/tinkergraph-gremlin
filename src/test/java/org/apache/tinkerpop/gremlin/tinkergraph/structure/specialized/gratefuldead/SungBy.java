@@ -21,6 +21,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuld
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
+import sun.security.provider.Sun;
 
 import java.io.Serializable;
 import java.util.*;
@@ -62,12 +63,12 @@ public class SungBy extends SpecializedTinkerEdge implements Serializable {
 
         @Override
         public EdgeRef<SungBy> createEdgeRef(SungBy edge) {
-            return new EdgeRef<>(edge);
+            return new EdgeRefWithLabel<>(edge.id(), edge.graph(), edge, SungBy.label);
         }
 
         @Override
         public EdgeRef<SungBy> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
-            return new EdgeRef<>(id, SungBy.label, graph);
+            return new EdgeRefWithLabel<>(id, graph, null, SungBy.label);
         }
     };
 

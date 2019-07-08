@@ -24,14 +24,10 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import java.io.IOException;
 import java.util.Iterator;
 
-public class VertexRef<V extends Vertex> extends ElementRef<V> implements Vertex {
+public abstract class VertexRef<V extends Vertex> extends ElementRef<V> implements Vertex {
 
-  public VertexRef(V vertex) {
-    super(vertex);
-  }
-
-  public VertexRef(final long vertexId, final String label, final TinkerGraph graph) {
-    super(vertexId, label, graph);
+  public VertexRef(final Object vertexId, final Graph graph, V vertex) {
+    super(vertexId, graph, vertex);
   }
 
   @Override

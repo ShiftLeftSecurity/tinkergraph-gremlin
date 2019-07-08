@@ -79,12 +79,12 @@ public class SerializerTestEdge extends SpecializedTinkerEdge {
 
         @Override
         public EdgeRef<SerializerTestEdge> createEdgeRef(SerializerTestEdge edge) {
-            return new EdgeRef<>(edge);
+            return new EdgeRefWithLabel<>(edge.id(), edge.graph(), edge, SerializerTestEdge.label);
         }
 
         @Override
         public EdgeRef<SerializerTestEdge> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
-            return new EdgeRef<>(id, SerializerTestEdge.label, graph);
+            return new EdgeRefWithLabel<>(id, graph, null, SerializerTestEdge.label);
         }
     };
 }

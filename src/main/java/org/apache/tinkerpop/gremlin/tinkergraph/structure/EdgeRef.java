@@ -24,15 +24,10 @@ import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 import java.io.IOException;
 import java.util.Iterator;
 
-public class EdgeRef<E extends Edge> extends ElementRef<E> implements Edge {
+public abstract class EdgeRef<E extends Edge> extends ElementRef<E> implements Edge {
 
-  public EdgeRef(E edge) {
-    super(edge);
-  }
-
-  // TODO keep [in|out]VertexRef in EdgeRef (and therfor in memory all the time) - main memory usage comes from properties
-  public EdgeRef(final long edgeId, final String label, final TinkerGraph graph) {
-    super(edgeId, label, graph);
+  public EdgeRef(final Object edgeId, final Graph graph, E edge) {
+    super(edgeId, graph, edge);
   }
 
   @Override

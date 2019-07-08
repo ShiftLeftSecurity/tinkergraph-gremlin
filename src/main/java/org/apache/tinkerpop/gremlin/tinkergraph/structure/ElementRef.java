@@ -29,28 +29,20 @@ import org.apache.tinkerpop.gremlin.structure.Graph;
  */
 public abstract class ElementRef<E extends Element> implements Element {
   public final long id;
-  public final String label;
 
   protected final TinkerGraph graph;
   protected E reference;
-  private int serializationCount;
-  private long lastDeserializedTime;
   private boolean removed = false;
 
-  public ElementRef(E element) {
-    this.id = (long) element.id();
-    this.label = element.label();
-    this.graph = (TinkerGraph) element.graph();
+  /** used when creating a reference without the underlying reference at hand, set element to null
+   *  and please ensure it's available on disk */
+  public ElementRef(final Object id, final Graph graph, E element) {
+    this.id = (long)id;
+    this.graph = (TinkerGraph)graph;
     this.reference = element;
-    this.lastDeserializedTime = System.currentTimeMillis();
-    graph.referenceManager.registerRef(this);
-  }
-
-  /** used when creating a reference without the underlying reference at hand - please ensure it's available on disk */
-  protected ElementRef(final long id, final String label, final TinkerGraph graph) {
-    this.id = id;
-    this.label = label;
-    this.graph = graph;
+    if (element != null) {
+      this.graph.referenceManager.registerRef(this);
+    }
   }
 
   public boolean isSet() {
@@ -70,7 +62,6 @@ public abstract class ElementRef<E extends Element> implements Element {
     E ref = reference;
     if (ref != null) {
       graph.ondiskOverflow.persist(ref);
-      serializationCount++;
     }
     reference = null;
   }
@@ -84,21 +75,12 @@ public abstract class ElementRef<E extends Element> implements Element {
         final E element = readFromDisk(id);
         if (element == null) throw new IllegalStateException("unable to read element from disk; id=" + id);
         this.reference = element;
-        this.lastDeserializedTime = System.currentTimeMillis();
         graph.referenceManager.registerRef(this); // so it can be cleared on low memory
         return element;
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
     }
-  }
-
-  public int getSerializationCount() {
-    return serializationCount;
-  }
-
-  public long getLastDeserializedTime() {
-    return lastDeserializedTime;
   }
 
   protected abstract E readFromDisk(long elementId) throws IOException;
@@ -111,11 +93,6 @@ public abstract class ElementRef<E extends Element> implements Element {
   @Override
   public Graph graph() {
     return graph;
-  }
-
-  @Override
-  public String label() {
-    return label;
   }
 
   // delegate methods start

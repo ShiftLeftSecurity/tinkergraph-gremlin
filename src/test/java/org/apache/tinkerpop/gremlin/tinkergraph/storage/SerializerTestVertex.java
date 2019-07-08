@@ -146,12 +146,12 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
 
         @Override
         public VertexRef<SerializerTestVertex> createVertexRef(SerializerTestVertex vertex) {
-            return new VertexRef<>(vertex);
+            return new VertexRefWithLabel<>(vertex.id(), vertex.graph(), vertex, SerializerTestVertex.label);
         }
 
         @Override
         public VertexRef<SerializerTestVertex> createVertexRef(Long id, TinkerGraph graph) {
-            return new VertexRef<>(id, SerializerTestVertex.label, graph);
+            return new VertexRefWithLabel<>(id, graph, null, SerializerTestVertex.label);
         }
     };
 

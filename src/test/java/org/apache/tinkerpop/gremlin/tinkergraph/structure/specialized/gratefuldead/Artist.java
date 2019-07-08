@@ -118,12 +118,12 @@ public class Artist extends SpecializedTinkerVertex {
 
         @Override
         public VertexRef<Artist> createVertexRef(Artist vertex) {
-            return new VertexRef<>(vertex);
+            return new VertexRefWithLabel<>(vertex.id(), vertex.graph(), vertex, Artist.label);
         }
 
         @Override
         public VertexRef<Artist> createVertexRef(Long id, TinkerGraph graph) {
-            return new VertexRef<>(id, Artist.label, graph);
+            return new VertexRefWithLabel<>(id, graph, null, Artist.label);
         }
     };
 

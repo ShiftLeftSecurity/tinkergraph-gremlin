@@ -48,18 +48,7 @@ public class ReferenceManagerImpl implements ReferenceManager {
   private int clearingProcessCount = 0;
   private final Object backPressureSyncObject = new Object();
 
-  /** prioritize references by
-   * 1) serializationCount, i.e. elements that have been serialized more often will be serialized later
-   * 2) lastDeserializationTime, i.e. elements that have more recently been deserialized will be serialized last
-   * */
-  private final Comparator<ElementRef> refComparator = (ref1, ref2) -> {
-    if (ref1.getSerializationCount() != ref2.getSerializationCount()) {
-      return ref1.getSerializationCount() < ref2.getSerializationCount() ? -1 : 1;
-    } else {
-      return ref1.getLastDeserializedTime() < ref2.getLastDeserializedTime() ? -1 : 1;
-    }
-  };
-  private final PriorityBlockingQueue<ElementRef> clearableRefs = new PriorityBlockingQueue<>(100000, refComparator);
+  private final List<ElementRef> clearableRefs = Collections.synchronizedList(new LinkedList<>());
 
   public ReferenceManagerImpl(int heapPercentageThreshold) {
     if (heapPercentageThreshold < 0 || heapPercentageThreshold > 100) {
@@ -131,7 +120,10 @@ public class ReferenceManagerImpl implements ReferenceManager {
     final List<ElementRef> refsToClear = new ArrayList<>(releaseCount);
 
     while (releaseCount > 0) {
-      final ElementRef ref = clearableRefs.poll();
+      if (clearableRefs.isEmpty()) {
+        break;
+      }
+      final ElementRef ref = clearableRefs.remove(0);
       if (ref != null) {
         refsToClear.add(ref);
       }
