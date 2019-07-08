@@ -33,7 +33,7 @@ import static org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerElement.e
 
 public abstract class SpecializedTinkerVertex implements Vertex {
 
-    private final long id;
+    protected final long id;
     protected final TinkerGraph graph;
     private boolean removed = false;
 
