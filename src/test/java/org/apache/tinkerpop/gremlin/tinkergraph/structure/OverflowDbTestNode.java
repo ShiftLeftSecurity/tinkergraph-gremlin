@@ -20,6 +20,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import org.apache.commons.collections.iterators.EmptyIterator;
 import org.apache.tinkerpop.gremlin.structure.Direction;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
@@ -73,12 +74,29 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   }
 
   @Override
+  /** handle only IN|OUT direction, not BOTH */
   protected Iterator<Vertex> adjacentVertices(Direction direction, String edgeLabel) {
     if (OverflowDbTestEdge.label.equals(edgeLabel)) {
       if (direction == Direction.IN) {
         return followedByIn.iterator();
       } else if (direction == Direction.OUT) {
         return followedByOut.iterator();
+      }
+    }
+    return EmptyIterator.INSTANCE;
+  }
+
+  @Override
+  /** handle only IN|OUT direction, not BOTH */
+  protected Iterator<Edge> adjacentDummyEdges(Direction direction, String edgeLabel) {
+    VertexRef thisRef = (VertexRef) graph.vertex((Long) id);
+    if (OverflowDbTestEdge.label.equals(edgeLabel)) {
+      if (direction == Direction.IN) {
+        return followedByIn.stream().map(inNode ->
+            (Edge) instantiateDummyEdge(edgeLabel, thisRef, (VertexRef<OverflowDbNode>) inNode)).iterator();
+      } else if (direction == Direction.OUT) {
+        return followedByOut.stream().map(outNode ->
+            (Edge) instantiateDummyEdge(edgeLabel, (VertexRef<OverflowDbNode>) outNode, thisRef)).iterator();
       }
     }
     return EmptyIterator.INSTANCE;

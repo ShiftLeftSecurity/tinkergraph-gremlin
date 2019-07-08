@@ -24,7 +24,10 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   }
 
   protected abstract void storeAdjacentNode(String edgeLabel, Direction direction, VertexRef<OverflowDbNode> nodeRef);
+  /** handle only IN|OUT direction, not BOTH */
   protected abstract Iterator<Vertex> adjacentVertices(Direction direction, String edgeLabel);
+  /** handle only IN|OUT direction, not BOTH */
+  protected abstract Iterator<Edge> adjacentDummyEdges(Direction direction, String edgeLabel);
 
   @Override
   public Edge addEdge(String label, Vertex inVertex, Object... keyValues) {
@@ -38,23 +41,38 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
     storeAdjacentNode(label, Direction.OUT, inVertexRef);
     inVertexOdb.storeAdjacentNode(label, Direction.IN, thisVertexRef);
-
-    // to follow the tinkerpop api, instantiate and return a dummy edge, which doesn't really exist in the graph
-    final SpecializedElementFactory.ForEdge edgeFactory = graph.specializedEdgeFactoryByLabel.get(label);
-    if (edgeFactory == null) throw new IllegalArgumentException("specializedEdgeFactory for label=" + label + " not found - please register on startup!");
-    return edgeFactory.createEdge(-1l, graph, inVertexRef, thisVertexRef);
+    return instantiateDummyEdge(label, thisVertexRef, inVertexRef);
   }
 
   @Override
   public Iterator<Edge> edges(Direction direction, String... edgeLabels) {
-    // TODO implement: create edges on the fly
-    throw new NotImplementedException("");
+    final Labels labels = calculateInOutLabelsToFollow(direction, edgeLabels);
+    final MultiIterator2<Edge> multiIterator = new MultiIterator2<>();
+    for (String label : labels.forInEdges) {
+      multiIterator.addIterator(adjacentDummyEdges(Direction.IN, label));
+    }
+    for (String label : labels.forOutEdges) {
+      multiIterator.addIterator(adjacentDummyEdges(Direction.OUT, label));
+    }
+
+    return multiIterator;
   }
 
   @Override
   public Iterator<Vertex> vertices(Direction direction, String... edgeLabels) {
+    final Labels labels = calculateInOutLabelsToFollow(direction, edgeLabels);
     final MultiIterator2<Vertex> multiIterator = new MultiIterator2<>();
+    for (String label : labels.forInEdges) {
+      multiIterator.addIterator(adjacentVertices(Direction.IN, label));
+    }
+    for (String label : labels.forOutEdges) {
+      multiIterator.addIterator(adjacentVertices(Direction.OUT, label));
+    }
 
+    return multiIterator;
+  }
+
+  private Labels calculateInOutLabelsToFollow(Direction direction, String... edgeLabels) {
     final Set<String> inEdgeLabels;
     final Set<String> outEdgeLabels;
     if (edgeLabels.length == 0) { // follow all labels
@@ -87,14 +105,23 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
       }
     }
 
-    for (String label : inEdgeLabels) {
-      multiIterator.addIterator(adjacentVertices(Direction.IN, label));
-    }
-    for (String label : outEdgeLabels) {
-      multiIterator.addIterator(adjacentVertices(Direction.OUT, label));
-    }
-
-    return multiIterator;
+    return new Labels(inEdgeLabels, outEdgeLabels);
   }
 
+  /**  to follow the tinkerpop api, instantiate and return a dummy edge, which doesn't really exist in the graph */
+  protected SpecializedTinkerEdge instantiateDummyEdge(String label, VertexRef<OverflowDbNode> outVertex, VertexRef<OverflowDbNode> inVertex) {
+    final SpecializedElementFactory.ForEdge edgeFactory = graph.specializedEdgeFactoryByLabel.get(label);
+    if (edgeFactory == null) throw new IllegalArgumentException("specializedEdgeFactory for label=" + label + " not found - please register on startup!");
+    return edgeFactory.createEdge(-1l, graph, outVertex, inVertex);
+  }
+
+  private class Labels {
+    private final Set<String> forInEdges;
+    private final Set<String> forOutEdges;
+
+    public Labels(Set<String> forInEdges, Set<String> forOutEdges) {
+      this.forInEdges = forInEdges;
+      this.forOutEdges = forOutEdges;
+    }
+  }
 }

@@ -57,10 +57,8 @@ public class OverflowDbNodeTest {
         Set stringProperties = graph.traversal().V().values(OverflowDbTestNode.STRING_PROPERTY).toSet();
         assertTrue(stringProperties.contains("node 1"));
         assertTrue(stringProperties.contains("node 2"));
-//
-//        assertEquals(1, __(v0).bothE().toList().size());
-//        assertEquals(1, __(v0).bothE(FollowedBy.label).toList().size());
-//        assertEquals(0, __(v0).bothE("otherLabel").toList().size());
+
+        // vertex traversals
         assertEquals(1, __(v0).out().toList().size());
         assertEquals(0, __(v0).out("otherLabel").toList().size());
         assertEquals(0, __(v1).out().toList().size());
@@ -68,6 +66,17 @@ public class OverflowDbNodeTest {
         assertEquals(1, __(v1).in().toList().size());
         assertEquals(1, __(v0).both().toList().size());
         assertEquals(1, __(v1).both().toList().size());
+
+        // edge traversals
+        assertEquals(1, __(v0).outE().toList().size());
+        assertEquals(OverflowDbTestEdge.label, __(v0).outE().label().next());
+        assertEquals(0, __(v0).outE("otherLabel").toList().size());
+        assertEquals(0, __(v1).outE().toList().size());
+        assertEquals(1, __(v1).inE().toList().size());
+        assertEquals(1, __(v0).bothE().toList().size());
+        assertEquals(1, __(v0).bothE(OverflowDbTestEdge.label).toList().size());
+        assertEquals(0, __(v0).bothE("otherLabel").toList().size());
+
     }
 
     private TinkerGraph newGraph() {
