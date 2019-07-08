@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-public class OverflowDbNodeTestImpl extends OverflowDbNode implements Serializable {
+public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   public static final String label = "testNode";
 
   public static final String STRING_PROPERTY = "StringProperty";
@@ -44,9 +44,8 @@ public class OverflowDbNodeTestImpl extends OverflowDbNode implements Serializab
   public static final String INT_LIST_PROPERTY = "IntListProperty";
   public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(STRING_PROPERTY, INT_PROPERTY, STRING_LIST_PROPERTY, INT_LIST_PROPERTY));
 
-  public static final String EDGELABEL_FOLLOWED_BY = "followedBy";
-  public static final Set<String> ALLOWED_IN_EDGE_LABELS = new HashSet<>(Arrays.asList(EDGELABEL_FOLLOWED_BY));
-  public static final Set<String> ALLOWED_OUT_EDGE_LABELS = new HashSet<>(Arrays.asList(EDGELABEL_FOLLOWED_BY));
+  public static final Set<String> ALLOWED_IN_EDGE_LABELS = new HashSet<>(Arrays.asList(OverflowDbTestEdge.label));
+  public static final Set<String> ALLOWED_OUT_EDGE_LABELS = new HashSet<>(Arrays.asList(OverflowDbTestEdge.label));
 
   // properties
   private String stringProperty;
@@ -58,13 +57,13 @@ public class OverflowDbNodeTestImpl extends OverflowDbNode implements Serializab
   private final List<Vertex> followedByOut = new ArrayList<>();
   private final List<Vertex> followedByIn = new ArrayList<>();
 
-  public OverflowDbNodeTestImpl(Long id, TinkerGraph graph) {
+  public OverflowDbTestNode(Long id, TinkerGraph graph) {
     super(id, graph);
   }
 
   @Override
-  protected void storeAdjacentNode(String label, Direction direction, VertexRef<OverflowDbNode> nodeRef) {
-    if (EDGELABEL_FOLLOWED_BY.equals(label)) {
+  protected void storeAdjacentNode(String edgeLabel, Direction direction, VertexRef<OverflowDbNode> nodeRef) {
+    if (OverflowDbTestEdge.label.equals(edgeLabel)) {
       switch (direction) {
         case IN: followedByIn.add(nodeRef); break;
         case OUT: followedByOut.add(nodeRef); break;
@@ -75,7 +74,7 @@ public class OverflowDbNodeTestImpl extends OverflowDbNode implements Serializab
 
   @Override
   protected Iterator<Vertex> adjacentVertices(Direction direction, String edgeLabel) {
-    if (EDGELABEL_FOLLOWED_BY.equals(edgeLabel)) {
+    if (OverflowDbTestEdge.label.equals(edgeLabel)) {
       if (direction == Direction.IN) {
         return followedByIn.iterator();
       } else if (direction == Direction.OUT) {
@@ -169,31 +168,31 @@ public class OverflowDbNodeTestImpl extends OverflowDbNode implements Serializab
     }
   }
 
-  public static SpecializedElementFactory.ForVertex<OverflowDbNodeTestImpl> factory = new SpecializedElementFactory.ForVertex<OverflowDbNodeTestImpl>() {
+  public static SpecializedElementFactory.ForVertex<OverflowDbTestNode> factory = new SpecializedElementFactory.ForVertex<OverflowDbTestNode>() {
     @Override
     public String forLabel() {
-      return OverflowDbNodeTestImpl.label;
+      return OverflowDbTestNode.label;
     }
 
     @Override
-    public OverflowDbNodeTestImpl createVertex(Long id, TinkerGraph graph) {
-      return new OverflowDbNodeTestImpl(id, graph);
+    public OverflowDbTestNode createVertex(Long id, TinkerGraph graph) {
+      return new OverflowDbTestNode(id, graph);
     }
 
     @Override
-    public VertexRef<OverflowDbNodeTestImpl> createVertexRef(OverflowDbNodeTestImpl vertex) {
-      return new VertexRef<>(vertex);
+    public VertexRef<OverflowDbTestNode> createVertexRef(OverflowDbTestNode vertex) {
+      return new VertexRefWithLabel<>(vertex.id(), vertex.graph, vertex, OverflowDbTestNode.label);
     }
 
     @Override
-    public VertexRef<OverflowDbNodeTestImpl> createVertexRef(Long id, TinkerGraph graph) {
-      return new VertexRef<>(id, OverflowDbNodeTestImpl.label, graph);
+    public VertexRef<OverflowDbTestNode> createVertexRef(Long id, TinkerGraph graph) {
+      return new VertexRefWithLabel<>(id, graph, null, OverflowDbTestNode.label);
     }
   };
 
   @Override
   public String label() {
-    return OverflowDbNodeTestImpl.label;
+    return OverflowDbTestNode.label;
   }
 
 }
