@@ -355,22 +355,6 @@ public final class TinkerGraph implements Graph {
         return StringFactory.graphString(this, "vertices: " + vertices.size() + ", edges: " + edges.size());
     }
 
-    public SerializationStats getSerializationStats() {
-        Map<Integer, Integer> vertexSerializationGroupCount = new HashMap<>();
-        vertices.values().stream().filter(v -> v instanceof ElementRef).forEach(vertex -> {
-            Integer elementSerializationCount = ((ElementRef) vertex).getSerializationCount();
-            Integer groupCountBefore = vertexSerializationGroupCount.getOrDefault(elementSerializationCount, 0);
-            vertexSerializationGroupCount.put(elementSerializationCount, groupCountBefore + elementSerializationCount);
-        });
-        Map<Integer, Integer> edgeSerializationGroupCount = new HashMap<>();
-        edges.values().stream().filter(e -> e instanceof ElementRef).forEach(edge -> {
-            Integer elementSerializationCount = ((ElementRef) edge).getSerializationCount();
-            Integer groupCountBefore = edgeSerializationGroupCount.getOrDefault(elementSerializationCount, 0);
-            edgeSerializationGroupCount.put(elementSerializationCount, groupCountBefore + elementSerializationCount);
-        });
-        return new SerializationStats(vertexSerializationGroupCount, edgeSerializationGroupCount);
-    }
-
     /**
      * if the {@link #GREMLIN_TINKERGRAPH_GRAPH_LOCATION} is set, data in the graph is persisted to that location.
      */
@@ -381,7 +365,6 @@ public final class TinkerGraph implements Graph {
             if (graphLocation != null) referenceManager.clearAllReferences();
             referenceManager.close();
             ondiskOverflow.close();
-            if (logger.isDebugEnabled()) logger.debug(getSerializationStats().toString());
         } else {
             if (graphLocation != null) saveGraph();
         }

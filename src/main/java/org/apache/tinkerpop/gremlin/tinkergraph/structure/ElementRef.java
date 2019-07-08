@@ -33,8 +33,6 @@ public abstract class ElementRef<E extends Element> implements Element {
 
   protected final TinkerGraph graph;
   protected E reference;
-  private int serializationCount;
-  private long lastDeserializedTime;
   private boolean removed = false;
 
   public ElementRef(E element) {
@@ -42,7 +40,6 @@ public abstract class ElementRef<E extends Element> implements Element {
     this.label = element.label();
     this.graph = (TinkerGraph) element.graph();
     this.reference = element;
-    this.lastDeserializedTime = System.currentTimeMillis();
     graph.referenceManager.registerRef(this);
   }
 
@@ -70,7 +67,6 @@ public abstract class ElementRef<E extends Element> implements Element {
     E ref = reference;
     if (ref != null) {
       graph.ondiskOverflow.persist(ref);
-      serializationCount++;
     }
     reference = null;
   }
@@ -84,21 +80,12 @@ public abstract class ElementRef<E extends Element> implements Element {
         final E element = readFromDisk(id);
         if (element == null) throw new IllegalStateException("unable to read element from disk; id=" + id);
         this.reference = element;
-        this.lastDeserializedTime = System.currentTimeMillis();
         graph.referenceManager.registerRef(this); // so it can be cleared on low memory
         return element;
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
     }
-  }
-
-  public int getSerializationCount() {
-    return serializationCount;
-  }
-
-  public long getLastDeserializedTime() {
-    return lastDeserializedTime;
   }
 
   protected abstract E readFromDisk(long elementId) throws IOException;
