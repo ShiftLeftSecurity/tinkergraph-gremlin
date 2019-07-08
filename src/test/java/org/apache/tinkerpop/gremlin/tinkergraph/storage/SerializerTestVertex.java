@@ -20,9 +20,6 @@ package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.FollowedBy;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.SungBy;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.WrittenBy;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.io.Serializable;
