@@ -23,7 +23,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     super(id, graph);
   }
 
-  protected abstract void storeAdjacentNode(String label, Direction direction, VertexRef<OverflowDbNode> nodeRef);
+  protected abstract void storeAdjacentNode(String edgeLabel, Direction direction, VertexRef<OverflowDbNode> nodeRef);
   protected abstract Iterator<Vertex> adjacentVertices(Direction direction, String edgeLabel);
 
   @Override
@@ -39,8 +39,10 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     storeAdjacentNode(label, Direction.OUT, inVertexRef);
     inVertexOdb.storeAdjacentNode(label, Direction.IN, thisVertexRef);
 
-    // TODO implement: create dummy edge on the fly - lookup edge factory by label
-    return null;
+    // to follow the tinkerpop api, instantiate and return a dummy edge, which doesn't really exist in the graph
+    final SpecializedElementFactory.ForEdge edgeFactory = graph.specializedEdgeFactoryByLabel.get(label);
+    if (edgeFactory == null) throw new IllegalArgumentException("specializedEdgeFactory for label=" + label + " not found - please register on startup!");
+    return edgeFactory.createEdge(-1l, graph, inVertexRef, thisVertexRef);
   }
 
   @Override

@@ -18,29 +18,12 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.commons.configuration.Configuration;
-import org.apache.tinkerpop.gremlin.process.traversal.P;
-import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.io.IoCore;
-import org.apache.tinkerpop.gremlin.tinkergraph.storage.SerializerTestEdge;
-import org.apache.tinkerpop.gremlin.tinkergraph.storage.SerializerTestVertex;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.Artist;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.FollowedBy;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.Song;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.SungBy;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.WrittenBy;
-import org.apache.tinkerpop.gremlin.util.TimeUtil;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.__;
@@ -56,20 +39,22 @@ public class OverflowDbNodeTest {
         TinkerGraph graph = newGraph();
 
         Vertex v0 = graph.addVertex(
-            T.label, OverflowDbNodeTestImpl.label,
-            OverflowDbNodeTestImpl.STRING_PROPERTY, "node 1",
-            OverflowDbNodeTestImpl.INT_PROPERTY, 42,
-            OverflowDbNodeTestImpl.STRING_LIST_PROPERTY, Arrays.asList("stringOne", "stringTwo"),
-            OverflowDbNodeTestImpl.INT_LIST_PROPERTY, Arrays.asList(42, 43));
+            T.label, OverflowDbTestNode.label,
+            OverflowDbTestNode.STRING_PROPERTY, "node 1",
+            OverflowDbTestNode.INT_PROPERTY, 42,
+            OverflowDbTestNode.STRING_LIST_PROPERTY, Arrays.asList("stringOne", "stringTwo"),
+            OverflowDbTestNode.INT_LIST_PROPERTY, Arrays.asList(42, 43));
         Vertex v1 = graph.addVertex(
-            T.label, OverflowDbNodeTestImpl.label,
-            OverflowDbNodeTestImpl.STRING_PROPERTY, "node 2",
-            OverflowDbNodeTestImpl.INT_PROPERTY, 52,
-            OverflowDbNodeTestImpl.STRING_LIST_PROPERTY, Arrays.asList("stringThree", "stringFour"),
-            OverflowDbNodeTestImpl.INT_LIST_PROPERTY, Arrays.asList(52, 53));
-        v0.addEdge(OverflowDbNodeTestImpl.EDGELABEL_FOLLOWED_BY, v1);
-//
-        Set stringProperties = graph.traversal().V().values(OverflowDbNodeTestImpl.STRING_PROPERTY).toSet();
+            T.label, OverflowDbTestNode.label,
+            OverflowDbTestNode.STRING_PROPERTY, "node 2",
+            OverflowDbTestNode.INT_PROPERTY, 52,
+            OverflowDbTestNode.STRING_LIST_PROPERTY, Arrays.asList("stringThree", "stringFour"),
+            OverflowDbTestNode.INT_LIST_PROPERTY, Arrays.asList(52, 53));
+        Edge e = v0.addEdge(OverflowDbTestEdge.label, v1);
+        assertTrue(e instanceof OverflowDbTestEdge);
+        // TODO add edge properties
+
+        Set stringProperties = graph.traversal().V().values(OverflowDbTestNode.STRING_PROPERTY).toSet();
         assertTrue(stringProperties.contains("node 1"));
         assertTrue(stringProperties.contains("node 2"));
 //
@@ -87,8 +72,8 @@ public class OverflowDbNodeTest {
 
     private TinkerGraph newGraph() {
         return TinkerGraph.open(
-            Arrays.asList(OverflowDbNodeTestImpl.factory),
-            Arrays.asList()
+            Arrays.asList(OverflowDbTestNode.factory),
+            Arrays.asList(OverflowDbTestEdge.factory)
         );
     }
 
