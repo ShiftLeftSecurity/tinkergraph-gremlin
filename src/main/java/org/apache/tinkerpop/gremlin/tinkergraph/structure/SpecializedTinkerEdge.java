@@ -28,7 +28,7 @@ import java.util.concurrent.Semaphore;
 import static org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerElement.elementAlreadyRemoved;
 
 public abstract class SpecializedTinkerEdge implements Edge {
-    private final Object id;
+    private final long id;
     private final TinkerGraph graph;
     private final Vertex inVertex;
     private final Vertex outVertex;

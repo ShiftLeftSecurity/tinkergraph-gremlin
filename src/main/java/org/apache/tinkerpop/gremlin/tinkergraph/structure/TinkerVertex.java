@@ -138,7 +138,7 @@ public class TinkerVertex extends TinkerElement implements Vertex {
         }).forEach(Edge::remove);
         this.properties = null;
         TinkerHelper.removeElementIndex(this);
-        graph.vertices.remove(id());
+        graph.vertices.remove((long)id());
         graph.getElementsByLabel(graph.verticesByLabel, label).remove(this);
 
         if (graph.ondiskOverflowEnabled) {

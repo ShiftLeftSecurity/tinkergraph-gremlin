@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
+import gnu.trove.map.TLongObjectMap;
 import org.apache.tinkerpop.gremlin.process.computer.GraphFilter;
 import org.apache.tinkerpop.gremlin.process.computer.VertexComputeKey;
 import org.apache.tinkerpop.gremlin.structure.Direction;
@@ -55,7 +56,7 @@ public final class TinkerHelper {
 
         final Edge edge;
         if (null != idValue) {
-            if (graph.edges.containsKey(idValue))
+            if (graph.edges.containsKey((long)idValue))
                 throw Graph.Exceptions.edgeWithIdAlreadyExists(idValue);
         } else {
             idValue = graph.edgeIdManager.getNextId(graph);
@@ -63,7 +64,7 @@ public final class TinkerHelper {
 
         edge = new TinkerEdge(graph, idValue, outVertex, label, inVertex);
         ElementHelper.attachProperties(edge, keyValues);
-        graph.edges.put(edge.id(), edge);
+        graph.edges.put((long)edge.id(), edge);
         TinkerHelper.addOutEdge(outVertex, label, edge);
         TinkerHelper.addInEdge(inVertex, label, edge);
         return edge;
@@ -205,11 +206,11 @@ public final class TinkerHelper {
         return (Iterator) vertices.iterator();
     }
 
-    public static Map<Object, Vertex> getVertices(final TinkerGraph graph) {
+    public static TLongObjectMap<Vertex> getVertices(final TinkerGraph graph) {
         return graph.vertices;
     }
 
-    public static Map<Object, Edge> getEdges(final TinkerGraph graph) {
+    public static TLongObjectMap<Edge> getEdges(final TinkerGraph graph) {
         return graph.edges;
     }
 }
