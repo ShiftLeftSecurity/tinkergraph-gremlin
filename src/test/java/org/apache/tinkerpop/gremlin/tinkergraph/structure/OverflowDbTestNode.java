@@ -18,9 +18,9 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.commons.collections.iterators.EmptyIterator;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
@@ -55,33 +55,34 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   private List<String> stringListProperty;
   private List<Integer> intListProperty;
 
-  /**
-   * adjacent nodes
-   * since we're only emulating edges, we're storing the edge properties together with the vertex
-   * we store them on both sides (SRC and DST), because edge properties are relatively rare, and to avoid extra roundtrips for deserialization
+  /* adjacent nodes */
+  private final List<Vertex> testEdgeOut = new ArrayList<>();
+  private final List<Vertex> testEdgeIn = new ArrayList<>();
 
-   * current format: storing the edgeKeyValues array.
-   * TODO: store only the values with a given offset - base work is already available in michael/deserializer-optimisations
-   * */
-  private final List<Vertex> followedByOut = new ArrayList<>();
-  private final List<Vertex> followedByIn = new ArrayList<>();
+  /* properties of edges between nodes
+   * since we're only emulating edges, we're storing the edge properties in a separate list per edgetype and property
+   * only stored on the SRC node side */
+  protected final List<Object> testEdgeOutLongProperty = new ArrayList<>();
 
   public OverflowDbTestNode(Long id, TinkerGraph graph) {
     super(id, graph);
   }
 
   @Override
-  protected void storeAdjacentOutNode(String edgeLabel, VertexRef<OverflowDbNode> outNodeRef, Object... edgeKeyValues) {
+  protected void storeAdjacentOutNode(String edgeLabel, VertexRef<OverflowDbNode> outNodeRef, Map<String, Object> edgeKeyValues) {
     if (OverflowDbTestEdge.label.equals(edgeLabel)) {
-      followedByOut.add(outNodeRef);
+      synchronized (this) {
+        final int index = testEdgeIn.size();
+        testEdgeOut.add(index, outNodeRef);
+        testEdgeOutLongProperty.add(index, edgeKeyValues.get(OverflowDbTestEdge.LONG_PROPERTY));
+      }
     }
   }
 
   @Override
   protected void storeAdjacentInNode(String edgeLabel, VertexRef<OverflowDbNode> inNodeRef) {
     if (OverflowDbTestEdge.label.equals(edgeLabel)) {
-      followedByIn.add(inNodeRef);
-      // TODO store properties in separate array
+      testEdgeIn.add(inNodeRef);
     }
   }
 
@@ -90,36 +91,67 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   protected Iterator<Vertex> adjacentVertices(Direction direction, String edgeLabel) {
     if (OverflowDbTestEdge.label.equals(edgeLabel)) {
       if (direction == Direction.IN) {
-        return followedByIn.iterator();
+        return testEdgeIn.iterator();
       } else if (direction == Direction.OUT) {
-        return followedByOut.iterator();
+        return testEdgeOut.iterator();
       }
     }
-    return EmptyIterator.INSTANCE;
+    return Collections.emptyIterator();
   }
 
   @Override
   /** handle only IN|OUT direction, not BOTH */
   protected Iterator<Edge> adjacentDummyEdges(Direction direction, String edgeLabel) {
-    VertexRef thisRef = (VertexRef) graph.vertex((Long) id);
+    final VertexRef thisRef = (VertexRef) graph.vertex(id);
     if (OverflowDbTestEdge.label.equals(edgeLabel)) {
-      if (direction == Direction.IN) {
-        return followedByIn.stream().map(inNode -> {
-          final SpecializedTinkerEdge edge = instantiateDummyEdge(edgeLabel, thisRef, (VertexRef<OverflowDbNode>) inNode);
-          // TODO attach properties: get from this
-//          ElementHelper.attachProperties(edge, inNode.edgeKeyValues);
-          return (Edge) edge;
-        }).iterator();
-      } else if (direction == Direction.OUT) {
-        return followedByOut.stream().map(outNode -> {
-          final SpecializedTinkerEdge edge = instantiateDummyEdge(edgeLabel, (VertexRef<OverflowDbNode>) outNode, thisRef);
-          // TODO attach properties: get from outNode
-//          ElementHelper.attachProperties(edge, outNode.edgeKeyValues);
-          return (Edge) edge;
-        }).iterator();
+      if (direction == Direction.OUT) {
+        // TODO factor out, reuse above
+        return new Iterator<Edge>() {
+          /* to ensure we use the same index for adjacent vertex and the edge properties
+           * note: this simple model is not thread safe, and can cause IndexOutOfBounds exceptions if
+           * edge properties are removed while iterating them */
+          private int idx = 0;
+
+          @Override
+          public boolean hasNext() {
+            return testEdgeOut.size() > idx;
+          }
+
+          @Override
+          public Edge next() {
+            final int currIdx = idx++;
+            final Vertex inNode = testEdgeOut.get(currIdx);
+            final SpecializedTinkerEdge edge = instantiateDummyEdge(edgeLabel, thisRef, (VertexRef<OverflowDbNode>) inNode);
+            ElementHelper.attachProperties(edge, OverflowDbTestEdge.LONG_PROPERTY, testEdgeOutLongProperty.get(currIdx));
+            return edge;
+          }
+        };
+      } else if (direction == Direction.IN) {
+        return new Iterator<Edge>() {
+          /* to ensure we use the same index for adjacent vertex and the edge properties
+           * note: this simple model is not thread safe, and can cause IndexOutOfBounds exceptions if
+           * edge properties are removed while iterating them */
+          private int idx = 0;
+
+          @Override
+          public boolean hasNext() {
+            return testEdgeIn.size() > idx;
+          }
+
+          @Override
+          public Edge next() {
+            final int currIdx = idx++;
+            final Vertex outNode = testEdgeIn.get(currIdx);
+            final Element outNodeDb = ((VertexRef) outNode).get();
+            OverflowDbTestNode outOdbTestNode = (OverflowDbTestNode) outNodeDb; // edge properties
+            final SpecializedTinkerEdge edge = instantiateDummyEdge(edgeLabel, (VertexRef<OverflowDbNode>) outNode, thisRef);
+            ElementHelper.attachProperties(edge, OverflowDbTestEdge.LONG_PROPERTY, outOdbTestNode.testEdgeOutLongProperty.get(currIdx));
+            return edge;
+          }
+        };
       }
     }
-    return EmptyIterator.INSTANCE;
+    return Collections.emptyIterator();
   }
 
   @Override
