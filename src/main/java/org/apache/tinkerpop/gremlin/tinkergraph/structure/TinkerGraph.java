@@ -45,11 +45,8 @@ import org.apache.tinkerpop.gremlin.tinkergraph.process.computer.TinkerGraphComp
 import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optimization.TinkerGraphCountStrategy;
 import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optimization.TinkerGraphStepStrategy;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.EdgeDeserializer;
-import org.apache.tinkerpop.gremlin.tinkergraph.storage.EdgeSerializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.OndiskOverflow;
-import org.apache.tinkerpop.gremlin.tinkergraph.storage.SerializationStats;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexDeserializer;
-import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexSerializer;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.apache.tinkerpop.gremlin.util.iterator.MultiIterator;
 import org.slf4j.Logger;
@@ -60,8 +57,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
-
-import static com.sun.org.apache.xml.internal.security.keys.keyresolver.KeyResolver.iterator;
 
 /**
  * A fork of the in-memory reference implementation TinkerGraph featuring:
