@@ -55,9 +55,16 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   private List<String> stringListProperty;
   private List<Integer> intListProperty;
 
-  // adjacent nodes
-  private final List<VertexWithEdgeProperties> followedByOut = new ArrayList<>();
-  private final List<VertexWithEdgeProperties> followedByIn = new ArrayList<>();
+  /**
+   * adjacent nodes
+   * since we're only emulating edges, we're storing the edge properties together with the vertex
+   * we store them on both sides (SRC and DST), because edge properties are relatively rare, and to avoid extra roundtrips for deserialization
+
+   * current format: storing the edgeKeyValues array.
+   * TODO: store only the values with a given offset - base work is already available in michael/deserializer-optimisations
+   * */
+  private final List<Vertex> followedByOut = new ArrayList<>();
+  private final List<Vertex> followedByIn = new ArrayList<>();
 
   public OverflowDbTestNode(Long id, TinkerGraph graph) {
     super(id, graph);
@@ -66,14 +73,15 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   @Override
   protected void storeAdjacentOutNode(String edgeLabel, VertexRef<OverflowDbNode> outNodeRef, Object... edgeKeyValues) {
     if (OverflowDbTestEdge.label.equals(edgeLabel)) {
-      followedByOut.add(new VertexWithEdgeProperties(outNodeRef, edgeKeyValues));
+      followedByOut.add(outNodeRef);
     }
   }
 
   @Override
-  protected void storeAdjacentInNode(String edgeLabel, VertexRef<OverflowDbNode> inNodeRef, Object... edgeKeyValues) {
+  protected void storeAdjacentInNode(String edgeLabel, VertexRef<OverflowDbNode> inNodeRef) {
     if (OverflowDbTestEdge.label.equals(edgeLabel)) {
-      followedByIn.add(new VertexWithEdgeProperties(inNodeRef, edgeKeyValues));
+      followedByIn.add(inNodeRef);
+      // TODO store properties in separate array
     }
   }
 
@@ -82,9 +90,9 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   protected Iterator<Vertex> adjacentVertices(Direction direction, String edgeLabel) {
     if (OverflowDbTestEdge.label.equals(edgeLabel)) {
       if (direction == Direction.IN) {
-        return followedByIn.stream().map(node -> (Vertex) node.nodeRef).iterator();
+        return followedByIn.iterator();
       } else if (direction == Direction.OUT) {
-        return followedByOut.stream().map(node -> (Vertex) node.nodeRef).iterator();
+        return followedByOut.iterator();
       }
     }
     return EmptyIterator.INSTANCE;
@@ -97,14 +105,16 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
     if (OverflowDbTestEdge.label.equals(edgeLabel)) {
       if (direction == Direction.IN) {
         return followedByIn.stream().map(inNode -> {
-          final SpecializedTinkerEdge edge = instantiateDummyEdge(edgeLabel, thisRef, inNode.nodeRef);
-          ElementHelper.attachProperties(edge, inNode.edgeKeyValues);
+          final SpecializedTinkerEdge edge = instantiateDummyEdge(edgeLabel, thisRef, (VertexRef<OverflowDbNode>) inNode);
+          // TODO attach properties: get from this
+//          ElementHelper.attachProperties(edge, inNode.edgeKeyValues);
           return (Edge) edge;
         }).iterator();
       } else if (direction == Direction.OUT) {
         return followedByOut.stream().map(outNode -> {
-          final SpecializedTinkerEdge edge = instantiateDummyEdge(edgeLabel, outNode.nodeRef, thisRef);
-          ElementHelper.attachProperties(edge, outNode.edgeKeyValues);
+          final SpecializedTinkerEdge edge = instantiateDummyEdge(edgeLabel, (VertexRef<OverflowDbNode>) outNode, thisRef);
+          // TODO attach properties: get from outNode
+//          ElementHelper.attachProperties(edge, outNode.edgeKeyValues);
           return (Edge) edge;
         }).iterator();
       }
