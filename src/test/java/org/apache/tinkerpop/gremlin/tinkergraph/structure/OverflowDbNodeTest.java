@@ -51,9 +51,6 @@ public class OverflowDbNodeTest {
             OverflowDbTestNode.STRING_LIST_PROPERTY, Arrays.asList("stringThree", "stringFour"),
             OverflowDbTestNode.INT_LIST_PROPERTY, Arrays.asList(52, 53));
         Edge e = v0.addEdge(OverflowDbTestEdge.label, v1, OverflowDbTestEdge.LONG_PROPERTY, 99l);
-        assertTrue(e instanceof OverflowDbTestEdge);
-        assertEquals(Long.valueOf(99l), ((OverflowDbTestEdge) e).getLongProperty());
-        assertEquals(Long.valueOf(99l), e.value(OverflowDbTestEdge.LONG_PROPERTY));
 
         Set stringProperties = graph.traversal().V().values(OverflowDbTestNode.STRING_PROPERTY).toSet();
         assertTrue(stringProperties.contains("node 1"));
@@ -78,6 +75,12 @@ public class OverflowDbNodeTest {
         assertEquals(1, __(v0).bothE(OverflowDbTestEdge.label).toList().size());
         assertEquals(0, __(v0).bothE("otherLabel").toList().size());
 
+        // edge property
+        assertTrue(e instanceof OverflowDbTestEdge);
+        assertEquals(Long.valueOf(99l), ((OverflowDbTestEdge) e).getLongProperty());
+        assertEquals(Long.valueOf(99l), e.value(OverflowDbTestEdge.LONG_PROPERTY));
+        assertEquals(Long.valueOf(99l), __(v0).outE().values(OverflowDbTestEdge.LONG_PROPERTY).next());
+        assertEquals(Long.valueOf(99l), __(v1).inE().values(OverflowDbTestEdge.LONG_PROPERTY).next());
     }
 
     private TinkerGraph newGraph() {
