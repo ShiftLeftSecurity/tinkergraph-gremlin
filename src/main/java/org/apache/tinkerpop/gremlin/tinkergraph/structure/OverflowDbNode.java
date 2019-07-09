@@ -22,11 +22,14 @@ import gnu.trove.set.hash.THashSet;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.iterator.MultiIterator2;
 
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -45,7 +48,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   /** delegates storing of edge properties and adjacent node
    * since we're not storing edges themselves, we store their properties on the vertex
    * */
-  protected abstract void storeAdjacentOutNode(String edgeLabel, VertexRef<OverflowDbNode> nodeRef, Object... edgeKeyValues);
+  protected abstract void storeAdjacentOutNode(String edgeLabel, VertexRef<OverflowDbNode> nodeRef, Map<String, Object> edgeKeyValues);
   protected abstract void storeAdjacentInNode(String edgeLabel, VertexRef<OverflowDbNode> nodeRef);
 
   /** handle only IN|OUT direction, not BOTH */
@@ -62,7 +65,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     OverflowDbNode inVertexOdb = inVertexRef.get();
     VertexRef<OverflowDbNode> thisVertexRef = (VertexRef) graph.vertex((Long) id());
 
-    storeAdjacentOutNode(label, inVertexRef, keyValues);
+    storeAdjacentOutNode(label, inVertexRef, toMap(keyValues));
     inVertexOdb.storeAdjacentInNode(label, thisVertexRef);
     SpecializedTinkerEdge dummyEdge = instantiateDummyEdge(label, thisVertexRef, inVertexRef);
     ElementHelper.attachProperties(dummyEdge, keyValues);
@@ -138,6 +141,16 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     final SpecializedElementFactory.ForEdge edgeFactory = graph.specializedEdgeFactoryByLabel.get(label);
     if (edgeFactory == null) throw new IllegalArgumentException("specializedEdgeFactory for label=" + label + " not found - please register on startup!");
     return edgeFactory.createEdge(-1l, graph, outVertex, inVertex);
+  }
+
+  private Map<String, Object> toMap(Object[] keyValues) {
+    final Map<String, Object> props = new HashMap<>(keyValues.length / 2);
+    for (int i = 0; i < keyValues.length; i = i + 2) {
+      if (!keyValues[i].equals(T.id) && !keyValues[i].equals(T.label)) {
+        props.put((String) keyValues[i], keyValues[i + 1]);
+      }
+    }
+    return props;
   }
 
   private class Labels {
