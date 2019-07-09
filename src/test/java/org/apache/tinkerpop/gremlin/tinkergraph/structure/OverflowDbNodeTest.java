@@ -50,9 +50,10 @@ public class OverflowDbNodeTest {
             OverflowDbTestNode.INT_PROPERTY, 52,
             OverflowDbTestNode.STRING_LIST_PROPERTY, Arrays.asList("stringThree", "stringFour"),
             OverflowDbTestNode.INT_LIST_PROPERTY, Arrays.asList(52, 53));
-        Edge e = v0.addEdge(OverflowDbTestEdge.label, v1);
+        Edge e = v0.addEdge(OverflowDbTestEdge.label, v1, OverflowDbTestEdge.LONG_PROPERTY, 99l);
         assertTrue(e instanceof OverflowDbTestEdge);
-        // TODO add edge properties
+        assertEquals(Long.valueOf(99l), ((OverflowDbTestEdge) e).getLongProperty());
+        assertEquals(Long.valueOf(99l), e.value(OverflowDbTestEdge.LONG_PROPERTY));
 
         Set stringProperties = graph.traversal().V().values(OverflowDbTestNode.STRING_PROPERTY).toSet();
         assertTrue(stringProperties.contains("node 1"));
