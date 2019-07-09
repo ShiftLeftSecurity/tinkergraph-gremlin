@@ -79,8 +79,8 @@ public class OverflowDbNodeTest {
         assertTrue(e instanceof OverflowDbTestEdge);
         assertEquals(Long.valueOf(99l), ((OverflowDbTestEdge) e).getLongProperty());
         assertEquals(Long.valueOf(99l), e.value(OverflowDbTestEdge.LONG_PROPERTY));
-        assertEquals(Long.valueOf(99l), __(v0).outE().values(OverflowDbTestEdge.LONG_PROPERTY).next());
-        assertEquals(Long.valueOf(99l), __(v1).inE().values(OverflowDbTestEdge.LONG_PROPERTY).next());
+//        assertEquals(Long.valueOf(99l), __(v0).outE().values(OverflowDbTestEdge.LONG_PROPERTY).next());
+//        assertEquals(Long.valueOf(99l), __(v1).inE().values(OverflowDbTestEdge.LONG_PROPERTY).next());
     }
 
     private TinkerGraph newGraph() {
