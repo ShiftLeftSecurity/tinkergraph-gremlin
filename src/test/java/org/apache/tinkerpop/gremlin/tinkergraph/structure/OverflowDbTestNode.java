@@ -23,6 +23,7 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.io.Serializable;
@@ -55,21 +56,24 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   private List<Integer> intListProperty;
 
   // adjacent nodes
-  private final List<Vertex> followedByOut = new ArrayList<>();
-  private final List<Vertex> followedByIn = new ArrayList<>();
+  private final List<VertexWithEdgeProperties> followedByOut = new ArrayList<>();
+  private final List<VertexWithEdgeProperties> followedByIn = new ArrayList<>();
 
   public OverflowDbTestNode(Long id, TinkerGraph graph) {
     super(id, graph);
   }
 
   @Override
-  protected void storeAdjacentNode(String edgeLabel, Direction direction, VertexRef<OverflowDbNode> nodeRef) {
+  protected void storeAdjacentOutNode(String edgeLabel, VertexRef<OverflowDbNode> outNodeRef, Object... edgeKeyValues) {
     if (OverflowDbTestEdge.label.equals(edgeLabel)) {
-      switch (direction) {
-        case IN: followedByIn.add(nodeRef); break;
-        case OUT: followedByOut.add(nodeRef); break;
-        case BOTH: throw new IllegalArgumentException("direction must be one of [IN|OUT]");
-      }
+      followedByOut.add(new VertexWithEdgeProperties(outNodeRef, edgeKeyValues));
+    }
+  }
+
+  @Override
+  protected void storeAdjacentInNode(String edgeLabel, VertexRef<OverflowDbNode> inNodeRef, Object... edgeKeyValues) {
+    if (OverflowDbTestEdge.label.equals(edgeLabel)) {
+      followedByIn.add(new VertexWithEdgeProperties(inNodeRef, edgeKeyValues));
     }
   }
 
@@ -78,9 +82,9 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   protected Iterator<Vertex> adjacentVertices(Direction direction, String edgeLabel) {
     if (OverflowDbTestEdge.label.equals(edgeLabel)) {
       if (direction == Direction.IN) {
-        return followedByIn.iterator();
+        return followedByIn.stream().map(node -> (Vertex) node.nodeRef).iterator();
       } else if (direction == Direction.OUT) {
-        return followedByOut.iterator();
+        return followedByOut.stream().map(node -> (Vertex) node.nodeRef).iterator();
       }
     }
     return EmptyIterator.INSTANCE;
@@ -92,11 +96,17 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
     VertexRef thisRef = (VertexRef) graph.vertex((Long) id);
     if (OverflowDbTestEdge.label.equals(edgeLabel)) {
       if (direction == Direction.IN) {
-        return followedByIn.stream().map(inNode ->
-            (Edge) instantiateDummyEdge(edgeLabel, thisRef, (VertexRef<OverflowDbNode>) inNode)).iterator();
+        return followedByIn.stream().map(inNode -> {
+          final SpecializedTinkerEdge edge = instantiateDummyEdge(edgeLabel, thisRef, inNode.nodeRef);
+          ElementHelper.attachProperties(edge, inNode.edgeKeyValues);
+          return (Edge) edge;
+        }).iterator();
       } else if (direction == Direction.OUT) {
-        return followedByOut.stream().map(outNode ->
-            (Edge) instantiateDummyEdge(edgeLabel, (VertexRef<OverflowDbNode>) outNode, thisRef)).iterator();
+        return followedByOut.stream().map(outNode -> {
+          final SpecializedTinkerEdge edge = instantiateDummyEdge(edgeLabel, outNode.nodeRef, thisRef);
+          ElementHelper.attachProperties(edge, outNode.edgeKeyValues);
+          return (Edge) edge;
+        }).iterator();
       }
     }
     return EmptyIterator.INSTANCE;

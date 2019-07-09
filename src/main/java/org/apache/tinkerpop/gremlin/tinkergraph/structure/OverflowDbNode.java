@@ -24,9 +24,19 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     super(id, graph);
   }
 
-  protected abstract void storeAdjacentNode(String edgeLabel, Direction direction, VertexRef<OverflowDbNode> nodeRef);
+  /** delegates storing of edge properties and adjacent node
+   * since we're not storing edges themselves, we store their properties on the vertex
+   * */
+  protected abstract void storeAdjacentOutNode(String edgeLabel, VertexRef<OverflowDbNode> nodeRef, Object... edgeKeyValues);
+
+  /** delegates storing of edge properties and adjacent node
+   * since we're not storing edges themselves, we store their properties on the vertex
+   * */
+  protected abstract void storeAdjacentInNode(String edgeLabel, VertexRef<OverflowDbNode> nodeRef, Object... edgeKeyValues);
+
   /** handle only IN|OUT direction, not BOTH */
   protected abstract Iterator<Vertex> adjacentVertices(Direction direction, String edgeLabel);
+
   /** handle only IN|OUT direction, not BOTH */
   protected abstract Iterator<Edge> adjacentDummyEdges(Direction direction, String edgeLabel);
 
@@ -38,8 +48,8 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     OverflowDbNode inVertexOdb = inVertexRef.get();
     VertexRef<OverflowDbNode> thisVertexRef = (VertexRef) graph.vertex((Long) id());
 
-    storeAdjacentNode(label, Direction.OUT, inVertexRef);
-    inVertexOdb.storeAdjacentNode(label, Direction.IN, thisVertexRef);
+    storeAdjacentOutNode(label, inVertexRef, keyValues);
+    inVertexOdb.storeAdjacentInNode(label, thisVertexRef, keyValues);
     SpecializedTinkerEdge dummyEdge = instantiateDummyEdge(label, thisVertexRef, inVertexRef);
     ElementHelper.attachProperties(dummyEdge, keyValues);
     return dummyEdge;
