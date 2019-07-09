@@ -37,6 +37,10 @@ public class OverflowDbTestEdge extends SpecializedTinkerEdge {
         super(graph, id, outVertex, label, inVertex, SPECIFIC_KEYS);
     }
 
+    public Long getLongProperty() {
+        return longProperty;
+    }
+
     @Override
     protected <V> Property<V> specificProperty(String key) {
         // note: use the statically defined strings to take advantage of `==` (pointer comparison) over `.equals` (String content comparison) for performance

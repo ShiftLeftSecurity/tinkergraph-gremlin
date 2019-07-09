@@ -5,6 +5,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.iterator.MultiIterator2;
 
 import java.util.Iterator;
@@ -31,8 +32,6 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
   @Override
   public Edge addEdge(String label, Vertex inVertex, Object... keyValues) {
-    if (keyValues.length > 0) throw new NotImplementedException("edge properties not yet supported");
-
     final VertexRef<OverflowDbNode> inVertexRef;
     if (inVertex instanceof VertexRef) inVertexRef = (VertexRef<OverflowDbNode>) inVertex;
     else inVertexRef = (VertexRef<OverflowDbNode>) graph.vertex((Long) inVertex.id());
@@ -41,7 +40,9 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
     storeAdjacentNode(label, Direction.OUT, inVertexRef);
     inVertexOdb.storeAdjacentNode(label, Direction.IN, thisVertexRef);
-    return instantiateDummyEdge(label, thisVertexRef, inVertexRef);
+    SpecializedTinkerEdge dummyEdge = instantiateDummyEdge(label, thisVertexRef, inVertexRef);
+    ElementHelper.attachProperties(dummyEdge, keyValues);
+    return dummyEdge;
   }
 
   @Override
