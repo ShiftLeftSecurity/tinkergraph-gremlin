@@ -48,6 +48,10 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   private static final Map<String, Integer> outEdgeToPosition = new HashMap<>();
   private static final Map<String, Integer> inEdgeToPosition = new HashMap<>();
 
+  private static final Map<String, Integer> labelAndKeyToPosition = new HashMap<>();
+
+  private static final Map<String, Integer> edgeKeyCount = new HashMap<>();
+
   // properties
   private String stringProperty;
   private Integer intProperty;
@@ -62,6 +66,11 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   static {
     outEdgeToPosition.put(OverflowDbTestEdge.label, 0);
     inEdgeToPosition.put(OverflowDbTestEdge.label, 1);
+    labelAndKeyToPosition.put(OverflowDbTestEdge.label + STRING_PROPERTY, 0);
+    labelAndKeyToPosition.put(OverflowDbTestEdge.label + INT_PROPERTY, 1);
+    labelAndKeyToPosition.put(OverflowDbTestEdge.label + STRING_LIST_PROPERTY, 2);
+    labelAndKeyToPosition.put(OverflowDbTestEdge.label + INT_LIST_PROPERTY, 3);
+    edgeKeyCount.put(OverflowDbTestEdge.label, 4);
   }
 
   public OverflowDbTestNode(Long id, TinkerGraph graph) {
@@ -81,6 +90,16 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
     } else {
       return -1;
     }
+  }
+
+  @Override
+  protected int getOffsetRelativeToAdjacentVertexRef(String edgeLabelAndKey) {
+    return labelAndKeyToPosition.get(edgeLabelAndKey);
+  }
+
+  @Override
+  protected int getEdgeKeyCount(String edgeLabel) {
+    return edgeKeyCount.get(edgeLabel);
   }
 
   @Override
