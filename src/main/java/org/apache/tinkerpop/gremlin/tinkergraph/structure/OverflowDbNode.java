@@ -59,7 +59,16 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
   /** since we store edge properties at the SRC node, this allows us to look them up again (when traversing INwards)
    * we have to pass the inNodeId, because the properties are stored with the same index into an array */
-  public abstract <V> V getEdgeProperty(String edgeLabel, String key, long inNodeId);
+  public abstract Object getEdgeProperty(String edgeLabel, String key, long inNodeId);
+
+  protected int findElementIdx(Vertex[] outVertices, long id) {
+    int idx = 0;
+    for (Vertex v : outVertices) {
+      if ((long) v.id() == id) return idx;
+      else idx++;
+    }
+    throw new IllegalStateException("unable to find index for outVertex with id=" + id + "; this.getClass = " + getClass());
+  }
 
   @Override
   public Edge addEdge(String label, Vertex inVertex, Object... keyValues) {

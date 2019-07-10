@@ -69,23 +69,14 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   }
 
   @Override
-  public <V> V getEdgeProperty(String edgeLabel, String key, long inNodeId) {
+  public Object getEdgeProperty(String edgeLabel, String key, long inNodeId) {
     if (OverflowDbTestEdge.label.equals(edgeLabel)) {
       if (OverflowDbTestEdge.LONG_PROPERTY.equals(key)) {
-        int idx = findElementIdx(testEdgeOut, inNodeId);
-        return (V) testEdgeOutLongProperty.get(idx);
+        int idx = findElementIdx(testEdgeOut.toArray(new Vertex[testEdgeOut.size()]), inNodeId);
+        return testEdgeOutLongProperty.get(idx);
       }
     }
     return null;
-  }
-
-  private int findElementIdx(List<Vertex> outVertices, long id) {
-    int idx = 0;
-    for (Vertex v : outVertices) {
-      if ((long) v.id() == id) return idx;
-      else idx++;
-    }
-    throw new IllegalStateException("unable to find index for outVertex with id=" + id + "; this.getClass = " + getClass());
   }
 
   @Override
