@@ -19,11 +19,7 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
-import org.apache.tinkerpop.gremlin.structure.Element;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
-import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.io.Serializable;
@@ -49,109 +45,42 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   public static final Set<String> ALLOWED_IN_EDGE_LABELS = new HashSet<>(Arrays.asList(OverflowDbTestEdge.label));
   public static final Set<String> ALLOWED_OUT_EDGE_LABELS = new HashSet<>(Arrays.asList(OverflowDbTestEdge.label));
 
+  private static final Map<String, Integer> outEdgeToPosition = new HashMap<>();
+  private static final Map<String, Integer> inEdgeToPosition = new HashMap<>();
+
   // properties
   private String stringProperty;
   private Integer intProperty;
   private List<String> stringListProperty;
   private List<Integer> intListProperty;
 
-  /* adjacent nodes */
-  private final List<Vertex> testEdgeOut = new ArrayList<>();
-  private final List<Vertex> testEdgeIn = new ArrayList<>();
-
   /* properties of edges between nodes
    * since we're only emulating edges, we're storing the edge properties in a separate list per edgetype and property
    * only stored on the SRC node side */
   protected final List<Object> testEdgeOutLongProperty = new ArrayList<>();
 
+  static {
+    outEdgeToPosition.put(OverflowDbTestEdge.label, 0);
+    inEdgeToPosition.put(OverflowDbTestEdge.label, 1);
+  }
+
   public OverflowDbTestNode(Long id, TinkerGraph graph) {
-    super(id, graph);
+    super(id, graph, outEdgeToPosition.size() + inEdgeToPosition.size());
   }
 
   @Override
-  protected void storeAdjacentOutNode(String edgeLabel, VertexRef<OverflowDbNode> outNodeRef, Map<String, Object> edgeKeyValues) {
-    if (OverflowDbTestEdge.label.equals(edgeLabel)) {
-      synchronized (this) {
-        final int index = testEdgeIn.size();
-        testEdgeOut.add(index, outNodeRef);
-        testEdgeOutLongProperty.add(index, edgeKeyValues.get(OverflowDbTestEdge.LONG_PROPERTY));
-      }
+  protected int getPositionInNodeOffsets(Direction direction, String label) {
+    Integer positionOrNull;
+    if (direction == Direction.OUT) {
+      positionOrNull = outEdgeToPosition.get(label);
+    } else {
+      positionOrNull = inEdgeToPosition.get(label);
     }
-  }
-
-  @Override
-  protected void storeAdjacentInNode(String edgeLabel, VertexRef<OverflowDbNode> inNodeRef) {
-    if (OverflowDbTestEdge.label.equals(edgeLabel)) {
-      testEdgeIn.add(inNodeRef);
+    if (positionOrNull != null) {
+      return positionOrNull;
+    } else {
+      return -1;
     }
-  }
-
-  @Override
-  /** handle only IN|OUT direction, not BOTH */
-  protected Iterator<Vertex> adjacentVertices(Direction direction, String edgeLabel) {
-    if (OverflowDbTestEdge.label.equals(edgeLabel)) {
-      if (direction == Direction.IN) {
-        return testEdgeIn.iterator();
-      } else if (direction == Direction.OUT) {
-        return testEdgeOut.iterator();
-      }
-    }
-    return Collections.emptyIterator();
-  }
-
-  @Override
-  /** handle only IN|OUT direction, not BOTH */
-  protected Iterator<Edge> adjacentDummyEdges(Direction direction, String edgeLabel) {
-    final VertexRef thisRef = (VertexRef) graph.vertex(id);
-    if (OverflowDbTestEdge.label.equals(edgeLabel)) {
-      if (direction == Direction.OUT) {
-        // TODO factor out, reuse above
-        return new Iterator<Edge>() {
-          /* to ensure we use the same index for adjacent vertex and the edge properties
-           * note: this simple model is not thread safe, and can cause IndexOutOfBounds exceptions if
-           * edge properties are removed while iterating them */
-          private int idx = 0;
-
-          @Override
-          public boolean hasNext() {
-            return testEdgeOut.size() > idx;
-          }
-
-          @Override
-          public Edge next() {
-            final int currIdx = idx++;
-            final Vertex inNode = testEdgeOut.get(currIdx);
-            final SpecializedTinkerEdge edge = instantiateDummyEdge(edgeLabel, thisRef, (VertexRef<OverflowDbNode>) inNode);
-            ElementHelper.attachProperties(edge, OverflowDbTestEdge.LONG_PROPERTY, testEdgeOutLongProperty.get(currIdx));
-            return edge;
-          }
-        };
-      } else if (direction == Direction.IN) {
-        return new Iterator<Edge>() {
-          /* to ensure we use the same index for adjacent vertex and the edge properties
-           * note: this simple model is not thread safe, and can cause IndexOutOfBounds exceptions if
-           * edge properties are removed while iterating them */
-          private int idx = 0;
-
-          @Override
-          public boolean hasNext() {
-            return testEdgeIn.size() > idx;
-          }
-
-          @Override
-          public Edge next() {
-            final int currIdx = idx++;
-            final Vertex outNode = testEdgeIn.get(currIdx);
-            final Element outNodeDb = ((VertexRef) outNode).get();
-            OverflowDbTestNode outOdbTestNode = (OverflowDbTestNode) outNodeDb; // edge properties
-            final SpecializedTinkerEdge edge = instantiateDummyEdge(edgeLabel, (VertexRef<OverflowDbNode>) outNode, thisRef);
-            ElementHelper.attachProperties(edge, OverflowDbTestEdge.LONG_PROPERTY, outOdbTestNode.testEdgeOutLongProperty.get(currIdx));
-            return edge;
-          }
-        };
-      }
-    }
-    return Collections.emptyIterator();
   }
 
   @Override
