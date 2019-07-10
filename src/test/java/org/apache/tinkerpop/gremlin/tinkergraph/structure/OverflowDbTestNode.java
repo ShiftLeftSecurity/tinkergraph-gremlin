@@ -64,8 +64,28 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
    * only stored on the SRC node side */
   protected final List<Object> testEdgeOutLongProperty = new ArrayList<>();
 
-  public OverflowDbTestNode(Long id, TinkerGraph graph) {
+  public OverflowDbTestNode(long id, TinkerGraph graph) {
     super(id, graph);
+  }
+
+  @Override
+  public <V> V getEdgeProperty(String edgeLabel, String key, long inNodeId) {
+    if (OverflowDbTestEdge.label.equals(edgeLabel)) {
+      if (OverflowDbTestEdge.LONG_PROPERTY.equals(key)) {
+        int idx = findElementIdx(testEdgeOut, inNodeId);
+        return (V) testEdgeOutLongProperty.get(idx);
+      }
+    }
+    return null;
+  }
+
+  private int findElementIdx(List<Vertex> outVertices, long id) {
+    int idx = 0;
+    for (Vertex v : outVertices) {
+      if ((long) v.id() == id) return idx;
+      else idx++;
+    }
+    throw new IllegalStateException("unable to find index for outVertex with id=" + id + "; this.getClass = " + getClass());
   }
 
   @Override
@@ -105,7 +125,6 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
     final VertexRef thisRef = (VertexRef) graph.vertex(id);
     if (OverflowDbTestEdge.label.equals(edgeLabel)) {
       if (direction == Direction.OUT) {
-        // TODO factor out, reuse above
         return new Iterator<Edge>() {
           /* to ensure we use the same index for adjacent vertex and the edge properties
            * note: this simple model is not thread safe, and can cause IndexOutOfBounds exceptions if
@@ -143,9 +162,9 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
             final int currIdx = idx++;
             final Vertex outNode = testEdgeIn.get(currIdx);
             final Element outNodeDb = ((VertexRef) outNode).get();
-            OverflowDbTestNode outOdbTestNode = (OverflowDbTestNode) outNodeDb; // edge properties
+            OverflowDbNode outOdbNode = (OverflowDbNode) outNodeDb; // for edge properties
             final SpecializedTinkerEdge edge = instantiateDummyEdge(edgeLabel, (VertexRef<OverflowDbNode>) outNode, thisRef);
-            ElementHelper.attachProperties(edge, OverflowDbTestEdge.LONG_PROPERTY, outOdbTestNode.testEdgeOutLongProperty.get(currIdx));
+            ElementHelper.attachProperties(edge, OverflowDbTestEdge.LONG_PROPERTY, outOdbNode.getEdgeProperty(edgeLabel, OverflowDbTestEdge.LONG_PROPERTY, id));
             return edge;
           }
         };

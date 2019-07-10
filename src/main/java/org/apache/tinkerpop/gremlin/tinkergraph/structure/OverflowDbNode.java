@@ -57,6 +57,10 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   /** handle only IN|OUT direction, not BOTH */
   protected abstract Iterator<Edge> adjacentDummyEdges(Direction direction, String edgeLabel);
 
+  /** since we store edge properties at the SRC node, this allows us to look them up again (when traversing INwards)
+   * we have to pass the inNodeId, because the properties are stored with the same index into an array */
+  public abstract <V> V getEdgeProperty(String edgeLabel, String key, long inNodeId);
+
   @Override
   public Edge addEdge(String label, Vertex inVertex, Object... keyValues) {
     final VertexRef<OverflowDbNode> inVertexRef;
