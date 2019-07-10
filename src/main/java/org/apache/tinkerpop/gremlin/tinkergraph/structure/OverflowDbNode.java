@@ -19,7 +19,6 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import gnu.trove.set.hash.THashSet;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -27,8 +26,11 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.iterator.MultiIterator2;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -41,21 +43,29 @@ import java.util.Set;
  */
 public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
-  protected OverflowDbNode(long id, TinkerGraph graph) {
+  private VertexRef[] adjacentNodes = new VertexRef[0];
+  // nodeoffsets stored the start offset and length into adjacentNodes array in an interleaved manner.
+  private final int[] nodeOffsets;
+
+  /**
+   * @param numberOfDifferentAdjacentTypes The number fo different in and outgoing
+   *                                       edge relations. E.g. a node has AST edges in and out,
+   *                                       than we would have 2. If in addition it has incoming
+   *                                       ref edges it would have 3.
+   *
+   */
+  protected OverflowDbNode(long id, TinkerGraph graph, int numberOfDifferentAdjacentTypes) {
     super(id, graph);
+    nodeOffsets = new int[numberOfDifferentAdjacentTypes * 2];
   }
 
-  /** delegates storing of edge properties and adjacent node
-   * since we're not storing edges themselves, we store their properties on the vertex
-   * */
-  protected abstract void storeAdjacentOutNode(String edgeLabel, VertexRef<OverflowDbNode> nodeRef, Map<String, Object> edgeKeyValues);
-  protected abstract void storeAdjacentInNode(String edgeLabel, VertexRef<OverflowDbNode> nodeRef);
-
-  /** handle only IN|OUT direction, not BOTH */
-  protected abstract Iterator<Vertex> adjacentVertices(Direction direction, String edgeLabel);
-
-  /** handle only IN|OUT direction, not BOTH */
-  protected abstract Iterator<Edge> adjacentDummyEdges(Direction direction, String edgeLabel);
+  /**
+   * @param direction
+   * @param label
+   * @return The position in nodeOffsets array. If the edge label is not supported, -1 need to be
+   *         returned.
+   */
+  protected abstract int getPositionInNodeOffsets(Direction direction, String label);
 
   @Override
   public Edge addEdge(String label, Vertex inVertex, Object... keyValues) {
@@ -67,6 +77,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
     storeAdjacentOutNode(label, inVertexRef, toMap(keyValues));
     inVertexOdb.storeAdjacentInNode(label, thisVertexRef);
+
     SpecializedTinkerEdge dummyEdge = instantiateDummyEdge(label, thisVertexRef, inVertexRef);
     ElementHelper.attachProperties(dummyEdge, keyValues);
     return dummyEdge;
@@ -76,11 +87,22 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   public Iterator<Edge> edges(Direction direction, String... edgeLabels) {
     final Labels labels = calculateInOutLabelsToFollow(direction, edgeLabels);
     final MultiIterator2<Edge> multiIterator = new MultiIterator2<>();
+    VertexRef thisRef = (VertexRef)graph.vertex(id);
     for (String label : labels.forInEdges) {
-      multiIterator.addIterator(adjacentDummyEdges(Direction.IN, label));
+      Iterator<VertexRef> vertexRefIterator = createAdjacentVertexRefIterator(Direction.IN, label);
+      List<Edge> edgeList = new ArrayList<>();
+      vertexRefIterator.forEachRemaining( vertexRef -> {
+        edgeList.add(instantiateDummyEdge(label, vertexRef, thisRef));
+      });
+      multiIterator.addIterator(edgeList.iterator());
     }
     for (String label : labels.forOutEdges) {
-      multiIterator.addIterator(adjacentDummyEdges(Direction.OUT, label));
+      Iterator<VertexRef> vertexRefIterator = createAdjacentVertexRefIterator(Direction.OUT, label);
+      List<Edge> edgeList = new ArrayList<>();
+      vertexRefIterator.forEachRemaining( vertexRef -> {
+        edgeList.add(instantiateDummyEdge(label, thisRef, vertexRef));
+      });
+      multiIterator.addIterator(edgeList.iterator());
     }
 
     return multiIterator;
@@ -91,14 +113,90 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     final Labels labels = calculateInOutLabelsToFollow(direction, edgeLabels);
     final MultiIterator2<Vertex> multiIterator = new MultiIterator2<>();
     for (String label : labels.forInEdges) {
-      multiIterator.addIterator(adjacentVertices(Direction.IN, label));
+      multiIterator.addIterator(createAdjacentVertexRefIterator(Direction.IN, label));
     }
     for (String label : labels.forOutEdges) {
-      multiIterator.addIterator(adjacentVertices(Direction.OUT, label));
+      multiIterator.addIterator(createAdjacentVertexRefIterator(Direction.OUT, label));
     }
 
     return multiIterator;
   }
+
+  private Iterator<VertexRef> createAdjacentVertexRefIterator(Direction direction, String label) {
+    int offsetPos = getPositionInNodeOffsets(direction, label);
+    if (offsetPos != -1) {
+      int start = nodeOffsets[2 * offsetPos];
+      int length = nodeOffsets[2 * offsetPos + 1];
+
+      return new ArrayOffsetIterator<>(adjacentNodes, start, start + length);
+    } else {
+      return Collections.emptyIterator();
+    }
+  }
+
+  private static class ArrayOffsetIterator<T> implements Iterator<T>  {
+    private T[] array;
+    private int current;
+    private int end;
+
+    ArrayOffsetIterator(T[] array, int begin, int end) {
+      this.array = array;
+      this.current = begin;
+      this.end = end;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return current < end;
+    }
+
+    @Override
+    public T next() {
+      T element = array[current];
+      current += 1;
+      return element;
+    }
+  }
+
+  private void storeAdjacentOutNode(String edgeLabel,
+                                    VertexRef<OverflowDbNode> nodeRef,
+                                    Map<String, Object> edgeKeyValues) {
+    storeAdjacentNode(Direction.OUT, edgeLabel, nodeRef);
+  }
+
+  private void storeAdjacentInNode(String edgeLabel, VertexRef<OverflowDbNode> nodeRef) {
+    storeAdjacentNode(Direction.IN, edgeLabel, nodeRef);
+  }
+
+  private void storeAdjacentNode(Direction direction, String edgeLabel, VertexRef<OverflowDbNode> nodeRef) {
+    int offsetPos = getPositionInNodeOffsets(direction, edgeLabel);
+    int start = nodeOffsets[2 * offsetPos];
+    int length = nodeOffsets[2 * offsetPos + 1];
+
+    adjacentNodes = insertInNewArray(adjacentNodes, start + length, nodeRef);
+
+    // Increment length.
+    nodeOffsets[2 * offsetPos + 1] = length + 1;
+
+    // Increment all following start offsets by one.
+    for (int i = offsetPos + 1; 2 * i < nodeOffsets.length; i++) {
+      nodeOffsets[2 * i] = nodeOffsets[2 * i] + 1;
+    }
+  }
+
+  private VertexRef[] insertInNewArray(VertexRef array[], int insertAt, VertexRef element) {
+    VertexRef[] newArray = new VertexRef[array.length + 1];
+    for (int i = 0; i < insertAt; i++) {
+      newArray[i] = array[i];
+    }
+    newArray[insertAt] = element;
+    for (int i = insertAt; i < array.length; i++) {
+      newArray[i + 1] = array[i];
+    }
+
+    return newArray;
+  }
+
 
   private Labels calculateInOutLabelsToFollow(Direction direction, String... edgeLabels) {
     final Set<String> inEdgeLabels;
