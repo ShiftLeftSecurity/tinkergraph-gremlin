@@ -39,20 +39,21 @@ import java.util.Set;
  * Motivation: in many graph use cases, edges don't hold any properties and thus accounts for more memory and
  * traversal time than necessary
  *
- * TODO: extend Vertex (rather than SpecializedTinkerVertex)
+ * TODO: extend Vertex (rather than SpecializedTinkerVertex) to save more memory
  */
 public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
-  private Object[] adjacentVerticesWithProperties = new VertexRef[0];
-  // nodeoffsets stored the start offset and length into adjacentNodes array in an interleaved manner.
+  // TODO preallocate some length, grow when needed (by more than what's immediately required to leave some space)
+  private Object[] adjacentVerticesWithProperties = new Object[0];
+
+  /* store the start offset and length into the above `adjacentVerticesWithProperties` array in an interleaved manner,
+   * i.e. each outgoing edge type has two entries in this array. */
   private final int[] nodeOffsets;
 
   /**
-   * @param numberOfDifferentAdjacentTypes The number fo different in and outgoing
-   *                                       edge relations. E.g. a node has AST edges in and out,
-   *                                       than we would have 2. If in addition it has incoming
+   * @param numberOfDifferentAdjacentTypes The number fo different IN|OUT edge relations. E.g. a node has AST edges in
+   *                                       and out, then we would have 2. If in addition it has incoming
    *                                       ref edges it would have 3.
-   *
    */
   protected OverflowDbNode(long id,
                            TinkerGraph graph,
@@ -62,10 +63,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   }
 
   /**
-   * @param direction
-   * @param label
-   * @return The position in nodeOffsets array. If the edge label is not supported, -1 need to be
-   *         returned.
+   * @return The position in nodeOffsets array. -1 if the edge label is not supported
    */
   protected abstract int getPositionInNodeOffsets(Direction direction, String label);
 
@@ -78,8 +76,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
                                                    String... keys) {
     List<Property<V>> result = new ArrayList<>();
     for (String key: keys) {
-      Property<V> edgeProperty = getEdgeProperty(edgeLabel, key, inVertex);
-      result.add(edgeProperty);
+      result.add(getEdgeProperty(edgeLabel, key, inVertex));
     }
 
     return result.iterator();
@@ -89,9 +86,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
                                           String key,
                                           VertexRef<OverflowDbNode> inVertex) {
     int propertyPosition = getPropertyIndex(edgeLabel, key, inVertex);
-
-    V value = (V)adjacentVerticesWithProperties[propertyPosition];
-
+    V value = (V) adjacentVerticesWithProperties[propertyPosition];
     VertexRef<OverflowDbNode> thisVertexRef = (VertexRef) graph.vertex((Long) id());
     return new OverflowProperty<>(key, value, instantiateDummyEdge(edgeLabel, thisVertexRef, inVertex));
   }
@@ -102,9 +97,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
                                          VertexRef<OverflowDbNode> inVertex,
                                          OverflowDbEdge edge) {
     int propertyPosition = getPropertyIndex(edgeLabel, key, inVertex);
-
     adjacentVerticesWithProperties[propertyPosition] = value;
-
     return new OverflowProperty<>(key, value, edge);
   }
 
@@ -263,13 +256,12 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   }
 
   /**
-   * Returns the length of a per label block in the adjacentVerticesWithProperties array.
+   * Returns the length of an edge type block in the adjacentVerticesWithProperties array.
    * Length means number of index positions.
    */
   private int blockLength(int offsetPosition) {
     return nodeOffsets[2 * offsetPosition + 1];
   }
-
 
   private Labels calculateInOutLabelsToFollow(Direction direction, String... edgeLabels) {
     final Set<String> inEdgeLabels;

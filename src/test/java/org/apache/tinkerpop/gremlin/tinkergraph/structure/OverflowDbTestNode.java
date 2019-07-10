@@ -58,11 +58,6 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   private List<String> stringListProperty;
   private List<Integer> intListProperty;
 
-  /* properties of edges between nodes
-   * since we're only emulating edges, we're storing the edge properties in a separate list per edgetype and property
-   * only stored on the SRC node side */
-  protected final List<Object> testEdgeOutLongProperty = new ArrayList<>();
-
   static {
     outEdgeToPosition.put(OverflowDbTestEdge.label, 0);
     inEdgeToPosition.put(OverflowDbTestEdge.label, 1);
@@ -79,7 +74,7 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
 
   @Override
   protected int getPositionInNodeOffsets(Direction direction, String label) {
-    Integer positionOrNull;
+    final Integer positionOrNull;
     if (direction == Direction.OUT) {
       positionOrNull = outEdgeToPosition.get(label);
     } else {
