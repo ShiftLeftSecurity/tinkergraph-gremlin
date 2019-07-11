@@ -361,12 +361,4 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
       this.forOutEdges = forOutEdges;
     }
   }
-
-  public Set<String> allowedOutEdgeLabels() {
-    throw new RuntimeException("Not required.");
-  }
-
-  public Set<String> allowedInEdgeLabels() {
-    throw new RuntimeException("Not required.");
-  }
 }
