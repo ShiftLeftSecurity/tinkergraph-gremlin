@@ -43,12 +43,14 @@ import java.util.Set;
  */
 public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
-  // TODO preallocate some length, grow when needed (by more than what's immediately required to leave some space)
   private Object[] adjacentVerticesWithProperties = new Object[0];
 
   /* store the start offset and length into the above `adjacentVerticesWithProperties` array in an interleaved manner,
    * i.e. each outgoing edge type has two entries in this array. */
   private final int[] edgeOffsets;
+
+  /* determines how many spaces for adjacent vertices will be left free, so we don't need to grow the array for every additional edge */
+  private final int growthEmptyFactor = 3; // TODO make configurable
 
   /**
    * @param numberOfDifferentAdjacentTypes The number fo different IN|OUT edge relations. E.g. a node has AST edges in
@@ -220,34 +222,40 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     storeAdjacentNode(Direction.IN, edgeLabel, nodeRef);
   }
 
-  private void storeAdjacentNode(Direction direction, String edgeLabel, VertexRef<OverflowDbNode> nodeRef) {
+  private synchronized void storeAdjacentNode(Direction direction, String edgeLabel, VertexRef<OverflowDbNode> nodeRef) {
     int offsetPos = getPositionInEdgeOffsets(direction, edgeLabel);
     int start = startIndex(offsetPos);
     int length = blockLength(offsetPos);
     int strideSize = getEdgeKeyCount(edgeLabel) + 1;
 
-    adjacentVerticesWithProperties = insertInNewArray(adjacentVerticesWithProperties, start + length, nodeRef, strideSize);
-
-    // Increment length.
-    edgeOffsets[2 * offsetPos + 1] = length + strideSize;
-
-    // Increment all following start offsets by strideSize.
-    for (int i = offsetPos + 1; 2 * i < edgeOffsets.length; i++) {
-      edgeOffsets[2 * i] = edgeOffsets[2 * i] + strideSize;
+    int insertAt = start + length;
+    if (adjacentVerticesWithProperties.length <= insertAt || adjacentVerticesWithProperties[insertAt] != null) {
+      // space already occupied - grow adjacentVerticesWithProperties array, leaving some room for more elements
+      adjacentVerticesWithProperties = growAdjacentVerticesWithProperties(offsetPos, strideSize, insertAt);;
     }
+
+    adjacentVerticesWithProperties[insertAt] = nodeRef;
+    // update edgeOffset length to include the newly inserted element
+    edgeOffsets[2 * offsetPos + 1] = length + strideSize;
   }
 
   /**
-   * returns a new array with the given `element` inserted at index `insertAt`,
-   * occupying enough space for itself and it's properties (`strideSize`)
+   * grow the adjacentVerticesWithProperties array
+   *
+   * preallocates more space than immediately necessary, so we don't need to grow the array every time
+   * (tradeoff between performance and memory)
    */
-  private Object[] insertInNewArray(Object array[], int insertAt, VertexRef element, int strideSize) {
-    Object[] newArray = new Object[array.length + strideSize];
+  private Object[] growAdjacentVerticesWithProperties(int offsetPos, int strideSize, int insertAt) {
+    int additionalEntriesCount = strideSize * growthEmptyFactor;
+    int newSize = adjacentVerticesWithProperties.length + additionalEntriesCount;
+    Object[] newArray = new Object[newSize];
+    System.arraycopy(adjacentVerticesWithProperties, 0, newArray, 0, insertAt);
+    System.arraycopy(adjacentVerticesWithProperties, insertAt, newArray, insertAt + additionalEntriesCount, adjacentVerticesWithProperties.length - insertAt);
 
-    System.arraycopy(array, 0, newArray, 0, insertAt);
-    newArray[insertAt] = element;
-    System.arraycopy(array, insertAt, newArray, insertAt + strideSize, array.length - insertAt);
-
+    // Increment all following start offsets by `additionalEntriesCount`.
+    for (int i = offsetPos + 1; 2 * i < edgeOffsets.length; i++) {
+      edgeOffsets[2 * i] = edgeOffsets[2 * i] + additionalEntriesCount;
+    }
     return newArray;
   }
 
