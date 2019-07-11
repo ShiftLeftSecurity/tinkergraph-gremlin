@@ -27,7 +27,6 @@ public class SpecializedElementFactory {
     public interface ForVertex<V extends SpecializedTinkerVertex> {
         String forLabel();
         V createVertex(Long id, TinkerGraph graph);
-        VertexRef<V> createVertexRef(V vertex);
         VertexRef<V> createVertexRef(Long id, TinkerGraph graph);
     }
 

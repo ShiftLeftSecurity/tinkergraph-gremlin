@@ -19,6 +19,7 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
@@ -65,8 +66,8 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
     edgeKeyCount.put(OverflowDbTestEdge.label, 4);
   }
 
-  public OverflowDbTestNode(Long id, TinkerGraph graph) {
-    super(id, graph, outEdgeToPosition.size() + inEdgeToPosition.size());
+  protected OverflowDbTestNode(TinkerGraph graph, VertexRef ref) {
+    super(graph, outEdgeToPosition.size() + inEdgeToPosition.size(), ref);
   }
 
   @Override
@@ -113,12 +114,7 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
 
     @Override
     public OverflowDbTestNode createVertex(Long id, TinkerGraph graph) {
-      return new OverflowDbTestNode(id, graph);
-    }
-
-    @Override
-    public VertexRef<OverflowDbTestNode> createVertexRef(OverflowDbTestNode vertex) {
-      return new VertexRefWithLabel<>(vertex.id(), vertex.graph, vertex, OverflowDbTestNode.label);
+      return new OverflowDbTestNode(graph, createVertexRef(id, graph));
     }
 
     @Override

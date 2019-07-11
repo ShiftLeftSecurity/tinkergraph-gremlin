@@ -43,8 +43,8 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
     private Integer performances;
     private int[] testProp;
 
-    public Song(Long id, TinkerGraph graph) {
-        super(id, graph);
+    public Song(TinkerGraph graph, VertexRef ref) {
+        super(graph, ref);
     }
 
     public List<FollowedBy> followedByIn() {
@@ -160,12 +160,7 @@ public class Song extends SpecializedTinkerVertex implements Serializable {
 
         @Override
         public Song createVertex(Long id, TinkerGraph graph) {
-            return new Song(id, graph);
-        }
-
-        @Override
-        public VertexRef<Song> createVertexRef(Song vertex) {
-            return new VertexRefWithLabel<>(vertex.id(), vertex.graph(), vertex, Song.label);
+            return new Song(graph, createVertexRef(id, graph));
         }
 
         @Override

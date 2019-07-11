@@ -307,7 +307,7 @@ public final class TinkerGraph implements Graph {
         if (specializedVertexFactoryByLabel.containsKey(label)) {
             final SpecializedElementFactory.ForVertex factory = specializedVertexFactoryByLabel.get(label);
             final SpecializedTinkerVertex underlying = factory.createVertex(idValue, this);
-            vertex = factory.createVertexRef(underlying);
+            vertex = underlying.ref;
         } else { // vertex label not registered for a specialized factory, treating as generic vertex
             if (this.usesSpecializedElements) {
                 throw new IllegalArgumentException(

@@ -58,10 +58,10 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
    *                                       and out, then we would have 2. If in addition it has incoming
    *                                       ref edges it would have 3.
    */
-  protected OverflowDbNode(long id,
-                           TinkerGraph graph,
-                           int numberOfDifferentAdjacentTypes) {
-    super(id, graph);
+  protected OverflowDbNode(TinkerGraph graph,
+                           int numberOfDifferentAdjacentTypes,
+                           VertexRef<Vertex> ref) {
+    super(graph, ref);
     edgeOffsets = new int[numberOfDifferentAdjacentTypes * 2];
   }
 
@@ -102,7 +102,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     if (value == null) {
       return EmptyProperty.instance();
     }
-    VertexRef<OverflowDbNode> thisVertexRef = (VertexRef) graph.vertex((Long) id());
+    VertexRef<OverflowDbNode> thisVertexRef = (VertexRef) ref.graph.vertex((Long) id());
     // For now we do not create and set a dummy edge on the edge property
     // in order to save the associated overhead. Seems to not be required
     // be tinkerpop core, lets see whether this is true.
@@ -152,9 +152,9 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   public Edge addEdge(String label, Vertex inVertex, Object... keyValues) {
     final VertexRef<OverflowDbNode> inVertexRef;
     if (inVertex instanceof VertexRef) inVertexRef = (VertexRef<OverflowDbNode>) inVertex;
-    else inVertexRef = (VertexRef<OverflowDbNode>) graph.vertex((Long) inVertex.id());
+    else inVertexRef = (VertexRef<OverflowDbNode>) ref.graph.vertex((Long) inVertex.id());
     OverflowDbNode inVertexOdb = inVertexRef.get();
-    VertexRef<OverflowDbNode> thisVertexRef = (VertexRef) graph.vertex((Long) id());
+    VertexRef<OverflowDbNode> thisVertexRef = (VertexRef) ref.graph.vertex((Long) id());
 
     storeAdjacentOutNode(label, inVertexRef, keyValues);
     inVertexOdb.storeAdjacentInNode(label, thisVertexRef);
@@ -167,7 +167,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   public Iterator<Edge> edges(Direction direction, String... edgeLabels) {
     final Labels labels = calculateInOutLabelsToFollow(direction, edgeLabels);
     final MultiIterator2<Edge> multiIterator = new MultiIterator2<>();
-    VertexRef thisRef = (VertexRef)graph.vertex(id);
+    VertexRef thisRef = (VertexRef) ref.graph.vertex(ref.id);
     for (String label : labels.forInEdges) {
       Iterator<VertexRef> vertexRefIterator = createAdjacentVertexRefIterator(Direction.IN, label);
       List<Edge> edgeList = new ArrayList<>();
@@ -252,7 +252,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
         String key = (String) edgeKeyValues[i];
         Object value = edgeKeyValues[i + 1];
         if (thisVertexRef == null) {
-          thisVertexRef = (VertexRef) graph.vertex((Long) id());
+          thisVertexRef = (VertexRef) ref.graph.vertex((Long) id());
           // For now we do not create and set a dummy edge on the edge property
           // in order to save the associated overhead. Seems to not be required
           // be tinkerpop core, lets see whether this is true.
@@ -354,9 +354,9 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
   /**  to follow the tinkerpop api, instantiate and return a dummy edge, which doesn't really exist in the graph */
   protected OverflowDbEdge instantiateDummyEdge(String label, VertexRef<OverflowDbNode> outVertex, VertexRef<OverflowDbNode> inVertex) {
-    final SpecializedElementFactory.ForEdge edgeFactory = graph.specializedEdgeFactoryByLabel.get(label);
+    final SpecializedElementFactory.ForEdge edgeFactory = ref.graph.specializedEdgeFactoryByLabel.get(label);
     if (edgeFactory == null) throw new IllegalArgumentException("specializedEdgeFactory for label=" + label + " not found - please register on startup!");
-    return (OverflowDbEdge)edgeFactory.createEdge(-1l, graph, outVertex, inVertex);
+    return (OverflowDbEdge)edgeFactory.createEdge(-1l, ref.graph, outVertex, inVertex);
   }
 
   private class Labels {
