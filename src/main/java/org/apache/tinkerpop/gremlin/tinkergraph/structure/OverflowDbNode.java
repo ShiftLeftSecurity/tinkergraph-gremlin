@@ -24,7 +24,6 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.iterator.MultiIterator2;
 
 import java.util.ArrayList;
@@ -88,7 +87,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   public <V> Property<V> getEdgeProperty(String edgeLabel,
                                          String key,
                                          VertexRef<OverflowDbNode> inVertex) {
-    int propertyPosition = getPropertyIndex(edgeLabel, key, inVertex);
+    int propertyPosition = getEdgePropertyIndex(edgeLabel, key, inVertex);
     V value = (V) adjacentVerticesWithProperties[propertyPosition];
     VertexRef<OverflowDbNode> thisVertexRef = (VertexRef) graph.vertex((Long) id());
     return new OverflowProperty<>(key, value, instantiateDummyEdge(edgeLabel, thisVertexRef, inVertex));
@@ -99,12 +98,12 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
                                          V value,
                                          VertexRef<OverflowDbNode> inVertex,
                                          OverflowDbEdge edge) {
-    int propertyPosition = getPropertyIndex(edgeLabel, key, inVertex);
+    int propertyPosition = getEdgePropertyIndex(edgeLabel, key, inVertex);
     adjacentVerticesWithProperties[propertyPosition] = value;
     return new OverflowProperty<>(key, value, edge);
   }
 
-  private int getPropertyIndex(String label, String key, VertexRef<OverflowDbNode> inVertex) {
+  private int getEdgePropertyIndex(String label, String key, VertexRef<OverflowDbNode> inVertex) {
     int offsetPos = getPositionInEdgeOffsets(Direction.OUT, label);
     // TODO check if offsetPos -1 throw exception
     int start = startIndex(offsetPos);
