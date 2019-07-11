@@ -51,6 +51,7 @@ public abstract class SpecializedTinkerVertex implements Vertex {
 
     protected SpecializedTinkerVertex(VertexRef<Vertex> ref) {
         this.ref = ref;
+        ref.setElement(this);
         if (ref.graph != null && ref.graph.referenceManager != null) {
             ref.graph.referenceManager.applyBackpressureMaybe();
         }
