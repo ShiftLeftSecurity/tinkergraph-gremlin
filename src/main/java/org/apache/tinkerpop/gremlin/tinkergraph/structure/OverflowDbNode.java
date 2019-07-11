@@ -70,6 +70,12 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
    */
   protected abstract int getPositionInEdgeOffsets(Direction direction, String label);
 
+  /**
+   *
+   * @return The offset relative to the adjacent vertex reference in the
+   * adjacentVerticesWithProperties array starting from 1. Return -1 if
+   * key does not exist for given edgeLabel.
+   */
   protected abstract int getOffsetRelativeToAdjacentVertexRef(String edgeLabel, String key);
 
   protected abstract int getEdgeKeyCount(String edgeLabel);
@@ -125,6 +131,9 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     int length = blockLength(offsetPos);
     int strideSize = getEdgeKeyCount(label) + 1;
     int propertyOffset = getOffsetRelativeToAdjacentVertexRef(label, key);
+    if (propertyOffset == -1) {
+      return -1;
+    }
 
     for (int i = start; i < start + length; i += strideSize) {
       if (((VertexRef)adjacentVerticesWithProperties[i]).id() == inVertex.id()) {

@@ -58,10 +58,10 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   static {
     outEdgeToPosition.put(OverflowDbTestEdge.label, 0);
     inEdgeToPosition.put(OverflowDbTestEdge.label, 1);
-    labelAndKeyToPosition.put(OverflowDbTestEdge.label + STRING_PROPERTY, 0);
-    labelAndKeyToPosition.put(OverflowDbTestEdge.label + INT_PROPERTY, 1);
-    labelAndKeyToPosition.put(OverflowDbTestEdge.label + STRING_LIST_PROPERTY, 2);
-    labelAndKeyToPosition.put(OverflowDbTestEdge.label + INT_LIST_PROPERTY, 3);
+    labelAndKeyToPosition.put(OverflowDbTestEdge.label + STRING_PROPERTY, 1);
+    labelAndKeyToPosition.put(OverflowDbTestEdge.label + INT_PROPERTY, 2);
+    labelAndKeyToPosition.put(OverflowDbTestEdge.label + STRING_LIST_PROPERTY, 3);
+    labelAndKeyToPosition.put(OverflowDbTestEdge.label + INT_LIST_PROPERTY, 4);
     edgeKeyCount.put(OverflowDbTestEdge.label, 4);
   }
 
@@ -86,8 +86,12 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
 
   @Override
   protected int getOffsetRelativeToAdjacentVertexRef(String edgeLabel, String key) {
-    // TODO handle if it's not allowed
-    return labelAndKeyToPosition.get(edgeLabel + key);
+    final Integer offsetOrNull = labelAndKeyToPosition.get(edgeLabel + key);
+    if (offsetOrNull != null) {
+      return offsetOrNull;
+    } else {
+      return -1;
+    }
   }
 
   @Override
