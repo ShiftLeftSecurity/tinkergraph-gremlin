@@ -178,19 +178,19 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
       int length = blockLength(offsetPos);
       int strideSize = getEdgeKeyCount(label) + 1;
 
-      return new ArrayOffsetIterator<>((VertexRef[]) adjacentVerticesWithProperties, start, start + length, strideSize);
+      return new ArrayOffsetIterator<>(adjacentVerticesWithProperties, start, start + length, strideSize);
     } else {
       return Collections.emptyIterator();
     }
   }
 
   private static class ArrayOffsetIterator<T> implements Iterator<T>  {
-    private final T[] array;
+    private final Object[] array;
     private int current;
     private final int end;
     private final int strideSize;
 
-    ArrayOffsetIterator(T[] array, int begin, int end, int strideSize) {
+    ArrayOffsetIterator(Object[] array, int begin, int end, int strideSize) {
       this.array = array;
       this.current = begin;
       this.end = end;
@@ -204,7 +204,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
     @Override
     public T next() {
-      T element = array[current];
+      T element = (T) array[current];
       current += strideSize;
       return element;
     }
