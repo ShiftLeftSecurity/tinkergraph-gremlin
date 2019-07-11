@@ -24,11 +24,14 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   public static final String label = "testNode";
@@ -37,6 +40,9 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   public static final String INT_PROPERTY = "IntProperty";
   public static final String STRING_LIST_PROPERTY = "StringListProperty";
   public static final String INT_LIST_PROPERTY = "IntListProperty";
+
+  public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(STRING_PROPERTY, INT_PROPERTY, STRING_LIST_PROPERTY, INT_LIST_PROPERTY));
+
 
   private static final Map<String, Integer> outEdgeToPosition = new HashMap<>();
   private static final Map<String, Integer> inEdgeToPosition = new HashMap<>();
@@ -88,6 +94,11 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   protected int getEdgeKeyCount(String edgeLabel) {
     // TODO handle if it's not allowed
     return edgeKeyCount.get(edgeLabel);
+  }
+
+  @Override
+  protected Set<String> specificKeys() {
+    return SPECIFIC_KEYS;
   }
 
   public static SpecializedElementFactory.ForVertex<OverflowDbTestNode> factory = new SpecializedElementFactory.ForVertex<OverflowDbTestNode>() {
