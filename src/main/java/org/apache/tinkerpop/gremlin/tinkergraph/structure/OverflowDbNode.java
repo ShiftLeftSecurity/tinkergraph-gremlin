@@ -51,7 +51,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   private final int[] edgeOffsets;
 
   /* determines how many spaces for adjacent vertices will be left free, so we don't need to grow the array for every additional edge */
-  private final int growthEmptyFactor = 3; // TODO make configurable
+  private static final int growthEmptyFactor = 3; // TODO make configurable
 
   /**
    * @param numberOfDifferentAdjacentTypes The number fo different IN|OUT edge relations. E.g. a node has AST edges in
