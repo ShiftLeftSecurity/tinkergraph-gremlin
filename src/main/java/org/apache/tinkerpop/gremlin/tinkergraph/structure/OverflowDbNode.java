@@ -268,6 +268,10 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
   private void storeAdjacentNode(Direction direction, String edgeLabel, VertexRef<OverflowDbNode> nodeRef) {
     int offsetPos = getPositionInEdgeOffsets(direction, edgeLabel);
+    if (offsetPos == -1) {
+      throw new RuntimeException("Edge of type " + edgeLabel + " with direction " + direction +
+          " not supported by class " + getClass().getSimpleName());
+    }
     int start = startIndex(offsetPos);
     int length = blockLength(offsetPos);
     int strideSize = getEdgeKeyCount(edgeLabel) + 1;
