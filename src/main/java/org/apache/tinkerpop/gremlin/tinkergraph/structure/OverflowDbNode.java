@@ -24,6 +24,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.iterator.MultiIterator2;
 
 import java.util.ArrayList;
@@ -88,7 +89,13 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
                                          String key,
                                          VertexRef<OverflowDbNode> inVertex) {
     int propertyPosition = getEdgePropertyIndex(edgeLabel, key, inVertex);
+    if (propertyPosition == -1) {
+      return EmptyProperty.instance();
+    }
     V value = (V) adjacentVerticesWithProperties[propertyPosition];
+    if (value == null) {
+      return EmptyProperty.instance();
+    }
     VertexRef<OverflowDbNode> thisVertexRef = (VertexRef) graph.vertex((Long) id());
     return new OverflowProperty<>(key, value, instantiateDummyEdge(edgeLabel, thisVertexRef, inVertex));
   }
@@ -99,13 +106,21 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
                                          VertexRef<OverflowDbNode> inVertex,
                                          OverflowDbEdge edge) {
     int propertyPosition = getEdgePropertyIndex(edgeLabel, key, inVertex);
+    if (propertyPosition == -1) {
+      throw new RuntimeException("Property " + key + " not support on edge " + edgeLabel + ".");
+    }
     adjacentVerticesWithProperties[propertyPosition] = value;
     return new OverflowProperty<>(key, value, edge);
   }
 
+  /**
+   * Return -1 if there exists no edge property for the provided argument combination.
+   */
   private int getEdgePropertyIndex(String label, String key, VertexRef<OverflowDbNode> inVertex) {
     int offsetPos = getPositionInEdgeOffsets(Direction.OUT, label);
-    // TODO check if offsetPos -1 throw exception
+    if (offsetPos == -1) {
+      return -1;
+    }
     int start = startIndex(offsetPos);
     int length = blockLength(offsetPos);
     int strideSize = getEdgeKeyCount(label) + 1;
