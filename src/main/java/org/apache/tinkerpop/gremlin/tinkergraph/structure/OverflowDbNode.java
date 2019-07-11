@@ -48,7 +48,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
   /* store the start offset and length into the above `adjacentVerticesWithProperties` array in an interleaved manner,
    * i.e. each outgoing edge type has two entries in this array. */
-  private final int[] nodeOffsets;
+  private final int[] edgeOffsets;
 
   /**
    * @param numberOfDifferentAdjacentTypes The number fo different IN|OUT edge relations. E.g. a node has AST edges in
@@ -59,13 +59,13 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
                            TinkerGraph graph,
                            int numberOfDifferentAdjacentTypes) {
     super(id, graph);
-    nodeOffsets = new int[numberOfDifferentAdjacentTypes * 2];
+    edgeOffsets = new int[numberOfDifferentAdjacentTypes * 2];
   }
 
   /**
-   * @return The position in nodeOffsets array. -1 if the edge label is not supported
+   * @return The position in edgeOffsets array. -1 if the edge label is not supported
    */
-  protected abstract int getPositionInNodeOffsets(Direction direction, String label);
+  protected abstract int getPositionInEdgeOffsets(Direction direction, String label);
 
   protected abstract int getOffsetRelativeToAdjacentVertexRef(String edgeLabelAndKey);
 
@@ -102,7 +102,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   }
 
   private int getPropertyIndex(String label, String key, VertexRef<OverflowDbNode> inVertex) {
-    int offsetPos = getPositionInNodeOffsets(Direction.OUT, label);
+    int offsetPos = getPositionInEdgeOffsets(Direction.OUT, label);
     int start = startIndex(offsetPos);
     int length = blockLength(offsetPos);
     int strideSize = getEdgeKeyCount(label) + 1;
@@ -173,7 +173,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   }
 
   private Iterator<VertexRef> createAdjacentVertexRefIterator(Direction direction, String label) {
-    int offsetPos = getPositionInNodeOffsets(direction, label);
+    int offsetPos = getPositionInEdgeOffsets(direction, label);
     if (offsetPos != -1) {
       int start = startIndex(offsetPos);
       int length = blockLength(offsetPos);
@@ -222,7 +222,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   }
 
   private void storeAdjacentNode(Direction direction, String edgeLabel, VertexRef<OverflowDbNode> nodeRef) {
-    int offsetPos = getPositionInNodeOffsets(direction, edgeLabel);
+    int offsetPos = getPositionInEdgeOffsets(direction, edgeLabel);
     int start = startIndex(offsetPos);
     int length = blockLength(offsetPos);
     int strideSize = getEdgeKeyCount(edgeLabel) + 1;
@@ -230,11 +230,11 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     adjacentVerticesWithProperties = insertInNewArray(adjacentVerticesWithProperties, start + length, nodeRef, strideSize);
 
     // Increment length.
-    nodeOffsets[2 * offsetPos + 1] = length + strideSize;
+    edgeOffsets[2 * offsetPos + 1] = length + strideSize;
 
     // Increment all following start offsets by strideSize.
-    for (int i = offsetPos + 1; 2 * i < nodeOffsets.length; i++) {
-      nodeOffsets[2 * i] = nodeOffsets[2 * i] + strideSize;
+    for (int i = offsetPos + 1; 2 * i < edgeOffsets.length; i++) {
+      edgeOffsets[2 * i] = edgeOffsets[2 * i] + strideSize;
     }
   }
 
@@ -252,7 +252,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   }
 
   private int startIndex(int offsetPosition) {
-    return nodeOffsets[2 * offsetPosition];
+    return edgeOffsets[2 * offsetPosition];
   }
 
   /**
@@ -260,7 +260,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
    * Length means number of index positions.
    */
   private int blockLength(int offsetPosition) {
-    return nodeOffsets[2 * offsetPosition + 1];
+    return edgeOffsets[2 * offsetPosition + 1];
   }
 
   private Labels calculateInOutLabelsToFollow(Direction direction, String... edgeLabels) {
