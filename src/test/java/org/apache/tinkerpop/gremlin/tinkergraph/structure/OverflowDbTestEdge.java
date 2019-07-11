@@ -18,9 +18,6 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.tinkerpop.gremlin.structure.Property;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -31,43 +28,12 @@ public class OverflowDbTestEdge extends OverflowDbEdge {
     public static final String LONG_PROPERTY = "longProperty";
     public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(LONG_PROPERTY));
 
-    private Long longProperty;
-
     public OverflowDbTestEdge(TinkerGraph graph, VertexRef<OverflowDbNode> outVertex, VertexRef<OverflowDbNode> inVertex) {
         super(graph, label, outVertex, inVertex, SPECIFIC_KEYS);
     }
 
-    public Long getLongProperty() {
-        return longProperty;
-    }
-
-    @Override
-    protected <V> Property<V> specificProperty(String key) {
-        // note: use the statically defined strings to take advantage of `==` (pointer comparison) over `.equals` (String content comparison) for performance
-        if (LONG_PROPERTY.equals(key) && longProperty != null) {
-            return new TinkerProperty(this, key, longProperty);
-        } else {
-            return Property.empty();
-        }
-    }
-
-    @Override
-    protected <V> Property<V> updateSpecificProperty(String key, V value) {
-        if (LONG_PROPERTY.equals(key)) {
-            this.longProperty = ((Number) value).longValue();
-        } else {
-            throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
-        }
-        return property(key);
-    }
-
-    @Override
-    protected void removeSpecificProperty(String key) {
-        if (LONG_PROPERTY.equals(key)) {
-            this.longProperty = null;
-        } else {
-            throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
-        }
+    public Long longProperty() {
+        return (Long) property(LONG_PROPERTY).value();
     }
 
     public static SpecializedElementFactory.ForEdge<OverflowDbTestEdge> factory = new SpecializedElementFactory.ForEdge<OverflowDbTestEdge>() {

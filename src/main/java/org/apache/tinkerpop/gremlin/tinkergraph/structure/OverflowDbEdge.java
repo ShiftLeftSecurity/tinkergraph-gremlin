@@ -62,7 +62,7 @@ public class OverflowDbEdge extends SpecializedTinkerEdge {
 
   @Override
   public <V> Property<V> property(String key, V value) {
-    // TODO checkj if it's an allowed property key
+    // TODO check if it's an allowed property key
     return outVertex.get().setEdgeProperty(label, key, value, inVertex, this);
   }
 
@@ -85,4 +85,9 @@ public class OverflowDbEdge extends SpecializedTinkerEdge {
   public <V> Iterator<Property<V>> properties(String... propertyKeys) {
     return outVertex.get().getEdgeProperty(label, inVertex, propertyKeys);
   }
+
+  public <V> Property<V> property(String propertyKey) {
+    return outVertex.get().getEdgeProperty(label, propertyKey, inVertex);
+  }
+
 }
