@@ -152,7 +152,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     OverflowDbNode inVertexOdb = inVertexRef.get();
     VertexRef<OverflowDbNode> thisVertexRef = (VertexRef) graph.vertex((Long) id());
 
-    storeAdjacentOutNode(label, inVertexRef, toMap(keyValues));
+    storeAdjacentOutNode(label, inVertexRef, keyValues);
     inVertexOdb.storeAdjacentInNode(label, thisVertexRef);
 
     OverflowDbEdge dummyEdge = instantiateDummyEdge(label, thisVertexRef, inVertexRef);
@@ -239,10 +239,21 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
   private void storeAdjacentOutNode(String edgeLabel,
                                     VertexRef<OverflowDbNode> nodeRef,
-                                    Map<String, Object> edgeKeyValues) {
+                                    Object... edgeKeyValues) {
     storeAdjacentNode(Direction.OUT, edgeLabel, nodeRef);
-    // TODO michael continue
-//    nodeRef.get().setEdgeProperty(edgeLabel)
+    VertexRef<OverflowDbNode> thisVertexRef = null;
+    OverflowDbEdge dummyEdge = null;
+    for (int i = 0; i < edgeKeyValues.length; i = i + 2) {
+      if (!edgeKeyValues[i].equals(T.id) && !edgeKeyValues[i].equals(T.label)) {
+        String key = (String) edgeKeyValues[i];
+        Object value = edgeKeyValues[i + 1];
+        if (thisVertexRef == null) {
+          thisVertexRef = (VertexRef) graph.vertex((Long) id());
+          dummyEdge = instantiateDummyEdge(edgeLabel, thisVertexRef, nodeRef);
+        }
+        setEdgeProperty(edgeLabel, key, value, nodeRef, dummyEdge);
+      }
+    }
   }
 
   private void storeAdjacentInNode(String edgeLabel, VertexRef<OverflowDbNode> nodeRef) {
@@ -339,16 +350,6 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     final SpecializedElementFactory.ForEdge edgeFactory = graph.specializedEdgeFactoryByLabel.get(label);
     if (edgeFactory == null) throw new IllegalArgumentException("specializedEdgeFactory for label=" + label + " not found - please register on startup!");
     return (OverflowDbEdge)edgeFactory.createEdge(-1l, graph, outVertex, inVertex);
-  }
-
-  private Map<String, Object> toMap(Object[] keyValues) {
-    final Map<String, Object> props = new HashMap<>(keyValues.length / 2);
-    for (int i = 0; i < keyValues.length; i = i + 2) {
-      if (!keyValues[i].equals(T.id) && !keyValues[i].equals(T.label)) {
-        props.put((String) keyValues[i], keyValues[i + 1]);
-      }
-    }
-    return props;
   }
 
   private class Labels {
