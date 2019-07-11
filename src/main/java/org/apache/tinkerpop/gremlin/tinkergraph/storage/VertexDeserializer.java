@@ -72,7 +72,7 @@ public class VertexDeserializer extends Deserializer<Vertex> {
       }
     });
 
-    vertex.setModifiedSinceLastSerialization(false);
+//    vertex.setModifiedSinceLastSerialization(false);
 
     return vertex;
   }

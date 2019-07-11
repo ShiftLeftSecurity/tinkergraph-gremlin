@@ -33,8 +33,7 @@ import static org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerElement.e
 
 public abstract class SpecializedTinkerVertex implements Vertex {
 
-    protected final long id;
-    protected final TinkerGraph graph;
+    public final VertexRef<Vertex> ref;
     private boolean removed = false;
 
     /** property keys for a specialized vertex  */
@@ -48,12 +47,10 @@ public abstract class SpecializedTinkerVertex implements Vertex {
 
     /** `dirty` flag for serialization to avoid superfluous serialization */
     // TODO re-implement/verify this optimization: only re-serialize if element has been changed
-    private boolean modifiedSinceLastSerialization = true;
+//    private boolean modifiedSinceLastSerialization = true;
 
-    protected SpecializedTinkerVertex(long id, TinkerGraph graph) {
-        this.id = id;
-        this.graph = graph;
-
+    protected SpecializedTinkerVertex(TinkerGraph graph, VertexRef<Vertex> ref) {
+        this.ref = ref;
         if (graph != null && graph.referenceManager != null) {
             graph.referenceManager.applyBackpressureMaybe();
         }
@@ -61,12 +58,12 @@ public abstract class SpecializedTinkerVertex implements Vertex {
 
     @Override
     public Graph graph() {
-        return graph;
+        return ref.graph;
     }
 
     @Override
     public Object id() {
-        return id;
+        return ref.id;
     }
 
     @Override
@@ -117,11 +114,11 @@ public abstract class SpecializedTinkerVertex implements Vertex {
 
     @Override
     public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality, String key, V value, Object... keyValues) {
-        if (this.removed) throw elementAlreadyRemoved(Vertex.class, id);
+        if (this.removed) throw elementAlreadyRemoved(Vertex.class, id());
         ElementHelper.legalPropertyKeyValueArray(keyValues);
         ElementHelper.validateProperty(key, value);
         synchronized (this) {
-            this.modifiedSinceLastSerialization = true;
+//            this.modifiedSinceLastSerialization = true;
             final VertexProperty<V> vp = updateSpecificProperty(cardinality, key, value);
             TinkerHelper.autoUpdateIndex(this, key, value, null);
             return vp;
@@ -133,7 +130,7 @@ public abstract class SpecializedTinkerVertex implements Vertex {
 
     public void removeProperty(String key) {
         synchronized (this) {
-            modifiedSinceLastSerialization = true;
+//            modifiedSinceLastSerialization = true;
             removeSpecificProperty(key);
         }
     }
@@ -142,6 +139,7 @@ public abstract class SpecializedTinkerVertex implements Vertex {
 
     @Override
     public Edge addEdge(final String label, Vertex inVertex, final Object... keyValues) {
+        TinkerGraph graph = ref.graph;
         if (graph.isClosed()) {
             throw new IllegalStateException("cannot add more elements, graph is closed");
         }
@@ -154,7 +152,7 @@ public abstract class SpecializedTinkerVertex implements Vertex {
             inVertex = inVertexRef.get();
         }
         if (this.removed) {
-            throw elementAlreadyRemoved(Vertex.class, this.id);
+            throw elementAlreadyRemoved(Vertex.class, id());
         }
         if (!allowedOutEdgeLabels().contains(label)) {
             throw new IllegalArgumentException(getClass().getName() + " doesn't allow outgoing edges with label=" + label);
@@ -176,7 +174,7 @@ public abstract class SpecializedTinkerVertex implements Vertex {
             graph.currentId.set(Long.max(idValue, graph.currentId.get()));
 
             // TODO hold link to vertexRef locally so we don't need the following lookup
-            VertexRef<TinkerVertex> outVertexRef = (VertexRef<TinkerVertex>) graph.vertices.get(id);
+            VertexRef<TinkerVertex> outVertexRef = (VertexRef<TinkerVertex>) graph.vertices.get(ref.id);
             final SpecializedTinkerEdge underlying = factory.createEdge(idValue, graph, outVertexRef, inVertexRef);
             final Edge edge;
             if (graph.ondiskOverflowEnabled) {
@@ -192,7 +190,7 @@ public abstract class SpecializedTinkerVertex implements Vertex {
             storeOutEdge(edge);
             ((SpecializedTinkerVertex) inVertex).storeInEdge(edge);
 //            releaseModificationLock();
-            modifiedSinceLastSerialization = true;
+//            modifiedSinceLastSerialization = true;
             return edge;
         } else { // edge label not registered for a specialized factory, treating as generic edge
             throw new IllegalArgumentException(
@@ -301,6 +299,7 @@ public abstract class SpecializedTinkerVertex implements Vertex {
 
     @Override
     public void remove() {
+        TinkerGraph graph = ref.graph;
         final List<Edge> edges = new ArrayList<>();
         this.edges(Direction.BOTH).forEachRemaining(edges::add);
         edges.stream().filter(edge -> {
@@ -315,13 +314,13 @@ public abstract class SpecializedTinkerVertex implements Vertex {
         graph.getElementsByLabel(graph.verticesByLabel, label()).remove(this);
 
         if (graph.ondiskOverflowEnabled) {
-            graph.ondiskOverflow.removeVertex((Long) id);
+            graph.ondiskOverflow.removeVertex((Long) id());
         }
         this.removed = true;
-        this.modifiedSinceLastSerialization = true;
+//        this.modifiedSinceLastSerialization = true;
     }
 
-    public void setModifiedSinceLastSerialization(boolean modifiedSinceLastSerialization) {
-        this.modifiedSinceLastSerialization = modifiedSinceLastSerialization;
-    }
+//    public void setModifiedSinceLastSerialization(boolean modifiedSinceLastSerialization) {
+//        this.modifiedSinceLastSerialization = modifiedSinceLastSerialization;
+//    }
 }
