@@ -42,7 +42,6 @@ import java.util.Set;
  *
  * TODO: extend Vertex (rather than SpecializedTinkerVertex) to save more memory
  */
-// TODO implement valueMap, specificKeys, allowedOutEdgeLabels, allowedInEdgeLabels, specificProperties, updateSpecificProperty, removeSpecificProperty
 public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
   private Object[] adjacentVerticesWithProperties = new Object[0];
@@ -339,4 +338,11 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     }
   }
 
+  public Set<String> allowedOutEdgeLabels() {
+    throw new RuntimeException("Not required.");
+  }
+
+  public Set<String> allowedInEdgeLabels() {
+    throw new RuntimeException("Not required.");
+  }
 }
