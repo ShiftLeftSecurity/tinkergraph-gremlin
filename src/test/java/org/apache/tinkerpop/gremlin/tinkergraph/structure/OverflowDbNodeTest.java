@@ -52,10 +52,6 @@ public class OverflowDbNodeTest {
             OverflowDbTestNode.INT_LIST_PROPERTY, Arrays.asList(52, 53));
         Edge e = v0.addEdge(OverflowDbTestEdge.label, v1, OverflowDbTestEdge.LONG_PROPERTY, 99l);
 
-        Set stringProperties = graph.traversal().V().values(OverflowDbTestNode.STRING_PROPERTY).toSet();
-        assertTrue(stringProperties.contains("node 1"));
-        assertTrue(stringProperties.contains("node 2"));
-
         // vertex traversals
         assertEquals(1, __(v0).out().toList().size());
         assertEquals(0, __(v0).out("otherLabel").toList().size());
@@ -75,10 +71,17 @@ public class OverflowDbNodeTest {
         assertEquals(1, __(v0).bothE(OverflowDbTestEdge.label).toList().size());
         assertEquals(0, __(v0).bothE("otherLabel").toList().size());
 
-        // edge property
+        // vertex properties
+        Set stringProperties = graph.traversal().V().values(OverflowDbTestNode.STRING_PROPERTY).toSet();
+        assertTrue(stringProperties.contains("node 1"));
+        assertTrue(stringProperties.contains("node 2"));
+        assertEquals(Integer.valueOf(42), __(e).outV().values(OverflowDbTestNode.INT_PROPERTY).next());
+        assertEquals(Integer.valueOf(52), __(e).inV().values(OverflowDbTestNode.INT_PROPERTY).next());
+
+        // edge properties
         assertTrue(e instanceof OverflowDbTestEdge);
-        assertEquals(Long.valueOf(99l), ((OverflowDbTestEdge) e).getLongProperty());
         assertEquals(Long.valueOf(99l), e.value(OverflowDbTestEdge.LONG_PROPERTY));
+        assertEquals(Long.valueOf(99l), ((OverflowDbTestEdge) e).getLongProperty());
         assertEquals(Long.valueOf(99l), __(v0).outE().values(OverflowDbTestEdge.LONG_PROPERTY).next());
         assertEquals(Long.valueOf(99l), __(v1).inE().values(OverflowDbTestEdge.LONG_PROPERTY).next());
     }
