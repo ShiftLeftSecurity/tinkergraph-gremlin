@@ -42,8 +42,8 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
     private List<String> stringListProperty;
     private List<Integer> intListProperty;
 
-    public SerializerTestVertex(TinkerGraph graph, VertexRef ref) {
-        super(graph, ref);
+    public SerializerTestVertex(VertexRef ref) {
+        super(ref);
     }
 
     @Override
@@ -138,7 +138,7 @@ public class SerializerTestVertex extends SpecializedTinkerVertex implements Ser
 
         @Override
         public SerializerTestVertex createVertex(Long id, TinkerGraph graph) {
-            return new SerializerTestVertex(graph, createVertexRef(id, graph));
+            return new SerializerTestVertex(createVertexRef(id, graph));
         }
 
         @Override
