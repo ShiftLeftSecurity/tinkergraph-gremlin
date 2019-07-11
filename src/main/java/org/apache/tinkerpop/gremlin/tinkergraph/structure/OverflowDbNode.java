@@ -103,7 +103,11 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
       return EmptyProperty.instance();
     }
     VertexRef<OverflowDbNode> thisVertexRef = (VertexRef) graph.vertex((Long) id());
-    return new OverflowProperty<>(key, value, instantiateDummyEdge(edgeLabel, thisVertexRef, inVertex));
+    // For now we do not create and set a dummy edge on the edge property
+    // in order to save the associated overhead. Seems to not be required
+    // be tinkerpop core, lets see whether this is true.
+    OverflowDbEdge edge = null; //instantiateDummyEdge(edgeLabel, thisVertexRef, inVertex);
+    return new OverflowProperty<>(key, value, edge);
   }
 
   public <V> Property<V> setEdgeProperty(String edgeLabel,
@@ -249,7 +253,10 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
         Object value = edgeKeyValues[i + 1];
         if (thisVertexRef == null) {
           thisVertexRef = (VertexRef) graph.vertex((Long) id());
-          dummyEdge = instantiateDummyEdge(edgeLabel, thisVertexRef, nodeRef);
+          // For now we do not create and set a dummy edge on the edge property
+          // in order to save the associated overhead. Seems to not be required
+          // be tinkerpop core, lets see whether this is true.
+          //dummyEdge = instantiateDummyEdge(edgeLabel, thisVertexRef, nodeRef);
         }
         setEdgeProperty(edgeLabel, key, value, nodeRef, dummyEdge);
       }
