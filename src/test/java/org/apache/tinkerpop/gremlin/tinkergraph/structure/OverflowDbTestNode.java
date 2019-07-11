@@ -73,7 +73,7 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   }
 
   @Override
-  protected int getPositionInNodeOffsets(Direction direction, String label) {
+  protected int getPositionInEdgeOffsets(Direction direction, String label) {
     final Integer positionOrNull;
     if (direction == Direction.OUT) {
       positionOrNull = outEdgeToPosition.get(label);
