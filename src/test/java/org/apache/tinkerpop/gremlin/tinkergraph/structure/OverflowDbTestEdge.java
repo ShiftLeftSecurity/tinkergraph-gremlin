@@ -25,7 +25,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-public class OverflowDbTestEdge extends SpecializedTinkerEdge {
+public class OverflowDbTestEdge extends OverflowDbEdge {
     public static final String label = "testEdge";
 
     public static final String LONG_PROPERTY = "longProperty";
@@ -33,8 +33,8 @@ public class OverflowDbTestEdge extends SpecializedTinkerEdge {
 
     private Long longProperty;
 
-    public OverflowDbTestEdge(TinkerGraph graph, long id, Vertex outVertex, Vertex inVertex) {
-        super(graph, id, outVertex, label, inVertex, SPECIFIC_KEYS);
+    public OverflowDbTestEdge(TinkerGraph graph, VertexRef<OverflowDbNode> outVertex, VertexRef<OverflowDbNode> inVertex) {
+        super(graph, label, outVertex, inVertex, SPECIFIC_KEYS);
     }
 
     public Long getLongProperty() {
@@ -78,7 +78,7 @@ public class OverflowDbTestEdge extends SpecializedTinkerEdge {
 
         @Override
         public OverflowDbTestEdge createEdge(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
-            return new OverflowDbTestEdge(graph, id, outVertex, inVertex);
+            return new OverflowDbTestEdge(graph, outVertex, inVertex);
         }
 
         @Override

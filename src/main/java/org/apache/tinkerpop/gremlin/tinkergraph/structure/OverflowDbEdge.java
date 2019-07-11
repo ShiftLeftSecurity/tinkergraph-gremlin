@@ -9,6 +9,7 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Set;
 
 public class OverflowDbEdge extends SpecializedTinkerEdge {
   private final TinkerGraph graph;
@@ -19,8 +20,8 @@ public class OverflowDbEdge extends SpecializedTinkerEdge {
   public OverflowDbEdge(TinkerGraph graph,
                         String label,
                         VertexRef<OverflowDbNode> outVertex,
-                        VertexRef<OverflowDbNode> inVertex) {
-    super(graph, -1L, outVertex, label, inVertex, new HashSet<>());
+                        VertexRef<OverflowDbNode> inVertex, Set<String> specificKeys) {
+    super(graph, -1L, outVertex, label, inVertex, specificKeys);
     this.graph = graph;
     this.label = label;
     this.outVertex = outVertex;
@@ -61,6 +62,7 @@ public class OverflowDbEdge extends SpecializedTinkerEdge {
 
   @Override
   public <V> Property<V> property(String key, V value) {
+    // TODO checkj if it's an allowed property key
     return outVertex.get().setEdgeProperty(label, key, value, inVertex, this);
   }
 
