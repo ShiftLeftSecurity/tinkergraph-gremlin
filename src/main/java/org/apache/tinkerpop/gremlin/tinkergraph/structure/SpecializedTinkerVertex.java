@@ -49,10 +49,10 @@ public abstract class SpecializedTinkerVertex implements Vertex {
     // TODO re-implement/verify this optimization: only re-serialize if element has been changed
 //    private boolean modifiedSinceLastSerialization = true;
 
-    protected SpecializedTinkerVertex(TinkerGraph graph, VertexRef<Vertex> ref) {
+    protected SpecializedTinkerVertex(VertexRef<Vertex> ref) {
         this.ref = ref;
-        if (graph != null && graph.referenceManager != null) {
-            graph.referenceManager.applyBackpressureMaybe();
+        if (ref.graph != null && ref.graph.referenceManager != null) {
+            ref.graph.referenceManager.applyBackpressureMaybe();
         }
     }
 

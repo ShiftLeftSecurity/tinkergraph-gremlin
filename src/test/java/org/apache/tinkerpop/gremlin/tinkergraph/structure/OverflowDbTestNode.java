@@ -66,8 +66,8 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
     edgeKeyCount.put(OverflowDbTestEdge.label, 4);
   }
 
-  protected OverflowDbTestNode(TinkerGraph graph, VertexRef ref) {
-    super(graph, outEdgeToPosition.size() + inEdgeToPosition.size(), ref);
+  protected OverflowDbTestNode(VertexRef ref) {
+    super(outEdgeToPosition.size() + inEdgeToPosition.size(), ref);
   }
 
   @Override
@@ -114,7 +114,7 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
 
     @Override
     public OverflowDbTestNode createVertex(Long id, TinkerGraph graph) {
-      return new OverflowDbTestNode(graph, createVertexRef(id, graph));
+      return new OverflowDbTestNode(createVertexRef(id, graph));
     }
 
     @Override

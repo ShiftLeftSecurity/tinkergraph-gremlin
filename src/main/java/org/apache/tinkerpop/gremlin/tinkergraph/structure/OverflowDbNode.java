@@ -58,10 +58,9 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
    *                                       and out, then we would have 2. If in addition it has incoming
    *                                       ref edges it would have 3.
    */
-  protected OverflowDbNode(TinkerGraph graph,
-                           int numberOfDifferentAdjacentTypes,
+  protected OverflowDbNode(int numberOfDifferentAdjacentTypes,
                            VertexRef<Vertex> ref) {
-    super(graph, ref);
+    super(ref);
     edgeOffsets = new int[numberOfDifferentAdjacentTypes * 2];
   }
 

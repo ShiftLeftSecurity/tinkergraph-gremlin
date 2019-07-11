@@ -35,8 +35,8 @@ public class Artist extends SpecializedTinkerVertex {
     // properties
     private String name;
 
-    public Artist(TinkerGraph graph,  VertexRef ref) {
-        super(graph, ref);
+    public Artist(VertexRef ref) {
+        super(ref);
     }
 
     public String getName() {
@@ -113,7 +113,7 @@ public class Artist extends SpecializedTinkerVertex {
 
         @Override
         public Artist createVertex(Long id, TinkerGraph graph) {
-            return new Artist(graph, createVertexRef(id, graph));
+            return new Artist(createVertexRef(id, graph));
         }
 
         @Override
