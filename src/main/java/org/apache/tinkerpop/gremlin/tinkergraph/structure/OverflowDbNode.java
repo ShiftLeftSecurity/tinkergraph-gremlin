@@ -24,6 +24,7 @@ import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.iterator.MultiIterator2;
 
 import java.util.ArrayList;
@@ -337,4 +338,5 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
       this.forOutEdges = forOutEdges;
     }
   }
+
 }
