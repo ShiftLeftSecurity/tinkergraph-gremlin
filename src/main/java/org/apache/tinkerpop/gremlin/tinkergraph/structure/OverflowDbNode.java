@@ -237,15 +237,16 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     }
   }
 
+  /**
+   * returns a new array with the given `element` inserted at index `insertAt`,
+   * occupying enough space for itself and it's properties (`strideSize`)
+   */
   private Object[] insertInNewArray(Object array[], int insertAt, VertexRef element, int strideSize) {
     Object[] newArray = new Object[array.length + strideSize];
-    for (int i = 0; i < insertAt; i++) {
-      newArray[i] = array[i];
-    }
+
+    System.arraycopy(array, 0, newArray, 0, insertAt);
     newArray[insertAt] = element;
-    for (int i = insertAt + strideSize; i < array.length; i++) {
-      newArray[i + strideSize] = array[i];
-    }
+    System.arraycopy(array, insertAt, newArray, insertAt + strideSize, array.length - insertAt);
 
     return newArray;
   }
