@@ -58,10 +58,7 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   static {
     outEdgeToPosition.put(OverflowDbTestEdge.label, 0);
     inEdgeToPosition.put(OverflowDbTestEdge.label, 1);
-    labelAndKeyToPosition.put(OverflowDbTestEdge.label + STRING_PROPERTY, 1);
-    labelAndKeyToPosition.put(OverflowDbTestEdge.label + INT_PROPERTY, 2);
-    labelAndKeyToPosition.put(OverflowDbTestEdge.label + STRING_LIST_PROPERTY, 3);
-    labelAndKeyToPosition.put(OverflowDbTestEdge.label + INT_LIST_PROPERTY, 4);
+    labelAndKeyToPosition.put(OverflowDbTestEdge.label + OverflowDbTestEdge.LONG_PROPERTY, 1);
     edgeKeyCount.put(OverflowDbTestEdge.label, 4);
   }
 
