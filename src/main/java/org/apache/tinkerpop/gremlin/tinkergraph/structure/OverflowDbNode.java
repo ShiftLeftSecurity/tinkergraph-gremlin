@@ -108,14 +108,13 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     int strideSize = getEdgeKeyCount(label) + 1;
     int propertyOffset = getOffsetRelativeToAdjacentVertexRef(label + key);
 
-    int vertexOutRefIndex = -1;
-    for (int i = start; i < start + length && vertexOutRefIndex == -1; i += strideSize) {
+    for (int i = start; i < start + length; i += strideSize) {
       if (((VertexRef)adjacentVerticesWithProperties[i]).id() == inVertex.id()) {
-        vertexOutRefIndex = i - start;
+        int vertexOutRefIndex = i - start;
+        return vertexOutRefIndex + propertyOffset;
       }
     }
-
-    return vertexOutRefIndex + propertyOffset;
+    return -1;
   }
 
   @Override
