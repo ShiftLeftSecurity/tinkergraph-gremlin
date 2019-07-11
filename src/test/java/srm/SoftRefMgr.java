@@ -140,7 +140,7 @@
 //  public void register(Node element) {
 //    observedElementCount++;
 //    if (observedElementCount > maxWildSoftReferences) {
-//      // hold onto a strong reference to this element, so that it doesn't get cleared by the GC when we're low on memory
+//      // hold onto a strong element to this element, so that it doesn't get cleared by the GC when we're low on memory
 //      // element will be added at the *end* of the queue
 //      strongRefs.add(element);
 //    }
