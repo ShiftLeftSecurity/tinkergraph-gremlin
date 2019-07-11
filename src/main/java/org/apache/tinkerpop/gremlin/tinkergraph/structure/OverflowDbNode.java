@@ -71,7 +71,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
   /**
    *
-   * @return The offset relative to the adjacent vertex reference in the
+   * @return The offset relative to the adjacent vertex element in the
    * adjacentVerticesWithProperties array starting from 1. Return -1 if
    * key does not exist for given edgeLabel.
    */

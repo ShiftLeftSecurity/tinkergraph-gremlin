@@ -18,8 +18,6 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.tinkerpop.gremlin.structure.Vertex;
-
 /* To make use of specialized elements (for better memory/performance characteristics), you need to
  * create instances of these factories and register them with TinkerGraph. That way it will instantiate
  * your specialized elements rather than generic ones. */
@@ -27,6 +25,7 @@ public class SpecializedElementFactory {
     public interface ForVertex<V extends SpecializedTinkerVertex> {
         String forLabel();
         V createVertex(Long id, TinkerGraph graph);
+        V createVertex(VertexRef<V> ref);
         VertexRef<V> createVertexRef(Long id, TinkerGraph graph);
     }
 

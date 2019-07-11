@@ -430,7 +430,7 @@ public class SpecializedElementsWithOndiskTest {
 //    @Test
     // only run manually since the timings vary depending on the environment
     // without overflow you could hold ~2.3M vertices in 1G memory
-    // with overflow that number should be tremendously larger, because only the reference wrappers are helt in memory
+    // with overflow that number should be tremendously larger, because only the element wrappers are helt in memory
     // it'll be much slower due to the serialization to disk, but should not crash
     // important: use all the following vm opts:  `-XX:+UseG1GC -Xms256m -Xmx256m -XX:+HeapDumpOnOutOfMemoryError`
     public void shouldAllowGraphsLargerThanMemory() throws InterruptedException {

@@ -59,7 +59,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 /**
- * A fork of the in-memory reference implementation TinkerGraph featuring:
+ * A fork of the in-memory element implementation TinkerGraph featuring:
  * - using ~70% less memory (depending on your domain)
  * - strict schema enforcement (optional)
  * - on-disk overflow, i.e. elements are serialized to disk if (and only if) they don't fit into memory (optional)

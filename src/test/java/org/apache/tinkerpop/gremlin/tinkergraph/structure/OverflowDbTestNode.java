@@ -113,8 +113,16 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
     }
 
     @Override
+    public OverflowDbTestNode createVertex(VertexRef<OverflowDbTestNode> ref) {
+      return new OverflowDbTestNode(ref);
+    }
+
+    @Override
     public OverflowDbTestNode createVertex(Long id, TinkerGraph graph) {
-      return new OverflowDbTestNode(createVertexRef(id, graph));
+      final VertexRef<OverflowDbTestNode> ref = createVertexRef(id, graph);
+      final OverflowDbTestNode node = createVertex(ref);
+      ref.setElement(node);
+      return node;
     }
 
     @Override
