@@ -120,29 +120,42 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     return new OverflowProperty<>(key, value, edge);
   }
 
+  private int findAdjacentVertexIndex(Direction direction,
+                                      String edgeLabel,
+                                      VertexRef<OverflowDbNode> adjacentVertex) {
+    int offsetPos = getPositionInEdgeOffsets(direction, edgeLabel);
+    if (offsetPos == -1) {
+      return -1;
+    }
+
+    int start = startIndex(offsetPos);
+    int length = blockLength(offsetPos);
+    int strideSize = getEdgeKeyCount(edgeLabel) + 1;
+
+    for (int i = start; i < start + length; i += strideSize) {
+      if (((VertexRef)adjacentVerticesWithProperties[i]).id().equals(adjacentVertex.id())) {
+        int adjacentVertexIndex = i - start;
+        return adjacentVertexIndex;
+      }
+    }
+    return -1;
+  }
+
   /**
    * Return -1 if there exists no edge property for the provided argument combination.
    */
   private int getEdgePropertyIndex(String label, String key, VertexRef<OverflowDbNode> inVertex) {
-    int offsetPos = getPositionInEdgeOffsets(Direction.OUT, label);
-    if (offsetPos == -1) {
+    int adjacentVertexIndex = findAdjacentVertexIndex(Direction.OUT, label, inVertex);
+    if (adjacentVertexIndex == -1) {
       return -1;
     }
-    int start = startIndex(offsetPos);
-    int length = blockLength(offsetPos);
-    int strideSize = getEdgeKeyCount(label) + 1;
+
     int propertyOffset = getOffsetRelativeToAdjacentVertexRef(label, key);
     if (propertyOffset == -1) {
       return -1;
     }
 
-    for (int i = start; i < start + length; i += strideSize) {
-      if (((VertexRef)adjacentVerticesWithProperties[i]).id().equals(inVertex.id())) {
-        int vertexOutRefIndex = i - start;
-        return vertexOutRefIndex + propertyOffset;
-      }
-    }
-    return -1;
+    return adjacentVertexIndex + propertyOffset;
   }
 
   @Override
