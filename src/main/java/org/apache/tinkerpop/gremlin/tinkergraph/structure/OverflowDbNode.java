@@ -217,19 +217,19 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   private static class ArrayOffsetIterator<T> implements Iterator<T>  {
     private final Object[] array;
     private int current;
-    private final int end;
+    private final int exclusiveEnd;
     private final int strideSize;
 
-    ArrayOffsetIterator(Object[] array, int begin, int end, int strideSize) {
+    ArrayOffsetIterator(Object[] array, int begin, int exclusiveEnd, int strideSize) {
       this.array = array;
       this.current = begin;
-      this.end = end;
+      this.exclusiveEnd = exclusiveEnd;
       this.strideSize = strideSize;
     }
 
     @Override
     public boolean hasNext() {
-      return current < end;
+      return current < exclusiveEnd;
     }
 
     @Override
