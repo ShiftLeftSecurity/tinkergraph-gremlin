@@ -77,12 +77,21 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
 
   protected abstract int getEdgeKeyCount(String edgeLabel);
 
+  protected abstract List<String> allowedEdgeKeys(String edgeLabel);
+
   public <V> Iterator<Property<V>> getEdgeProperty(String edgeLabel,
                                                    VertexRef<OverflowDbNode> inVertex,
                                                    String... keys) {
     List<Property<V>> result = new ArrayList<>();
-    for (String key: keys) {
-      result.add(getEdgeProperty(edgeLabel, key, inVertex));
+
+    if (keys.length != 0) {
+      for (String key: keys) {
+        result.add(getEdgeProperty(edgeLabel, key, inVertex));
+      }
+    } else {
+      for (String key: allowedEdgeKeys(edgeLabel)) {
+        result.add(getEdgeProperty(edgeLabel, key, inVertex));
+      }
     }
 
     return result.iterator();
