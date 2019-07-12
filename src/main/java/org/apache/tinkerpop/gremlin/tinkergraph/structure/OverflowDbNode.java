@@ -116,7 +116,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
                                          OverflowDbEdge edge) {
     int propertyPosition = getEdgePropertyIndex(edgeLabel, key, inVertex);
     if (propertyPosition == -1) {
-      throw new RuntimeException("Property " + key + " not support on edge " + edgeLabel + ".");
+      throw new RuntimeException("Edge " + edgeLabel + " does not support property " + key + "(as seen from vertex type " + inVertex.label() + ").");
     }
     adjacentVerticesWithProperties[propertyPosition] = value;
     return new OverflowProperty<>(key, value, edge);
