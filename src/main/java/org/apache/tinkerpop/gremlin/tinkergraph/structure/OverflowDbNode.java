@@ -29,10 +29,8 @@ import org.apache.tinkerpop.gremlin.tinkergraph.storage.iterator.MultiIterator2;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -51,7 +49,7 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   private final int[] edgeOffsets;
 
   /* determines how many spaces for adjacent vertices will be left free, so we don't need to grow the array for every additional edge */
-  private static final int growthEmptyFactor = 3; // TODO make configurable
+  private static final int growthEmptyFactor = 1; // TODO make configurable
 
   /**
    * @param numberOfDifferentAdjacentTypes The number fo different IN|OUT edge relations. E.g. a node has AST edges in
@@ -277,10 +275,10 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
     int strideSize = getEdgeKeyCount(edgeLabel) + 1;
 
     int insertAt = start + length;
-    if (adjacentVerticesWithProperties.length <= insertAt || adjacentVerticesWithProperties[insertAt] != null) {
+    //if (adjacentVerticesWithProperties.length <= insertAt || adjacentVerticesWithProperties[insertAt] != null) {
       // space already occupied - grow adjacentVerticesWithProperties array, leaving some room for more elements
       adjacentVerticesWithProperties = growAdjacentVerticesWithProperties(offsetPos, strideSize, insertAt);;
-    }
+    //}
 
     adjacentVerticesWithProperties[insertAt] = nodeRef;
     // update edgeOffset length to include the newly inserted element
