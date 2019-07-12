@@ -102,6 +102,15 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   }
 
   @Override
+  protected List<String> allowedEdgeKeys(String edgeLabel) {
+    List<String> allowedEdgeKeys = new ArrayList<>();
+    if (edgeLabel.equals(OverflowDbTestEdge.label)) {
+      allowedEdgeKeys.add(OverflowDbTestEdge.LONG_PROPERTY);
+    }
+    return allowedEdgeKeys;
+  }
+
+  @Override
   protected Set<String> specificKeys() {
     return SPECIFIC_KEYS;
   }
