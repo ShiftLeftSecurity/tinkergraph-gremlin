@@ -19,31 +19,50 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-public class OverflowDbEdge extends SpecializedTinkerEdge {
+public abstract class OverflowDbEdge extends SpecializedTinkerEdge {
   private final TinkerGraph graph;
   private final String label;
   private final VertexRef<OverflowDbNode> outVertex;
   private final VertexRef<OverflowDbNode> inVertex;
+  private int outBlockOffset = UNITIALIZED_BLOCK_OFFSET;
+  private int inBlockOffset = UNITIALIZED_BLOCK_OFFSET;
+
+  private static final int UNITIALIZED_BLOCK_OFFSET = -1;
 
   public OverflowDbEdge(TinkerGraph graph,
                         String label,
                         VertexRef<OverflowDbNode> outVertex,
-                        VertexRef<OverflowDbNode> inVertex, Set<String> specificKeys) {
+                        VertexRef<OverflowDbNode> inVertex,
+                        Set<String> specificKeys) {
     super(graph, -1L, outVertex, label, inVertex, specificKeys);
     this.graph = graph;
     this.label = label;
     this.outVertex = outVertex;
     this.inVertex = inVertex;
+  }
+
+  public int getOutBlockOffset() {
+    return outBlockOffset;
+  }
+
+  public void setOutBlockOffset(int offset) {
+    outBlockOffset = offset;
+  }
+
+  public int getInBlockOffset() {
+    return inBlockOffset;
+  }
+
+  public void setInBlockOffset(int offset) {
+    inBlockOffset = offset;
   }
 
   @Override
@@ -81,7 +100,26 @@ public class OverflowDbEdge extends SpecializedTinkerEdge {
   @Override
   public <V> Property<V> property(String key, V value) {
     // TODO check if it's an allowed property key
-    return outVertex.get().setEdgeProperty(label, key, value, inVertex, this);
+    if (inBlockOffset != UNITIALIZED_BLOCK_OFFSET) {
+      if (outBlockOffset == UNITIALIZED_BLOCK_OFFSET) {
+        int numberOfEdgesWithSameLabelBetweenInAndOutVertex =
+            inVertex.get().blockOffsetToOccurrence(Direction.IN, label(), outVertex, inBlockOffset);
+        outBlockOffset = outVertex.get().occurrenceToBlockOffset(Direction.OUT, label(), inVertex,
+            numberOfEdgesWithSameLabelBetweenInAndOutVertex);
+      }
+    } else if (outBlockOffset != UNITIALIZED_BLOCK_OFFSET) {
+      if (inBlockOffset == UNITIALIZED_BLOCK_OFFSET) {
+        int numberOfEdgesWithSameLabelBetweenInAndOutVertex =
+            outVertex.get().blockOffsetToOccurrence(Direction.OUT, label(), inVertex, outBlockOffset);
+        inBlockOffset = inVertex.get().occurrenceToBlockOffset(Direction.IN, label(), outVertex,
+            numberOfEdgesWithSameLabelBetweenInAndOutVertex);
+      }
+    } else {
+      throw new RuntimeException("Cannot set property. In and out block offset unitialized.");
+    }
+    inVertex.get().setEdgeProperty(Direction.IN, label, key, value, inBlockOffset);
+    outVertex.get().setEdgeProperty(Direction.OUT, label, key, value, outBlockOffset);
+    return new OverflowProperty<>(key, value, this);
   }
 
   @Override
@@ -101,11 +139,24 @@ public class OverflowDbEdge extends SpecializedTinkerEdge {
 
   @Override
   public <V> Iterator<Property<V>> properties(String... propertyKeys) {
-    return outVertex.get().getEdgeProperty(label, inVertex, propertyKeys);
+    if (inBlockOffset != -1) {
+      return inVertex.get().getEdgeProperties(Direction.IN, this, getInBlockOffset(), propertyKeys);
+    } else if (outBlockOffset != -1) {
+      return outVertex.get().getEdgeProperties(Direction.OUT, this, getOutBlockOffset(), propertyKeys);
+    } else {
+      throw new RuntimeException("Cannot get properties. In and out block offset unitialized.");
+    }
   }
 
+  @Override
   public <V> Property<V> property(String propertyKey) {
-    return outVertex.get().getEdgeProperty(label, propertyKey, inVertex);
+    if (inBlockOffset != -1) {
+      return inVertex.get().getEdgeProperty(Direction.IN, this, inBlockOffset, propertyKey);
+    } else if (outBlockOffset != -1) {
+      return outVertex.get().getEdgeProperty(Direction.OUT, this, outBlockOffset, propertyKey);
+    } else {
+      throw new RuntimeException("Cannot get property. In and out block offset unitialized.");
+    }
   }
 
 }
