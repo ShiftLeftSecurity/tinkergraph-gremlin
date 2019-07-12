@@ -21,12 +21,14 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 import gnu.trove.map.TLongObjectMap;
 import gnu.trove.map.hash.THashMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
+import gnu.trove.procedure.TObjectProcedure;
 import gnu.trove.set.hash.THashSet;
 import org.apache.commons.configuration.BaseConfiguration;
 import org.apache.commons.configuration.Configuration;
 import org.apache.tinkerpop.gremlin.process.computer.GraphComputer;
 import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.process.traversal.TraversalStrategies;
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -47,6 +49,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optim
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.EdgeDeserializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.OndiskOverflow;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexDeserializer;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.iterator.MultiIterator2;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.apache.tinkerpop.gremlin.util.iterator.MultiIterator;
 import org.slf4j.Logger;
@@ -398,7 +401,15 @@ public final class TinkerGraph implements Graph {
 
     @Override
     public Iterator<Edge> edges(final Object... ids) {
-        return createElementIterator(Edge.class, edges, edgeIdManager, ids);
+        MultiIterator2 multiIterator = new MultiIterator2();
+        vertices.forEachValue(new TObjectProcedure<Vertex>() {
+            @Override
+            public boolean execute(Vertex vertex) {
+                multiIterator.addIterator(vertex.edges(Direction.OUT));
+                return true;
+            }
+        });
+        return multiIterator;
     }
 
     public Iterator<Edge> edgesByLabel(final P<String> labelPredicate) {
