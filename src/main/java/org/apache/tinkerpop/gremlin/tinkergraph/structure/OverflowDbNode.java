@@ -68,7 +68,7 @@ public abstract class OverflowDbNode implements Vertex {
   private final int[] edgeOffsets;
 
   /* determines how many spaces for adjacent vertices will be left free, so we don't need to grow the array for every additional edge */
-  private static final int growthEmptyFactor = 1; // TODO make configurable
+  private static final int growthEmptyFactor = 2; // TODO make configurable
 
   /**
    * @param numberOfDifferentAdjacentTypes The number fo different IN|OUT edge relations. E.g. a node has AST edges in
@@ -511,10 +511,10 @@ public abstract class OverflowDbNode implements Vertex {
     int strideSize = getEdgeKeyCount(edgeLabel) + 1;
 
     int insertAt = start + length;
-    //if (adjacentVerticesWithProperties.length <= insertAt || adjacentVerticesWithProperties[insertAt] != null) {
+    if (adjacentVerticesWithProperties.length <= insertAt || adjacentVerticesWithProperties[insertAt] != null) {
       // space already occupied - grow adjacentVerticesWithProperties array, leaving some room for more elements
-      adjacentVerticesWithProperties = growAdjacentVerticesWithProperties(offsetPos, strideSize, insertAt);;
-    //}
+      adjacentVerticesWithProperties = growAdjacentVerticesWithProperties(offsetPos, insertAt, length);
+    }
 
     adjacentVerticesWithProperties[insertAt] = nodeRef;
     // update edgeOffset length to include the newly inserted element
@@ -530,8 +530,8 @@ public abstract class OverflowDbNode implements Vertex {
    * preallocates more space than immediately necessary, so we don't need to grow the array every time
    * (tradeoff between performance and memory)
    */
-  private Object[] growAdjacentVerticesWithProperties(int offsetPos, int strideSize, int insertAt) {
-    int additionalEntriesCount = strideSize * growthEmptyFactor;
+  private Object[] growAdjacentVerticesWithProperties(int offsetPos, int insertAt, int currentLength) {
+    int additionalEntriesCount = (currentLength + 1) * growthEmptyFactor;
     int newSize = adjacentVerticesWithProperties.length + additionalEntriesCount;
     Object[] newArray = new Object[newSize];
     System.arraycopy(adjacentVerticesWithProperties, 0, newArray, 0, insertAt);
