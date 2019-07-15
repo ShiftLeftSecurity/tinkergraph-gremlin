@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
 import org.junit.Test;
@@ -109,22 +110,25 @@ public class SerializerTest {
   }
 
   private VertexDeserializer newVertexDeserializer(TinkerGraph graph) {
-    Map<String, SpecializedElementFactory.ForVertex> vertexFactories = new HashMap();
-    vertexFactories.put(SerializerTestVertex.label, SerializerTestVertex.factory);
-    return new VertexDeserializer(graph, vertexFactories);
+    throw new NotImplementedException("TODO");
+//    Map<String, SpecializedElementFactory.ForVertex> vertexFactories = new HashMap();
+//    vertexFactories.put(SerializerTestVertex.label, SerializerTestVertex.factory);
+//    return new VertexDeserializer(graph, vertexFactories);
   }
 
   private EdgeDeserializer newEdgeDeserializer(TinkerGraph graph) {
-    Map<String, SpecializedElementFactory.ForEdge> edgeFactories = new HashMap();
-    edgeFactories.put(SerializerTestEdge.label, SerializerTestEdge.factory);
-    return new EdgeDeserializer(graph, edgeFactories);
+    throw new NotImplementedException("TODO");
+//    Map<String, SpecializedElementFactory.ForEdge> edgeFactories = new HashMap();
+//    edgeFactories.put(SerializerTestEdge.label, SerializerTestEdge.factory);
+//    return new EdgeDeserializer(graph, edgeFactories);
   }
 
   private TinkerGraph newGraph() {
-    return TinkerGraph.open(
-        Arrays.asList(SerializerTestVertex.factory),
-        Arrays.asList(SerializerTestEdge.factory)
-    );
+    throw new NotImplementedException("TODO");
+//    return TinkerGraph.open(
+//        Arrays.asList(SerializerTestVertex.factory),
+//        Arrays.asList(SerializerTestEdge.factory)
+//    );
   }
 
 }

@@ -29,18 +29,18 @@ import java.util.NoSuchElementException;
 
 public class SpecializedVertexProperty<V> implements Element, VertexProperty<V> {
   private final int id;
-  private final SpecializedTinkerVertex vertex;
+  private final Vertex vertex;
   private final String key;
   private final V value;
 
-  public SpecializedVertexProperty(final SpecializedTinkerVertex vertex,
+  public SpecializedVertexProperty(final Vertex vertex,
                                    final String key,
                                    final V value) {
     this(-1, vertex, key, value);
   }
 
   public SpecializedVertexProperty(final int id,
-                                   final SpecializedTinkerVertex vertex,
+                                   final Vertex vertex,
                                    final String key,
                                    final V value) {
     this.id = id;

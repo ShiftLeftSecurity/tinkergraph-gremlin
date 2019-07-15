@@ -19,6 +19,7 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
 import org.apache.commons.configuration.Configuration;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.*;
 import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
@@ -92,11 +93,12 @@ public class GraphSaveRestoreTest {
     Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
     configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
     configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_GRAPH_LOCATION, overflowDb.getAbsolutePath());
-    return TinkerGraph.open(
-        configuration,
-        Arrays.asList(Song.factory, Artist.factory),
-        Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
-    );
+    throw new NotImplementedException("TODO");
+//    return TinkerGraph.open(
+//        configuration,
+//        Arrays.asList(Song.factory, Artist.factory),
+//        Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
+//    );
   }
 
   private void loadGraphMl(TinkerGraph graph) throws IOException {

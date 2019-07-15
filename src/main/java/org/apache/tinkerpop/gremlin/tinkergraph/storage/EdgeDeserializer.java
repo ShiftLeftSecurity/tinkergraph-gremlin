@@ -22,6 +22,7 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.ElementRef;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
@@ -31,9 +32,9 @@ import java.util.Map;
 
 public class EdgeDeserializer extends Deserializer<Edge> {
   protected final TinkerGraph graph;
-  protected final Map<String, SpecializedElementFactory.ForEdge> edgeFactoryByLabel;
+  protected final Map<String, OverflowElementFactory.ForEdge> edgeFactoryByLabel;
 
-  public EdgeDeserializer(TinkerGraph graph, Map<String, SpecializedElementFactory.ForEdge> edgeFactoryByLabel) {
+  public EdgeDeserializer(TinkerGraph graph, Map<String, OverflowElementFactory.ForEdge> edgeFactoryByLabel) {
     this.graph = graph;
     this.edgeFactoryByLabel = edgeFactoryByLabel;
   }

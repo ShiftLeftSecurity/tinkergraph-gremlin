@@ -25,7 +25,6 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.apache.tinkerpop.gremlin.util.iterator.MultiIterator;
 
 import java.util.*;
-import java.util.concurrent.Semaphore;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -163,8 +162,8 @@ public abstract class SpecializedTinkerVertex implements Vertex {
         }
         ElementHelper.legalPropertyKeyValueArray(keyValues);
 
-        if (graph.specializedEdgeFactoryByLabel.containsKey(label)) {
-            SpecializedElementFactory.ForEdge factory = graph.specializedEdgeFactoryByLabel.get(label);
+        if (graph.edgeFactoryByLabel.containsKey(label)) {
+            OverflowElementFactory.ForEdge factory = graph.edgeFactoryByLabel.get(label);
             Long idValue = (Long) graph.edgeIdManager.convert(ElementHelper.getIdValue(keyValues).orElse(null));
             if (null != idValue) {
                 if (graph.edges.containsKey(idValue))
@@ -176,7 +175,7 @@ public abstract class SpecializedTinkerVertex implements Vertex {
 
             // TODO hold link to vertexRef locally so we don't need the following lookup
             VertexRef<TinkerVertex> outVertexRef = (VertexRef<TinkerVertex>) graph.vertices.get(ref.id);
-            final SpecializedTinkerEdge underlying = factory.createEdge(idValue, graph, outVertexRef, inVertexRef);
+            final OverflowDbEdge underlying = factory.createEdge(idValue, graph, outVertexRef, inVertexRef);
             final Edge edge;
             if (graph.ondiskOverflowEnabled) {
                 edge = factory.createEdgeRef(underlying);
