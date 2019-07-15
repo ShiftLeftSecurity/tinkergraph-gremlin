@@ -19,7 +19,6 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
-import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
@@ -115,7 +114,7 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
     return SPECIFIC_KEYS;
   }
 
-  public static SpecializedElementFactory.ForVertex<OverflowDbTestNode> factory = new SpecializedElementFactory.ForVertex<OverflowDbTestNode>() {
+  public static OverflowElementFactory.ForVertex<OverflowDbTestNode> factory = new OverflowElementFactory.ForVertex<OverflowDbTestNode>() {
     @Override
     public String forLabel() {
       return OverflowDbTestNode.label;

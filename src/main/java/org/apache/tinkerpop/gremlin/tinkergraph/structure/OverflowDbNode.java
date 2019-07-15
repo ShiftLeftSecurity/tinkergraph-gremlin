@@ -21,17 +21,27 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 import gnu.trove.set.hash.THashSet;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.structure.util.empty.EmptyProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.iterator.MultiIterator2;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
+import java.util.stream.StreamSupport;
+
+import static org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerElement.elementAlreadyRemoved;
 
 /**
  * Variant of SpecializedTinkerVertex that stores adjacent Nodes directly, rather than via edges.
@@ -40,7 +50,16 @@ import java.util.Set;
  *
  * TODO: extend Vertex (rather than SpecializedTinkerVertex) to save more memory
  */
-public abstract class OverflowDbNode extends SpecializedTinkerVertex {
+public abstract class OverflowDbNode implements Vertex {
+
+  public final VertexRef<Vertex> ref;
+  private boolean removed = false;
+
+  /** property keys for a specialized vertex  */
+  protected abstract Set<String> specificKeys();
+
+  public abstract Set<String> allowedOutEdgeLabels();
+  public abstract Set<String> allowedInEdgeLabels();
 
   private Object[] adjacentVerticesWithProperties = new Object[0];
 
@@ -58,7 +77,11 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
    */
   protected OverflowDbNode(int numberOfDifferentAdjacentTypes,
                            VertexRef<Vertex> ref) {
-    super(ref);
+    this.ref = ref;
+    ref.setElement(this);
+    if (ref.graph != null && ref.graph.referenceManager != null) {
+      ref.graph.referenceManager.applyBackpressureMaybe();
+    }
     edgeOffsets = new int[numberOfDifferentAdjacentTypes * 2];
   }
 
@@ -78,6 +101,124 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   protected abstract int getEdgeKeyCount(String edgeLabel);
 
   protected abstract List<String> allowedEdgeKeys(String edgeLabel);
+
+  /* implement in concrete specialised instance to avoid using generic HashMaps */
+  protected abstract <V> Iterator<VertexProperty<V>> specificProperties(String key);
+
+  public abstract Map<String, Object> valueMap();
+
+  @Override
+  public Graph graph() {
+    return ref.graph;
+  }
+
+  @Override
+  public Object id() {
+    return ref.id;
+  }
+
+  @Override
+  public Set<String> keys() {
+    return specificKeys();
+  }
+
+  @Override
+  public <V> VertexProperty<V> property(String key) {
+    if (this.removed) return VertexProperty.empty();
+    return specificProperty(key);
+  }
+
+  /* You can override this default implementation in concrete specialised instances for performance
+   * if you like, since technically the Iterator isn't necessary.
+   * This default implementation works fine though. */
+  protected <V> VertexProperty<V> specificProperty(String key) {
+    Iterator<VertexProperty<V>> iter = specificProperties(key);
+    if (iter.hasNext()) {
+      return iter.next();
+    } else {
+      return VertexProperty.empty();
+    }
+  }
+
+  @Override
+  public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
+    if (this.removed) return Collections.emptyIterator();
+    if (propertyKeys.length == 0) { // return all properties
+      return (Iterator) specificKeys().stream().flatMap(key ->
+          StreamSupport.stream(Spliterators.spliteratorUnknownSize(
+              specificProperties(key), Spliterator.ORDERED),false)
+      ).iterator();
+    } else if (propertyKeys.length == 1) { // treating as special case for performance
+      return specificProperties(propertyKeys[0]);
+    } else {
+      return (Iterator) Arrays.stream(propertyKeys).flatMap(key ->
+          StreamSupport.stream(Spliterators.spliteratorUnknownSize(
+              specificProperties(key), Spliterator.ORDERED),false)
+      ).iterator();
+    }
+  }
+
+  @Override
+  public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality, String key, V value, Object... keyValues) {
+    if (this.removed) throw elementAlreadyRemoved(Vertex.class, id());
+    ElementHelper.legalPropertyKeyValueArray(keyValues);
+    ElementHelper.validateProperty(key, value);
+    synchronized (this) {
+//            this.modifiedSinceLastSerialization = true;
+      final VertexProperty<V> vp = updateSpecificProperty(cardinality, key, value);
+      TinkerHelper.autoUpdateIndex(this, key, value, null);
+      return vp;
+    }
+  }
+
+  protected abstract <V> VertexProperty<V> updateSpecificProperty(
+      VertexProperty.Cardinality cardinality, String key, V value);
+
+  public void removeProperty(String key) {
+    synchronized (this) {
+//            modifiedSinceLastSerialization = true;
+      removeSpecificProperty(key);
+    }
+  }
+
+  protected abstract void removeSpecificProperty(String key);
+
+  private void storeEdge(final Edge edge, final Map<String, List<Edge>> edgesByLabel) {
+    if (!edgesByLabel.containsKey(edge.label())) {
+      // TODO ArrayLists aren't good for concurrent modification, use memory-light concurrency safe list
+      edgesByLabel.put(edge.label(), new ArrayList<>());
+    }
+    edgesByLabel.get(edge.label()).add(edge);
+  }
+
+  @Override
+  public void remove() {
+    TinkerGraph graph = ref.graph;
+    final List<Edge> edges = new ArrayList<>();
+    this.edges(Direction.BOTH).forEachRemaining(edges::add);
+    edges.stream().filter(edge -> {
+      if (edge instanceof ElementRef) {
+        return !((ElementRef<SpecializedTinkerEdge>) edge).isRemoved();
+      } else {
+        return !((SpecializedTinkerEdge) edge).isRemoved();
+      }
+    }).forEach(Edge::remove);
+    TinkerHelper.removeElementIndex(this);
+    graph.vertices.remove((long)id());
+    graph.getElementsByLabel(graph.verticesByLabel, label()).remove(this);
+
+    if (graph.ondiskOverflowEnabled) {
+      graph.ondiskOverflow.removeVertex((Long) id());
+    }
+    this.removed = true;
+//        this.modifiedSinceLastSerialization = true;
+  }
+
+//    public void setModifiedSinceLastSerialization(boolean modifiedSinceLastSerialization) {
+//        this.modifiedSinceLastSerialization = modifiedSinceLastSerialization;
+//    }
+
+  // NEW STUFF END XXX0
 
   public <V> Iterator<Property<V>> getEdgeProperties(Direction direction,
                                                      OverflowDbEdge edge,
@@ -457,9 +598,9 @@ public abstract class OverflowDbNode extends SpecializedTinkerVertex {
   protected OverflowDbEdge instantiateDummyEdge(String label,
                                                 VertexRef<OverflowDbNode> outVertex,
                                                 VertexRef<OverflowDbNode> inVertex) {
-    final SpecializedElementFactory.ForEdge edgeFactory = ref.graph.specializedEdgeFactoryByLabel.get(label);
+    final OverflowElementFactory.ForEdge edgeFactory = ref.graph.edgeFactoryByLabel.get(label);
     if (edgeFactory == null) throw new IllegalArgumentException("specializedEdgeFactory for label=" + label + " not found - please register on startup!");
-    return (OverflowDbEdge)edgeFactory.createEdge(-1l, ref.graph, outVertex, inVertex);
+    return edgeFactory.createEdge(-1l, ref.graph, outVertex, inVertex);
   }
 
   private class Labels {

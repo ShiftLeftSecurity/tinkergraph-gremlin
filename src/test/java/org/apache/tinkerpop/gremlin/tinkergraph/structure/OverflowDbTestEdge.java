@@ -36,7 +36,7 @@ public class OverflowDbTestEdge extends OverflowDbEdge {
         return (Long) property(LONG_PROPERTY).value();
     }
 
-    public static SpecializedElementFactory.ForEdge<OverflowDbTestEdge> factory = new SpecializedElementFactory.ForEdge<OverflowDbTestEdge>() {
+    public static OverflowElementFactory.ForEdge<OverflowDbTestEdge> factory = new OverflowElementFactory.ForEdge<OverflowDbTestEdge>() {
         @Override
         public String forLabel() {
             return OverflowDbTestEdge.label;
