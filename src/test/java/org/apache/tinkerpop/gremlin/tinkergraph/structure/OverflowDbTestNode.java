@@ -43,8 +43,8 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
 
   public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(STRING_PROPERTY, INT_PROPERTY, STRING_LIST_PROPERTY, INT_LIST_PROPERTY));
 
-  public static final Set<String> ALLOWED_IN_EDGE_LABELS = new HashSet<>(Arrays.asList(OverflowDbTestEdge.label));
-  public static final Set<String> ALLOWED_OUT_EDGE_LABELS = new HashSet<>(Arrays.asList(OverflowDbTestEdge.label));
+  public static final String[] ALLOWED_IN_EDGE_LABELS = {OverflowDbTestEdge.label};
+  public static final String[] ALLOWED_OUT_EDGE_LABELS = {OverflowDbTestEdge.label};
 
 
   private static final Map<String, Integer> outEdgeToPosition = new HashMap<>();
@@ -212,11 +212,11 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
     }
   }
 
-  public Set<String> allowedOutEdgeLabels() {
+  public String[] allowedOutEdgeLabels() {
     return ALLOWED_OUT_EDGE_LABELS;
   }
 
-  public Set<String> allowedInEdgeLabels() {
+  public String[] allowedInEdgeLabels() {
     return ALLOWED_IN_EDGE_LABELS;
   }
 
