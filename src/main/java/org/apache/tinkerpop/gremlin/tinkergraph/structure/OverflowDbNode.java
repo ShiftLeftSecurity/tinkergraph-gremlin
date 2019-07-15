@@ -58,8 +58,8 @@ public abstract class OverflowDbNode implements Vertex {
   /** property keys for a specialized vertex  */
   protected abstract Set<String> specificKeys();
 
-  public abstract Set<String> allowedOutEdgeLabels();
-  public abstract Set<String> allowedInEdgeLabels();
+  public abstract String[] allowedOutEdgeLabels();
+  public abstract String[] allowedInEdgeLabels();
 
   private Object[] adjacentVerticesWithProperties = new Object[0];
 
@@ -316,15 +316,18 @@ public abstract class OverflowDbNode implements Vertex {
 
   @Override
   public Iterator<Edge> edges(Direction direction, String... edgeLabels) {
-    final Labels labels = calculateInOutLabelsToFollow(direction, edgeLabels);
     final MultiIterator2<Edge> multiIterator = new MultiIterator2<>();
-    for (String label : labels.forInEdges) {
-      Iterator<Edge> edgeIterator = createDummyEdgeIterator(Direction.IN, label);
-      multiIterator.addIterator(edgeIterator);
+    if (direction == Direction.IN || direction == Direction.BOTH) {
+      for (String label : calcInLabels(edgeLabels)) {
+        Iterator<Edge> edgeIterator = createDummyEdgeIterator(Direction.IN, label);
+        multiIterator.addIterator(edgeIterator);
+      }
     }
-    for (String label : labels.forOutEdges) {
-      Iterator<Edge> edgeIterator = createDummyEdgeIterator(Direction.OUT, label);
-      multiIterator.addIterator(edgeIterator);
+    if (direction == Direction.OUT || direction == Direction.BOTH) {
+      for (String label : calcOutLabels(edgeLabels)) {
+        Iterator<Edge> edgeIterator = createDummyEdgeIterator(Direction.OUT, label);
+        multiIterator.addIterator(edgeIterator);
+      }
     }
 
     return multiIterator;
@@ -332,13 +335,16 @@ public abstract class OverflowDbNode implements Vertex {
 
   @Override
   public Iterator<Vertex> vertices(Direction direction, String... edgeLabels) {
-    final Labels labels = calculateInOutLabelsToFollow(direction, edgeLabels);
     final MultiIterator2<Vertex> multiIterator = new MultiIterator2<>();
-    for (String label : labels.forInEdges) {
-      multiIterator.addIterator(createAdjacentVertexIterator(Direction.IN, label));
+    if (direction == Direction.IN || direction == Direction.BOTH) {
+      for (String label : calcInLabels(edgeLabels)) {
+        multiIterator.addIterator(createAdjacentVertexIterator(Direction.IN, label));
+      }
     }
-    for (String label : labels.forOutEdges) {
-      multiIterator.addIterator(createAdjacentVertexIterator(Direction.OUT, label));
+    if (direction == Direction.OUT || direction == Direction.BOTH) {
+      for (String label : calcOutLabels(edgeLabels)) {
+        multiIterator.addIterator(createAdjacentVertexIterator(Direction.OUT, label));
+      }
     }
 
     return multiIterator;
@@ -556,40 +562,20 @@ public abstract class OverflowDbNode implements Vertex {
     return edgeOffsets[2 * offsetPosition + 1];
   }
 
-  private Labels calculateInOutLabelsToFollow(Direction direction, String... edgeLabels) {
-    final Set<String> inEdgeLabels;
-    final Set<String> outEdgeLabels;
-    if (edgeLabels.length == 0) { // follow all labels
-      switch (direction) {
-        case IN:
-          inEdgeLabels = allowedInEdgeLabels();
-          outEdgeLabels = new THashSet<>(0);
-          break;
-        case OUT:
-          inEdgeLabels = new THashSet<>(0);
-          outEdgeLabels = allowedOutEdgeLabels();
-          break;
-        case BOTH:
-          inEdgeLabels = allowedInEdgeLabels();
-          outEdgeLabels = allowedOutEdgeLabels();
-          break;
-        default:
-          throw new IllegalStateException("this will never happen - only needed to make the compiler happy");
-      }
-    } else { // follow specific labels
-      inEdgeLabels = new THashSet<>();
-      outEdgeLabels = new THashSet<>();
-      for (String label : edgeLabels) {
-        if (direction == Direction.IN || direction == Direction.BOTH) {
-          inEdgeLabels.add(label);
-        }
-        if (direction == Direction.OUT || direction == Direction.BOTH) {
-          outEdgeLabels.add(label);
-        }
-      }
+  private String[] calcInLabels(String... edgeLabels) {
+    if (edgeLabels.length != 0) {
+      return edgeLabels;
+    } else {
+      return allowedInEdgeLabels();
     }
+  }
 
-    return new Labels(inEdgeLabels, outEdgeLabels);
+  private String[] calcOutLabels(String... edgeLabels) {
+    if (edgeLabels.length != 0) {
+      return edgeLabels;
+    } else {
+      return allowedOutEdgeLabels();
+    }
   }
 
   /**  to follow the tinkerpop api, instantiate and return a dummy edge, which doesn't really exist in the graph */
@@ -599,15 +585,5 @@ public abstract class OverflowDbNode implements Vertex {
     final OverflowElementFactory.ForEdge edgeFactory = ref.graph.edgeFactoryByLabel.get(label);
     if (edgeFactory == null) throw new IllegalArgumentException("specializedEdgeFactory for label=" + label + " not found - please register on startup!");
     return edgeFactory.createEdge(-1l, ref.graph, outVertex, inVertex);
-  }
-
-  private class Labels {
-    private final Set<String> forInEdges;
-    private final Set<String> forOutEdges;
-
-    public Labels(Set<String> forInEdges, Set<String> forOutEdges) {
-      this.forInEdges = forInEdges;
-      this.forOutEdges = forOutEdges;
-    }
   }
 }
