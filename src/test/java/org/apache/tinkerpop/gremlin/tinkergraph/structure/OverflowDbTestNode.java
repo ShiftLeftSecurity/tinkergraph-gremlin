@@ -147,15 +147,14 @@ public class OverflowDbTestNode extends OverflowDbNode implements Serializable {
   /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
   @Override
   protected <V> Iterator<VertexProperty<V>> specificProperties(String key) {
-    final VertexProperty<V> ret;
     if (STRING_PROPERTY.equals(key) && stringProperty != null) {
-      return IteratorUtils.of(new SpecializedVertexProperty(this, key, stringProperty));
+      return IteratorUtils.of(new OverflowNodeProperty(this, key, stringProperty));
     } else if (key == STRING_LIST_PROPERTY && stringListProperty != null) {
-      return IteratorUtils.of(new SpecializedVertexProperty(this, key, stringListProperty));
+      return IteratorUtils.of(new OverflowNodeProperty(this, key, stringListProperty));
     } else if (key == INT_PROPERTY && intProperty != null) {
-      return IteratorUtils.of(new SpecializedVertexProperty(this, key, intProperty));
+      return IteratorUtils.of(new OverflowNodeProperty(this, key, intProperty));
     } else if (key == INT_LIST_PROPERTY && intListProperty != null) {
-      return IteratorUtils.of(new SpecializedVertexProperty(this, key, intListProperty));
+      return IteratorUtils.of(new OverflowNodeProperty(this, key, intListProperty));
     } else {
       return Collections.emptyIterator();
     }

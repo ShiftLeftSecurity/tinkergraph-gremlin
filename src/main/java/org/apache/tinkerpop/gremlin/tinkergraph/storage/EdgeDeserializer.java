@@ -22,9 +22,8 @@ import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.ElementRef;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowDbEdge;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowElementFactory;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerEdge;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.VertexRef;
 
@@ -55,10 +54,8 @@ public class EdgeDeserializer extends Deserializer<Edge> {
   protected Edge createElement(long id, String label, Map<String, Object> properties, Map<String, long[]> inVertexIdsByLabel, Map<String, long[]> outVertexIdsByLabel) {
     VertexRef outVertexRef = getVertexRef(outVertexIdsByLabel, Direction.OUT);
     VertexRef inVertexRef = getVertexRef(inVertexIdsByLabel, Direction.IN);
-    SpecializedTinkerEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexRef, inVertexRef);
+    OverflowDbEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexRef, inVertexRef);
     ElementHelper.attachProperties(edge, toTinkerpopKeyValues(properties));
-
-    edge.setModifiedSinceLastSerialization(false);
     return edge;
   }
 

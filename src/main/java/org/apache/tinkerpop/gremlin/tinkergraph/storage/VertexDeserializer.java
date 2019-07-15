@@ -25,8 +25,6 @@ import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.ElementRef;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowDbNode;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowElementFactory;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedElementFactory;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import java.util.Map;
 
