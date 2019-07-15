@@ -79,7 +79,7 @@ public abstract class OverflowDbEdge extends SpecializedTinkerEdge {
 
   @Override
   public Object id() {
-    return -1;
+    return -1l;
   }
 
   @Override
