@@ -19,6 +19,7 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import org.apache.tinkerpop.gremlin.structure.Direction;
+import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 import org.apache.tinkerpop.gremlin.structure.Property;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -27,13 +28,15 @@ import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import java.util.Iterator;
 import java.util.Set;
 
-public abstract class OverflowDbEdge extends SpecializedTinkerEdge {
+public abstract class OverflowDbEdge implements Edge {
   private final TinkerGraph graph;
   private final String label;
   private final VertexRef<OverflowDbNode> outVertex;
   private final VertexRef<OverflowDbNode> inVertex;
   private int outBlockOffset = UNITIALIZED_BLOCK_OFFSET;
   private int inBlockOffset = UNITIALIZED_BLOCK_OFFSET;
+  private final Set<String> specificKeys;
+  private boolean removed = false;
 
   private static final int UNITIALIZED_BLOCK_OFFSET = -1;
 
@@ -42,11 +45,15 @@ public abstract class OverflowDbEdge extends SpecializedTinkerEdge {
                         VertexRef<OverflowDbNode> outVertex,
                         VertexRef<OverflowDbNode> inVertex,
                         Set<String> specificKeys) {
-    super(graph, -1L, outVertex, label, inVertex, specificKeys);
     this.graph = graph;
     this.label = label;
     this.outVertex = outVertex;
     this.inVertex = inVertex;
+
+    this.specificKeys = specificKeys;
+    if (graph.referenceManager != null) {
+      graph.referenceManager.applyBackpressureMaybe();
+    }
   }
 
   public int getOutBlockOffset() {
@@ -87,7 +94,6 @@ public abstract class OverflowDbEdge extends SpecializedTinkerEdge {
     return label;
   }
 
-  @Override
   protected <V> Property<V> specificProperty(String key) {
     throw new RuntimeException("Not supported.");
   }
@@ -123,14 +129,19 @@ public abstract class OverflowDbEdge extends SpecializedTinkerEdge {
   }
 
   @Override
-  protected <V> Property<V> updateSpecificProperty(String key, V value) {
-    throw new RuntimeException("Not supported.");
+  public Set<String> keys() {
+    return specificKeys;
   }
 
-  @Override
-  protected void removeSpecificProperty(String key) {
-    throw new RuntimeException("Not supported.");
-  }
+//  @Override
+//  protected <V> Property<V> updateSpecificProperty(String key, V value) {
+//    throw new RuntimeException("Not supported.");
+//  }
+
+//  @Override
+//  protected void removeSpecificProperty(String key) {
+//    throw new RuntimeException("Not supported.");
+//  }
 
   @Override
   public void remove() {
@@ -157,6 +168,10 @@ public abstract class OverflowDbEdge extends SpecializedTinkerEdge {
     } else {
       throw new RuntimeException("Cannot get property. In and out block offset unitialized.");
     }
+  }
+
+  public boolean isRemoved() {
+    return removed;
   }
 
 }

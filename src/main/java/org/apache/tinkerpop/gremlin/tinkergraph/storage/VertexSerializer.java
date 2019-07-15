@@ -23,7 +23,7 @@ import gnu.trove.set.TLongSet;
 import gnu.trove.set.hash.TLongHashSet;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.SpecializedTinkerVertex;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowDbNode;
 
 import java.util.Map;
 
@@ -41,8 +41,8 @@ public class VertexSerializer extends Serializer<Vertex> {
 
   @Override
   protected Map<String, Object> getProperties(Vertex vertex) {
-    if (vertex instanceof SpecializedTinkerVertex) {
-      return ((SpecializedTinkerVertex) vertex).valueMap();
+    if (vertex instanceof OverflowDbNode) {
+      return ((OverflowDbNode) vertex).valueMap();
     } else {
       Map<String, Object> properties = new THashMap<>();
       vertex.properties().forEachRemaining(property -> properties.put(property.key(), property.value()));

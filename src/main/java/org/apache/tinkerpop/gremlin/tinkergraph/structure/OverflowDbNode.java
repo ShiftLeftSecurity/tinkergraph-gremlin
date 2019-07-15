@@ -198,9 +198,9 @@ public abstract class OverflowDbNode implements Vertex {
     this.edges(Direction.BOTH).forEachRemaining(edges::add);
     edges.stream().filter(edge -> {
       if (edge instanceof ElementRef) {
-        return !((ElementRef<SpecializedTinkerEdge>) edge).isRemoved();
+        return !((ElementRef<OverflowDbEdge>) edge).isRemoved();
       } else {
-        return !((SpecializedTinkerEdge) edge).isRemoved();
+        return !((OverflowDbEdge) edge).isRemoved();
       }
     }).forEach(Edge::remove);
     TinkerHelper.removeElementIndex(this);
@@ -217,8 +217,6 @@ public abstract class OverflowDbNode implements Vertex {
 //    public void setModifiedSinceLastSerialization(boolean modifiedSinceLastSerialization) {
 //        this.modifiedSinceLastSerialization = modifiedSinceLastSerialization;
 //    }
-
-  // NEW STUFF END XXX0
 
   public <V> Iterator<Property<V>> getEdgeProperties(Direction direction,
                                                      OverflowDbEdge edge,
