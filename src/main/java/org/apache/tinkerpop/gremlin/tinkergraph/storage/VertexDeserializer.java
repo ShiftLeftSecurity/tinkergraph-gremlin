@@ -37,6 +37,11 @@ public class VertexDeserializer extends Deserializer<Vertex> {
   }
 
   @Override
+  protected TinkerGraph graph() {
+    return graph;
+  }
+
+  @Override
   protected ElementRef createNodeRef(long id, String label) {
     OverflowElementFactory.ForVertex vertexFactory = vertexFactoryByLabel.get(label);
     if (vertexFactory == null) {
