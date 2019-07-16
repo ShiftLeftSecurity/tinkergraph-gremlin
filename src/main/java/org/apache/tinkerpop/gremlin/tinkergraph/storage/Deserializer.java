@@ -39,7 +39,7 @@ public abstract class Deserializer<A> {
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private int deserializedCount = 0;
   private long deserializationTimeSpentMillis = 0;
-  private final TinkerGraph graph = null;
+  protected abstract TinkerGraph graph();
 
   protected abstract ElementRef createNodeRef(long id, String label);
 
@@ -120,9 +120,11 @@ public abstract class Deserializer<A> {
     final Value value = iter.next();
 
     switch (ValueTypes.lookup(valueTypeId)) {
+      case UNKNOWN:
+        return null;
       case VERTEX_REF:
         long id = value.asIntegerValue().asLong();
-        return graph.vertex(id);
+        return graph().vertex(id);
       case BOOLEAN:
         return value.asBooleanValue().getBoolean();
       case STRING:

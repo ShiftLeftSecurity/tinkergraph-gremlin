@@ -39,6 +39,11 @@ public class EdgeDeserializer extends Deserializer<Edge> {
   }
 
   @Override
+  protected TinkerGraph graph() {
+    return null;
+  }
+
+  @Override
   protected ElementRef createNodeRef(long id, String label) {
     return null;
   }

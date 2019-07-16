@@ -93,7 +93,10 @@ public abstract class Serializer<A> {
    */
   private void packTypedValue(final MessageBufferPacker packer, final Object value) throws IOException {
     packer.packArrayHeader(2);
-    if (value instanceof VertexRef) {
+    if (value == null) {
+      packer.packByte(ValueTypes.UNKNOWN.id);
+      packer.packNil();
+    } else if (value instanceof VertexRef) {
       packer.packByte(ValueTypes.VERTEX_REF.id);
       packer.packLong(((VertexRef) value).id);
     } else if (value instanceof Boolean) {
