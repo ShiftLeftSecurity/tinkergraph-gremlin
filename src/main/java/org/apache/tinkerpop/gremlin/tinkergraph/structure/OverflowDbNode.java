@@ -519,7 +519,7 @@ public abstract class OverflowDbNode implements Vertex {
     int insertAt = start + length;
     if (adjacentVerticesWithProperties.length <= insertAt || adjacentVerticesWithProperties[insertAt] != null) {
       // space already occupied - grow adjacentVerticesWithProperties array, leaving some room for more elements
-      adjacentVerticesWithProperties = growAdjacentVerticesWithProperties(offsetPos, insertAt, length);
+      adjacentVerticesWithProperties = growAdjacentVerticesWithProperties(offsetPos, strideSize, insertAt, length);
     }
 
     adjacentVerticesWithProperties[insertAt] = nodeRef;
@@ -536,8 +536,11 @@ public abstract class OverflowDbNode implements Vertex {
    * preallocates more space than immediately necessary, so we don't need to grow the array every time
    * (tradeoff between performance and memory)
    */
-  private Object[] growAdjacentVerticesWithProperties(int offsetPos, int insertAt, int currentLength) {
-    int additionalEntriesCount = (currentLength + 1) * growthEmptyFactor;
+  private Object[] growAdjacentVerticesWithProperties(int offsetPos,
+                                                      int strideSize,
+                                                      int insertAt,
+                                                      int currentLength) {
+    int additionalEntriesCount = (currentLength + strideSize) * growthEmptyFactor;
     int newSize = adjacentVerticesWithProperties.length + additionalEntriesCount;
     Object[] newArray = new Object[newSize];
     System.arraycopy(adjacentVerticesWithProperties, 0, newArray, 0, insertAt);
