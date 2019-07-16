@@ -47,20 +47,4 @@ public class EdgeSerializer extends Serializer<Edge> {
     return properties;
   }
 
-  @Override
-  /** using same format to store edgeIds as for vertices */
-  protected Map<String, TLongSet> getEdgeIds(Edge edge, Direction direction) {
-    final Map<String, TLongSet> edgeIds = new THashMap<>();
-    switch (direction) {
-      case IN:
-        edgeIds.put(Direction.IN.name(), new TLongHashSet(Arrays.asList((long) edge.inVertex().id())));
-        break;
-      case OUT:
-        edgeIds.put(Direction.OUT.name(), new TLongHashSet(Arrays.asList((long) edge.outVertex().id())));
-        break;
-      default: throw new NotImplementedException();
-    }
-    return edgeIds;
-  }
-
 }

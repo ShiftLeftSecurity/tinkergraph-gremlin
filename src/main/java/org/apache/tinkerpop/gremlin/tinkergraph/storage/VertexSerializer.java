@@ -19,9 +19,6 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
 import gnu.trove.map.hash.THashMap;
-import gnu.trove.set.TLongSet;
-import gnu.trove.set.hash.TLongHashSet;
-import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowDbNode;
 
@@ -48,16 +45,6 @@ public class VertexSerializer extends Serializer<Vertex> {
       vertex.properties().forEachRemaining(property -> properties.put(property.key(), property.value()));
       return properties;
     }
-  }
-
-  @Override
-  protected Map<String, TLongSet> getEdgeIds(Vertex vertex, Direction direction) {
-    Map<String, TLongSet> edgeIdsByLabel = new THashMap<>();
-    vertex.edges(direction).forEachRemaining(edge -> {
-      edgeIdsByLabel.computeIfAbsent(edge.label(), label -> new TLongHashSet());
-      edgeIdsByLabel.get(edge.label()).add((long) edge.id());
-    });
-    return edgeIdsByLabel;
   }
 
 }
