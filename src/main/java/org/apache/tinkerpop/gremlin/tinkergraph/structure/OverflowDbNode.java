@@ -51,7 +51,6 @@ import static org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerElement.e
 public abstract class OverflowDbNode implements Vertex {
 
   public final VertexRef<Vertex> ref;
-  private boolean removed = false;
 
   /** property keys for a specialized vertex  */
   protected abstract Set<String> specificKeys();
@@ -138,7 +137,6 @@ public abstract class OverflowDbNode implements Vertex {
 
   @Override
   public <V> VertexProperty<V> property(String key) {
-    if (this.removed) return VertexProperty.empty();
     return specificProperty(key);
   }
 
@@ -156,7 +154,6 @@ public abstract class OverflowDbNode implements Vertex {
 
   @Override
   public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
-    if (this.removed) return Collections.emptyIterator();
     if (propertyKeys.length == 0) { // return all properties
       return (Iterator) specificKeys().stream().flatMap(key ->
           StreamSupport.stream(Spliterators.spliteratorUnknownSize(
@@ -174,7 +171,6 @@ public abstract class OverflowDbNode implements Vertex {
 
   @Override
   public <V> VertexProperty<V> property(VertexProperty.Cardinality cardinality, String key, V value, Object... keyValues) {
-    if (this.removed) throw elementAlreadyRemoved(Vertex.class, id());
     ElementHelper.legalPropertyKeyValueArray(keyValues);
     ElementHelper.validateProperty(key, value);
     synchronized (this) {
@@ -224,7 +220,6 @@ public abstract class OverflowDbNode implements Vertex {
     if (graph.ondiskOverflowEnabled) {
       graph.ondiskOverflow.removeVertex((Long) id());
     }
-    this.removed = true;
 //        this.modifiedSinceLastSerialization = true;
   }
 
