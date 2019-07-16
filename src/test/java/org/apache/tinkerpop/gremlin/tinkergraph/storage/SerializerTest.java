@@ -1,64 +1,61 @@
-///*
-// * Licensed to the Apache Software Foundation (ASF) under one
-// * or more contributor license agreements.  See the NOTICE file
-// * distributed with this work for additional information
-// * regarding copyright ownership.  The ASF licenses this file
-// * to you under the Apache License, Version 2.0 (the
-// * "License"); you may not use this file except in compliance
-// * with the License.  You may obtain a copy of the License at
-// *
-// * http://www.apache.org/licenses/LICENSE-2.0
-// *
-// * Unless required by applicable law or agreed to in writing,
-// * software distributed under the License is distributed on an
-// * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// * KIND, either express or implied.  See the License for the
-// * specific language governing permissions and limitations
-// * under the License.
-// */
-//package org.apache.tinkerpop.gremlin.tinkergraph.storage;
-//
-//import org.apache.commons.lang3.NotImplementedException;
-//import org.apache.tinkerpop.gremlin.structure.*;
-//import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
-//import org.junit.Test;
-//
-//import java.io.IOException;
-//import java.util.*;
-//
-//import static org.junit.Assert.*;
-//
-//public class SerializerTest {
-//
-//  @Test
-//  public void serializeVertex() throws IOException {
-//    try (TinkerGraph graph = newGraph()) {
-//      VertexSerializer serializer = new VertexSerializer();
-//      VertexDeserializer deserializer = newVertexDeserializer(graph);
-//      Vertex vertex = graph.addVertex(
-//          T.label, SerializerTestVertex.label,
-//          SerializerTestVertex.STRING_PROPERTY, "StringValue",
-//          SerializerTestVertex.INT_PROPERTY, 42,
-//          SerializerTestVertex.STRING_LIST_PROPERTY, Arrays.asList("stringOne", "stringTwo"),
-//          SerializerTestVertex.INT_LIST_PROPERTY, Arrays.asList(42, 43)
-//      );
-//
-//      byte[] bytes = serializer.serialize(vertex);
-//      Vertex deserialized = deserializer.deserialize(bytes);
-//
-//      Vertex underlyingVertexDb = ((VertexRef<TinkerVertex>) vertex).get();
-//
-//      assertEquals(underlyingVertexDb.id(), deserialized.id());
-//      assertEquals(underlyingVertexDb.label(), deserialized.label());
-//      assertEquals(((SerializerTestVertex) underlyingVertexDb).valueMap(),
-//          ((SerializerTestVertex) deserialized).valueMap());
-//
-//      final ElementRef<TinkerVertex> deserializedRef = deserializer.deserializeRef(bytes);
-//      assertEquals(vertex.id(), deserializedRef.id);
-//      assertEquals(SerializerTestVertex.label, deserializedRef.label());
-//    }
-//  }
-//
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.tinkerpop.gremlin.tinkergraph.storage;
+
+import org.apache.tinkerpop.gremlin.structure.*;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.util.*;
+
+import static org.junit.Assert.*;
+
+public class SerializerTest {
+
+  @Test
+  public void serializeVertex() throws IOException {
+    try (TinkerGraph graph = newGraph()) {
+      VertexSerializer serializer = new VertexSerializer();
+      VertexDeserializer deserializer = newVertexDeserializer(graph);
+      Vertex vertexRef = graph.addVertex(
+          T.label, OverflowDbTestNode.label,
+          OverflowDbTestNode.STRING_PROPERTY, "StringValue",
+          OverflowDbTestNode.INT_PROPERTY, 42,
+          OverflowDbTestNode.STRING_LIST_PROPERTY, Arrays.asList("stringOne", "stringTwo"),
+          OverflowDbTestNode.INT_LIST_PROPERTY, Arrays.asList(42, 43)
+      );
+
+      OverflowDbTestNode underlyingVertexDb = ((VertexRef<OverflowDbTestNode>) vertexRef).get();
+      byte[] bytes = serializer.serialize(underlyingVertexDb);
+      Vertex deserialized = deserializer.deserialize(bytes);
+
+      assertEquals(underlyingVertexDb.id(), deserialized.id());
+      assertEquals(underlyingVertexDb.label(), deserialized.label());
+      assertEquals(underlyingVertexDb.valueMap(), ((OverflowDbTestNode) deserialized).valueMap());
+
+      final ElementRef<TinkerVertex> deserializedRef = deserializer.deserializeRef(bytes);
+      assertEquals(vertexRef.id(), deserializedRef.id);
+      assertEquals(OverflowDbTestNode.label, deserializedRef.label());
+    }
+  }
+
 //  @Test
 //  public void serializeEdge() throws IOException {
 //    try (TinkerGraph graph = newGraph()) {
@@ -108,27 +105,18 @@
 //      assertEquals(vertex1, deserialized.vertices(Direction.OUT, SerializerTestEdge.label).next());
 //    }
 //  }
-//
-//  private VertexDeserializer newVertexDeserializer(TinkerGraph graph) {
-//    throw new NotImplementedException("TODO");
-////    Map<String, SpecializedElementFactory.ForVertex> vertexFactories = new HashMap();
-////    vertexFactories.put(SerializerTestVertex.label, SerializerTestVertex.factory);
-////    return new VertexDeserializer(graph, vertexFactories);
-//  }
-//
-//  private EdgeDeserializer newEdgeDeserializer(TinkerGraph graph) {
-//    throw new NotImplementedException("TODO");
-////    Map<String, SpecializedElementFactory.ForEdge> edgeFactories = new HashMap();
-////    edgeFactories.put(SerializerTestEdge.label, SerializerTestEdge.factory);
-////    return new EdgeDeserializer(graph, edgeFactories);
-//  }
-//
-//  private TinkerGraph newGraph() {
-//    throw new NotImplementedException("TODO");
-////    return TinkerGraph.open(
-////        Arrays.asList(SerializerTestVertex.factory),
-////        Arrays.asList(SerializerTestEdge.factory)
-////    );
-//  }
-//
-//}
+
+  private VertexDeserializer newVertexDeserializer(TinkerGraph graph) {
+    Map<String, OverflowElementFactory.ForVertex> vertexFactories = new HashMap();
+    vertexFactories.put(OverflowDbTestNode.label, OverflowDbTestNode.factory);
+    return new VertexDeserializer(graph, vertexFactories);
+  }
+
+  private TinkerGraph newGraph() {
+    return TinkerGraph.open(
+        Arrays.asList(OverflowDbTestNode.factory),
+        Arrays.asList(OverflowDbTestEdge.factory)
+    );
+  }
+
+}

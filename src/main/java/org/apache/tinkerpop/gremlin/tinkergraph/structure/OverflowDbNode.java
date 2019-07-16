@@ -44,11 +44,9 @@ import java.util.stream.StreamSupport;
 import static org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerElement.elementAlreadyRemoved;
 
 /**
- * Variant of SpecializedTinkerVertex that stores adjacent Nodes directly, rather than via edges.
+ * Vertex that stores adjacent Nodes directly, rather than via edges.
  * Motivation: in many graph use cases, edges don't hold any properties and thus accounts for more memory and
  * traversal time than necessary
- *
- * TODO: extend Vertex (rather than SpecializedTinkerVertex) to save more memory
  */
 public abstract class OverflowDbNode implements Vertex {
 
@@ -65,7 +63,7 @@ public abstract class OverflowDbNode implements Vertex {
 
   /* store the start offset and length into the above `adjacentVerticesWithProperties` array in an interleaved manner,
    * i.e. each outgoing edge type has two entries in this array. */
-  private final int[] edgeOffsets;
+  private int[] edgeOffsets;
 
   /* determines how many spaces for adjacent vertices will be left free, so we don't need to grow the array for every additional edge */
   private static final int growthEmptyFactor = 2; // TODO make configurable
@@ -104,6 +102,22 @@ public abstract class OverflowDbNode implements Vertex {
 
   /* implement in concrete specialised instance to avoid using generic HashMaps */
   protected abstract <V> Iterator<VertexProperty<V>> specificProperties(String key);
+
+  public Object[] getAdjacentVerticesWithProperties() {
+    return adjacentVerticesWithProperties;
+  }
+
+  public void setAdjacentVerticesWithProperties(Object[] adjacentVerticesWithProperties) {
+    this.adjacentVerticesWithProperties = adjacentVerticesWithProperties;
+  }
+
+  public int[] getEdgeOffsets() {
+    return edgeOffsets;
+  }
+
+  public void setEdgeOffsets(int[] edgeOffsets) {
+    this.edgeOffsets = edgeOffsets;
+  }
 
   public abstract Map<String, Object> valueMap();
 

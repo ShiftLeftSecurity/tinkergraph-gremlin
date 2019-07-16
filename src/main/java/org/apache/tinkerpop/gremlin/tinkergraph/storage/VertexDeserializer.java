@@ -18,7 +18,6 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
@@ -38,12 +37,7 @@ public class VertexDeserializer extends Deserializer<Vertex> {
   }
 
   @Override
-  protected boolean elementRefRequiresAdjacentElements() {
-    return false;
-  }
-
-  @Override
-  protected ElementRef createElementRef(long id, String label, Map<String, long[]> inEdgeIdsByLabel, Map<String, long[]> outEdgeIdsByLabel) {
+  protected ElementRef createNodeRef(long id, String label) {
     OverflowElementFactory.ForVertex vertexFactory = vertexFactoryByLabel.get(label);
     if (vertexFactory == null) {
       throw new AssertionError("vertexFactory not found for label=" + label);
@@ -53,30 +47,17 @@ public class VertexDeserializer extends Deserializer<Vertex> {
   }
 
   @Override
-  protected Vertex createElement(long id, String label, Map<String, Object> properties, Map<String, long[]> inEdgeIdsByLabel, Map<String, long[]> outEdgeIdsByLabel) {
+  protected Vertex createNode(long id, String label, Map<String, Object> properties, int[] edgeOffsets, Object[] adjacentVerticesWithProperties) {
     OverflowElementFactory.ForVertex vertexFactory = vertexFactoryByLabel.get(label);
     if (vertexFactory == null) {
       throw new AssertionError("vertexFactory not found for label=" + label);
     }
     OverflowDbNode vertex = vertexFactory.createVertex(id, graph);
     ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, toTinkerpopKeyValues(properties));
+    vertex.setEdgeOffsets(edgeOffsets);
+    vertex.setAdjacentVerticesWithProperties(adjacentVerticesWithProperties);
 
-    throw new NotImplementedException("TODO");
-//    inEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
-//      for (long edgeId : entry.getValue()) {
-//        vertex.storeInEdge(graph.edge(edgeId));
-//      }
-//    });
-//
-//    outEdgeIdsByLabel.entrySet().stream().forEach(entry -> {
-//      for (long edgeId : entry.getValue()) {
-//        vertex.storeOutEdge(graph.edge(edgeId));
-//      }
-//    });
-
-//    vertex.setModifiedSinceLastSerialization(false);
-
-//    return vertex;
+    return vertex;
   }
 
 }

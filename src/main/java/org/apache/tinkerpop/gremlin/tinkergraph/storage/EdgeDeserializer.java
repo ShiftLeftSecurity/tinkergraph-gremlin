@@ -39,24 +39,13 @@ public class EdgeDeserializer extends Deserializer<Edge> {
   }
 
   @Override
-  protected boolean elementRefRequiresAdjacentElements() {
-    return true;
+  protected ElementRef createNodeRef(long id, String label) {
+    return null;
   }
 
   @Override
-  protected ElementRef createElementRef(long id, String label, Map<String, long[]> inVertexIdsByLabel, Map<String, long[]> outVertexIdsByLabel) {
-    VertexRef outVertexRef = getVertexRef(outVertexIdsByLabel, Direction.OUT);
-    VertexRef inVertexRef = getVertexRef(inVertexIdsByLabel, Direction.IN);
-    return edgeFactoryByLabel.get(label).createEdgeRef(id, graph, outVertexRef, inVertexRef);
-  }
-
-  @Override
-  protected Edge createElement(long id, String label, Map<String, Object> properties, Map<String, long[]> inVertexIdsByLabel, Map<String, long[]> outVertexIdsByLabel) {
-    VertexRef outVertexRef = getVertexRef(outVertexIdsByLabel, Direction.OUT);
-    VertexRef inVertexRef = getVertexRef(inVertexIdsByLabel, Direction.IN);
-    OverflowDbEdge edge = edgeFactoryByLabel.get(label).createEdge(id, graph, outVertexRef, inVertexRef);
-    ElementHelper.attachProperties(edge, toTinkerpopKeyValues(properties));
-    return edge;
+  protected Edge createNode(long id, String label, Map<String, Object> properties, int[] inVertexIdsByLabel, Object[] outVertexIdsByLabel) {
+    return null;
   }
 
   private VertexRef getVertexRef(Map<String, long[]> vertexIdsByLabel, Direction direction) {
