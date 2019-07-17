@@ -20,6 +20,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowDbNode;
 import org.h2.mvstore.MVMap;
 import org.h2.mvstore.MVStore;
 import org.slf4j.Logger;
@@ -33,22 +34,22 @@ import java.util.Set;
 
 public class OndiskOverflow implements AutoCloseable {
   private final Logger logger = LoggerFactory.getLogger(getClass());
-  protected final VertexSerializer vertexSerializer = new VertexSerializer();
-  protected final Optional<VertexDeserializer> vertexDeserializer;
+  protected final NodeSerializer nodeSerializer = new NodeSerializer();
+  protected final Optional<NodeDeserializer> vertexDeserializer;
 
   private final MVStore mvstore;
   protected final MVMap<Long, byte[]> vertexMVMap;
   private boolean closed;
 
-  public static OndiskOverflow createWithTempFile(final VertexDeserializer vertexDeserializer) {
-    return new OndiskOverflow(Optional.empty(), Optional.ofNullable(vertexDeserializer));
+  public static OndiskOverflow createWithTempFile(final NodeDeserializer nodeDeserializer) {
+    return new OndiskOverflow(Optional.empty(), Optional.ofNullable(nodeDeserializer));
   }
 
   /** create with specific mvstore file - which may or may not yet exist.
    * mvstoreFile won't be deleted at the end (unlike temp file constructors above) */
   public static OndiskOverflow createWithSpecificLocation(
-      final VertexDeserializer vertexDeserializer, final File mvstoreFile) {
-    return new OndiskOverflow(Optional.ofNullable(mvstoreFile), Optional.ofNullable(vertexDeserializer));
+      final NodeDeserializer nodeDeserializer, final File mvstoreFile) {
+    return new OndiskOverflow(Optional.ofNullable(mvstoreFile), Optional.ofNullable(nodeDeserializer));
   }
 
   /** create with specific mvstore file - which may or may not yet exist.
@@ -59,7 +60,7 @@ public class OndiskOverflow implements AutoCloseable {
 
   private OndiskOverflow(
       final Optional<File> mvstoreFileMaybe,
-      final Optional<VertexDeserializer> vertexDeserializer) {
+      final Optional<NodeDeserializer> vertexDeserializer) {
     this.vertexDeserializer = vertexDeserializer;
 
     final File mvstoreFile;
@@ -83,7 +84,7 @@ public class OndiskOverflow implements AutoCloseable {
     if (!closed) {
       final Long id = (Long) element.id();
       if (element instanceof Vertex) {
-        vertexMVMap.put(id, vertexSerializer.serialize((Vertex) element));
+        vertexMVMap.put(id, nodeSerializer.serialize((OverflowDbNode) element));
       } else {
         throw new RuntimeException("unable to serialize " + element + " of type " + element.getClass());
       }
@@ -113,8 +114,8 @@ public class OndiskOverflow implements AutoCloseable {
     return vertexMVMap.entrySet();
   }
 
-  public VertexSerializer getVertexSerializer() {
-    return vertexSerializer;
+  public NodeSerializer getNodeSerializer() {
+    return nodeSerializer;
   }
 
   public MVMap<Long, byte[]> getVertexMVMap() {
@@ -122,7 +123,7 @@ public class OndiskOverflow implements AutoCloseable {
   }
 
 
-  public Optional<VertexDeserializer> getVertexDeserializer() {
+  public Optional<NodeDeserializer> getVertexDeserializer() {
     return vertexDeserializer;
   }
 }

@@ -31,26 +31,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public abstract class Serializer<A> {
+public class NodeSerializer {
+
   private final Logger logger = LoggerFactory.getLogger(getClass());
   private int serializedCount = 0;
   private long serializationTimeSpentMillis = 0;
 
-  protected abstract long getId(A a);
-
-  protected abstract String getLabel(A a);
-
-  protected abstract Map<String, Object> getProperties(A a);
-
-  public byte[] serialize(A a) throws IOException {
+  public byte[] serialize(OverflowDbNode node) throws IOException {
     long start = System.currentTimeMillis();
     try (MessageBufferPacker packer = MessagePack.newDefaultBufferPacker()) {
-      packer.packLong(getId(a));
-      packer.packString(getLabel(a));
+      packer.packLong((Long) node.id());
+      packer.packString(node.label());
 
-      packProperties(packer, getProperties(a));
-      packEdgeOffsets(packer, ((OverflowDbNode) a).getEdgeOffsets());
-      packAdjacentVerticesWithProperties(packer, ((OverflowDbNode) a).getAdjacentVerticesWithProperties());
+      packProperties(packer, node.valueMap());
+      packEdgeOffsets(packer, node.getEdgeOffsets());
+      packAdjacentVerticesWithProperties(packer, node.getAdjacentVerticesWithProperties());
 
       serializedCount++;
       serializationTimeSpentMillis += System.currentTimeMillis() - start;
@@ -135,6 +130,5 @@ public abstract class Serializer<A> {
       throw new NotImplementedException("id type `" + value.getClass() + "` not yet supported");
     }
   }
-
 
 }
