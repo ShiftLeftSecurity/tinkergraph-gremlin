@@ -57,7 +57,6 @@ public final class TinkerGraphStep<S, E extends Element> extends GraphStep<S, E>
 
     private Iterator<? extends Edge> edges() {
         final TinkerGraph graph = (TinkerGraph) this.getTraversal().getGraph().get();
-        final HasContainer indexedContainer = getIndexKey(Edge.class);
         final Optional<HasContainer> hasLabelContainer = findHasLabelStep();
         // ids are present, filter on them first
         if (null == this.ids)
@@ -65,11 +64,7 @@ public final class TinkerGraphStep<S, E extends Element> extends GraphStep<S, E>
         else if (this.ids.length > 0)
             return this.iteratorList(graph.edges(this.ids));
         else
-            return null == indexedContainer ?
-                    this.iteratorList(graph.edges()) :
-                    TinkerHelper.queryEdgeIndex(graph, indexedContainer.getKey(), indexedContainer.getPredicate().getValue()).stream()
-                            .filter(edge -> HasContainer.testAll(edge, this.hasContainers))
-                            .collect(Collectors.<Edge>toList()).iterator();
+            return this.iteratorList(graph.edges());
     }
 
     private Iterator<? extends Vertex> vertices() {
