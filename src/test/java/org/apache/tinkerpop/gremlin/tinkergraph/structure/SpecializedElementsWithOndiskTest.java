@@ -1,48 +1,48 @@
-///*
-// * Licensed to the Apache Software Foundation (ASF) under one
-// * or more contributor license agreements.  See the NOTICE file
-// * distributed with this work for additional information
-// * regarding copyright ownership.  The ASF licenses this file
-// * to you under the Apache License, Version 2.0 (the
-// * "License"); you may not use this file except in compliance
-// * with the License.  You may obtain a copy of the License at
-// *
-// * http://www.apache.org/licenses/LICENSE-2.0
-// *
-// * Unless required by applicable law or agreed to in writing,
-// * software distributed under the License is distributed on an
-// * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-// * KIND, either express or implied.  See the License for the
-// * specific language governing permissions and limitations
-// * under the License.
-// */
-//package org.apache.tinkerpop.gremlin.tinkergraph.structure;
-//
-//import org.apache.commons.configuration.Configuration;
-//import org.apache.commons.lang3.NotImplementedException;
-//import org.apache.tinkerpop.gremlin.process.traversal.P;
-//import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
-//import org.apache.tinkerpop.gremlin.structure.Direction;
-//import org.apache.tinkerpop.gremlin.structure.Edge;
-//import org.apache.tinkerpop.gremlin.structure.Element;
-//import org.apache.tinkerpop.gremlin.structure.T;
-//import org.apache.tinkerpop.gremlin.structure.Vertex;
-//import org.apache.tinkerpop.gremlin.structure.io.IoCore;
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.tinkerpop.gremlin.tinkergraph.structure;
+
+import org.apache.commons.configuration.Configuration;
+import org.apache.commons.lang3.NotImplementedException;
+import org.apache.tinkerpop.gremlin.process.traversal.P;
+import org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.GraphTraversalSource;
+import org.apache.tinkerpop.gremlin.structure.Direction;
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Element;
+import org.apache.tinkerpop.gremlin.structure.T;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.structure.io.IoCore;
 //import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.*;
-//import org.apache.tinkerpop.gremlin.util.TimeUtil;
-//import org.junit.Ignore;
-//import org.junit.Test;
-//
-//import java.io.IOException;
-//import java.util.*;
-//
-//import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.__;
-//import static org.junit.Assert.*;
-//
-///** copy of `SpecializedElementsTest`, only difference being that an on disk cache is used
-// * TODO refactor for code reuse */
-//public class SpecializedElementsWithOndiskTest {
-//
+import org.apache.tinkerpop.gremlin.util.TimeUtil;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.util.*;
+
+import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.__;
+import static org.junit.Assert.*;
+
+/** copy of `SpecializedElementsTest`, only difference being that an on disk cache is used
+ * TODO refactor for code reuse */
+public class SpecializedElementsWithOndiskTest {
+
 //    @Test
 //    public void simpleTest() {
 //        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
@@ -428,38 +428,34 @@
 //        System.out.println("performance enhancement of specialized elements = " + diffPercent);
 //    }
 //
-////    @Test
-//    // only run manually since the timings vary depending on the environment
-//    // without overflow you could hold ~2.3M vertices in 1G memory
-//    // with overflow that number should be tremendously larger, because only the element wrappers are helt in memory
-//    // it'll be much slower due to the serialization to disk, but should not crash
-//    // important: use all the following vm opts:  `-XX:+UseG1GC -Xms256m -Xmx256m -XX:+HeapDumpOnOutOfMemoryError`
-//    public void shouldAllowGraphsLargerThanMemory() throws InterruptedException {
-//        int vertexCount = 300000;
-////        TinkerGraph graph = newGratefulDeadGraphWithSpecializedElements();
-//        Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
-////        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, false);
-//        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
-//        throw new NotImplementedException("TODO");
-////        TinkerGraph graph = TinkerGraph.open(
-////                configuration,
-////                Arrays.asList(Song.factory, Artist.factory),
-////                Arrays.asList(FollowedBy.factory, SungBy.factory, WrittenBy.factory)
-////        );
-////
-////        for (long i = 0; i < vertexCount; i++) {
-////            if (i % 50000 == 0) {
-////                System.out.println(i + " vertices created");
-////                Thread.sleep(1000); // in lieu of other application usage
-////            }
-////            Vertex v = graph.addVertex(Song.label);
-//////            v.property(Song.NAME, UUID.randomUUID().toString());
-//////            v.property(Song.SONG_TYPE, UUID.randomUUID().toString());
-////            v.property(Song.TEST_PROP, new int[200]);
-////        }
-////        graph.close();
-//    }
-//
+
+//    @Test
+    /** Run manually with the following jvm options: `-XX:+UseG1GC -Xms1g -Xmx1g`
+     * Without overflow it can hold 250k vertices in 1G memory, with overflow that number should be tremendously larger.
+     * It'll be slower due to the serialization to disk, but should not crash
+     * Please use all  and optionally `-XX:+HeapDumpOnOutOfMemoryError` */
+    public void shouldAllowGraphsLargerThanMemory() {
+        int vertexCount = 500000;
+        Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
+//        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, false);
+        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
+      try (TinkerGraph graph = TinkerGraph.open(
+          configuration,
+          Arrays.asList(OverflowDbTestNode.factory),
+          Arrays.asList(OverflowDbTestEdge.factory)
+      )) {
+        for (long i = 0; i < vertexCount; i++) {
+            if (i % 10000 == 0) {
+                System.out.println(i + " vertices created");
+            }
+          graph.addVertex(
+              T.label, OverflowDbTestNode.label,
+              OverflowDbTestNode.INT_LIST_PROPERTY, Arrays.asList(new Integer[1000])
+          );
+        }
+      }
+    }
+
 //    private TinkerGraph newGratefulDeadGraphWithSpecializedElements() {
 //        Configuration configuration = TinkerGraph.EMPTY_CONFIGURATION();
 //        configuration.setProperty(TinkerGraph.GREMLIN_TINKERGRAPH_ONDISK_OVERFLOW_ENABLED, true);
@@ -488,4 +484,4 @@
 //        graph.io(IoCore.graphml()).readGraph("src/test/resources/grateful-dead.xml");
 //    }
 //
-//}
+}

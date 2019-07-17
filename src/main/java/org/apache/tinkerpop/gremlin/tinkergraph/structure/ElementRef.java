@@ -40,9 +40,6 @@ public abstract class ElementRef<E extends Element> implements Element {
     this.id = (long)id;
     this.graph = (TinkerGraph)graph;
     this.element = element;
-    if (element != null) {
-      this.graph.referenceManager.registerRef(this);
-    }
   }
 
   public boolean isSet() {

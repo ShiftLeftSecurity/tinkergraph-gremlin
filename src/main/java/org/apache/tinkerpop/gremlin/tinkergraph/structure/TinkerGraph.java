@@ -289,6 +289,7 @@ public final class TinkerGraph implements Graph {
         if (vertexFactoryByLabel.containsKey(label)) {
             final OverflowElementFactory.ForVertex factory = vertexFactoryByLabel.get(label);
             final OverflowDbNode underlying = factory.createVertex(idValue, this);
+            this.referenceManager.registerRef(underlying.ref);
             vertex = underlying.ref;
         } else { // vertex label not registered for a specialized factory, treating as generic vertex
             if (this.usesSpecializedElements) {
