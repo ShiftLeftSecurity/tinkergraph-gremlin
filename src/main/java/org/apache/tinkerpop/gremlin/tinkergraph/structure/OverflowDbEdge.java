@@ -26,6 +26,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
 import java.util.Iterator;
+import java.util.Objects;
 import java.util.Set;
 
 public abstract class OverflowDbEdge implements Edge {
@@ -86,7 +87,7 @@ public abstract class OverflowDbEdge implements Edge {
 
   @Override
   public Object id() {
-    return -1l;
+    return this;
   }
 
   @Override
@@ -172,6 +173,26 @@ public abstract class OverflowDbEdge implements Edge {
 
   public boolean isRemoved() {
     return removed;
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (!(other instanceof OverflowDbEdge)) {
+      return false;
+    }
+
+    OverflowDbEdge otherEdge = (OverflowDbEdge)other;
+
+    return this.inVertex.id().equals(otherEdge.inVertex.id()) &&
+        this.outVertex.id().equals(otherEdge.outVertex.id()) &&
+        this.label.equals(otherEdge.label) &&
+        this.inBlockOffset == otherEdge.inBlockOffset &&
+        this.outBlockOffset == otherEdge.outBlockOffset;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(inVertex.id(), outVertex.id(), label, outBlockOffset, inBlockOffset);
   }
 
 }
