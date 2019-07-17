@@ -19,6 +19,7 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import org.apache.commons.lang3.NotImplementedException;
+import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
 import org.apache.tinkerpop.gremlin.structure.Vertex;
@@ -86,6 +87,24 @@ public class OverflowDbNodeTest {
         assertEquals(Long.valueOf(99l), __(v0).outE().values(OverflowDbTestEdge.LONG_PROPERTY).next());
         assertEquals(Long.valueOf(99l), __(v1).inE().values(OverflowDbTestEdge.LONG_PROPERTY).next());
         assertEquals(Long.valueOf(99l), __(v1).inE().values().next());
+    }
+
+    @Test
+    public void testEdgeEquality() {
+        TinkerGraph graph = newGraph();
+
+        Vertex v0 = graph.addVertex(T.label, OverflowDbTestNode.label);
+        Vertex v1 = graph.addVertex(T.label, OverflowDbTestNode.label);
+
+        Edge e0 = v0.addEdge(OverflowDbTestEdge.label, v1, OverflowDbTestEdge.LONG_PROPERTY, 99l);
+
+
+        Edge e0FromOut = v0.edges(Direction.OUT).next();
+        Edge e0FromIn = v1.edges(Direction.IN).next();
+
+        assertEquals(e0, e0FromOut);
+        assertEquals(e0, e0FromIn);
+        assertEquals(e0FromOut, e0FromIn);
     }
 
     private TinkerGraph newGraph() {

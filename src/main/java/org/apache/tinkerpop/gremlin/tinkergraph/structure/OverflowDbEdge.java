@@ -109,17 +109,11 @@ public abstract class OverflowDbEdge implements Edge {
     // TODO check if it's an allowed property key
     if (inBlockOffset != UNITIALIZED_BLOCK_OFFSET) {
       if (outBlockOffset == UNITIALIZED_BLOCK_OFFSET) {
-        int numberOfEdgesWithSameLabelBetweenInAndOutVertex =
-            inVertex.get().blockOffsetToOccurrence(Direction.IN, label(), outVertex, inBlockOffset);
-        outBlockOffset = outVertex.get().occurrenceToBlockOffset(Direction.OUT, label(), inVertex,
-            numberOfEdgesWithSameLabelBetweenInAndOutVertex);
+        initializeOutFromInOffset();
       }
     } else if (outBlockOffset != UNITIALIZED_BLOCK_OFFSET) {
       if (inBlockOffset == UNITIALIZED_BLOCK_OFFSET) {
-        int numberOfEdgesWithSameLabelBetweenInAndOutVertex =
-            outVertex.get().blockOffsetToOccurrence(Direction.OUT, label(), inVertex, outBlockOffset);
-        inBlockOffset = inVertex.get().occurrenceToBlockOffset(Direction.IN, label(), outVertex,
-            numberOfEdgesWithSameLabelBetweenInAndOutVertex);
+        initializeInFromOutOffset();
       }
     } else {
       throw new RuntimeException("Cannot set property. In and out block offset unitialized.");
@@ -183,16 +177,54 @@ public abstract class OverflowDbEdge implements Edge {
 
     OverflowDbEdge otherEdge = (OverflowDbEdge)other;
 
+    fixupBlockOffsetsIfNecessary(otherEdge);
+
     return this.inVertex.id().equals(otherEdge.inVertex.id()) &&
         this.outVertex.id().equals(otherEdge.outVertex.id()) &&
         this.label.equals(otherEdge.label) &&
-        this.inBlockOffset == otherEdge.inBlockOffset &&
-        this.outBlockOffset == otherEdge.outBlockOffset;
+        (this.inBlockOffset == UNITIALIZED_BLOCK_OFFSET ||
+            otherEdge.inBlockOffset == UNITIALIZED_BLOCK_OFFSET ||
+            this.inBlockOffset == otherEdge.inBlockOffset) &&
+        (this.outBlockOffset == UNITIALIZED_BLOCK_OFFSET ||
+            otherEdge.outBlockOffset == UNITIALIZED_BLOCK_OFFSET ||
+            this.outBlockOffset == otherEdge.outBlockOffset);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(inVertex.id(), outVertex.id(), label, outBlockOffset, inBlockOffset);
+    // Despite the fact that the block offsets are used in the equals method,
+    // we do not hash over the block offsets as those may change.
+    // This results in hash collisions for edges with the same label between the
+    // same nodes but since those are deemed very rare this is ok.
+    return Objects.hash(inVertex.id(), outVertex.id(), label);
+  }
+
+  private void fixupBlockOffsetsIfNecessary(OverflowDbEdge otherEdge) {
+    if ((this.inBlockOffset == UNITIALIZED_BLOCK_OFFSET ||
+        otherEdge.inBlockOffset == UNITIALIZED_BLOCK_OFFSET) &&
+        (this.outBlockOffset == UNITIALIZED_BLOCK_OFFSET ||
+            otherEdge.outBlockOffset == UNITIALIZED_BLOCK_OFFSET)) {
+      if (this.inBlockOffset == UNITIALIZED_BLOCK_OFFSET) {
+        initializeInFromOutOffset();
+      } else {
+        initializeOutFromInOffset();
+      }
+
+    }
+  }
+
+  private void initializeInFromOutOffset() {
+    int numberOfEdgesWithSameLabelBetweenInAndOutVertex =
+        outVertex.get().blockOffsetToOccurrence(Direction.OUT, label(), inVertex, outBlockOffset);
+    inBlockOffset = inVertex.get().occurrenceToBlockOffset(Direction.IN, label(), outVertex,
+        numberOfEdgesWithSameLabelBetweenInAndOutVertex);
+  }
+
+  private void initializeOutFromInOffset() {
+    int numberOfEdgesWithSameLabelBetweenInAndOutVertex =
+        inVertex.get().blockOffsetToOccurrence(Direction.IN, label(), outVertex, inBlockOffset);
+    outBlockOffset = outVertex.get().occurrenceToBlockOffset(Direction.OUT, label(), inVertex,
+        numberOfEdgesWithSameLabelBetweenInAndOutVertex);
   }
 
 }
