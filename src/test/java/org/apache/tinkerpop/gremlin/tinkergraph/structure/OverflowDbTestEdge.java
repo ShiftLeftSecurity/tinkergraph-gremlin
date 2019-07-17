@@ -46,15 +46,5 @@ public class OverflowDbTestEdge extends OverflowDbEdge {
         public OverflowDbTestEdge createEdge(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
             return new OverflowDbTestEdge(graph, outVertex, inVertex);
         }
-
-        @Override
-        public EdgeRef<OverflowDbTestEdge> createEdgeRef(OverflowDbTestEdge edge) {
-            return new EdgeRefWithLabel<>(edge.id(), edge.graph(), edge, OverflowDbTestEdge.label);
-        }
-
-        @Override
-        public EdgeRef<OverflowDbTestEdge> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
-            return new EdgeRefWithLabel<>(id, graph, null, OverflowDbTestEdge.label);
-        }
     };
 }

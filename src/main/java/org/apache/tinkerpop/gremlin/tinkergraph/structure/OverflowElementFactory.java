@@ -32,8 +32,6 @@ public class OverflowElementFactory {
     public interface ForEdge<E extends OverflowDbEdge> {
         String forLabel();
         E createEdge(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex);
-        EdgeRef<E> createEdgeRef(E edge);
-        EdgeRef<E> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex);
     }
 }
 
