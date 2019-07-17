@@ -25,7 +25,6 @@ import org.junit.Test;
 import java.io.IOException;
 import java.util.*;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 
 public class SerializerTest {
@@ -33,8 +32,8 @@ public class SerializerTest {
   @Test
   public void serializeVertex() throws IOException {
     try (TinkerGraph graph = newGraph()) {
-      VertexSerializer serializer = new VertexSerializer();
-      VertexDeserializer deserializer = newDeserializer(graph);
+      NodeSerializer serializer = new NodeSerializer();
+      NodeDeserializer deserializer = newDeserializer(graph);
       Vertex vertexRef = graph.addVertex(
           T.label, OverflowDbTestNode.label,
           OverflowDbTestNode.STRING_PROPERTY, "StringValue",
@@ -60,8 +59,8 @@ public class SerializerTest {
   @Test
   public void serializeWithEdge() throws IOException {
     try (TinkerGraph graph = newGraph()) {
-      VertexSerializer serializer = new VertexSerializer();
-      VertexDeserializer deserializer = newDeserializer(graph);
+      NodeSerializer serializer = new NodeSerializer();
+      NodeDeserializer deserializer = newDeserializer(graph);
 
       Vertex v0 = graph.addVertex(T.label, OverflowDbTestNode.label);
       Vertex v1 = graph.addVertex(T.label, OverflowDbTestNode.label);
@@ -89,10 +88,10 @@ public class SerializerTest {
     }
   }
 
-  private VertexDeserializer newDeserializer(TinkerGraph graph) {
+  private NodeDeserializer newDeserializer(TinkerGraph graph) {
     Map<String, OverflowElementFactory.ForVertex> vertexFactories = new HashMap();
     vertexFactories.put(OverflowDbTestNode.label, OverflowDbTestNode.factory);
-    return new VertexDeserializer(graph, vertexFactories);
+    return new NodeDeserializer(graph, vertexFactories);
   }
 
   private TinkerGraph newGraph() {

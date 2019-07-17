@@ -47,7 +47,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.process.computer.TinkerGraphComp
 import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optimization.TinkerGraphCountStrategy;
 import org.apache.tinkerpop.gremlin.tinkergraph.process.traversal.strategy.optimization.TinkerGraphStepStrategy;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.OndiskOverflow;
-import org.apache.tinkerpop.gremlin.tinkergraph.storage.VertexDeserializer;
+import org.apache.tinkerpop.gremlin.tinkergraph.storage.NodeDeserializer;
 import org.apache.tinkerpop.gremlin.tinkergraph.storage.iterator.MultiIterator2;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 import org.apache.tinkerpop.gremlin.util.iterator.MultiIterator;
@@ -157,12 +157,12 @@ public final class TinkerGraph implements Graph {
         if (ondiskOverflowEnabled) {
             graphFormat = GRAPH_FORMAT_MVSTORE;
             referenceManager = new ReferenceManagerImpl(configuration.getInt(GREMLIN_TINKERGRAPH_OVERFLOW_HEAP_PERCENTAGE_THRESHOLD));
-            VertexDeserializer vertexDeserializer = new VertexDeserializer(this, vertexFactoryByLabel);
+            NodeDeserializer nodeDeserializer = new NodeDeserializer(this, vertexFactoryByLabel);
             if (graphLocation == null) {
-                ondiskOverflow = OndiskOverflow.createWithTempFile(vertexDeserializer);
+                ondiskOverflow = OndiskOverflow.createWithTempFile(nodeDeserializer);
                 initEmptyElementCollections();
             } else {
-                ondiskOverflow = OndiskOverflow.createWithSpecificLocation(vertexDeserializer, new File(graphLocation));
+                ondiskOverflow = OndiskOverflow.createWithSpecificLocation(nodeDeserializer, new File(graphLocation));
                 initElementCollections(ondiskOverflow);
             }
         } else {
