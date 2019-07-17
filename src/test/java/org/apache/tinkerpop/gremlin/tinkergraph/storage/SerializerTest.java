@@ -74,12 +74,14 @@ public class SerializerTest {
       Edge edgeViaV0Deserialized = v0Deserialized.edges(Direction.OUT, OverflowDbTestEdge.label).next();
       Edge edgeViaV1Deserialized = v1Deserialized.edges(Direction.IN, OverflowDbTestEdge.label).next();
 
-      assertEquals(edge.id(), edgeViaV0Deserialized.id());
-      assertEquals(edge.id(), edgeViaV1Deserialized.id());
       assertEquals(OverflowDbTestEdge.label, edgeViaV0Deserialized.label());
       assertEquals(OverflowDbTestEdge.label, edgeViaV1Deserialized.label());
       assertEquals(Long.MAX_VALUE, (long) edgeViaV0Deserialized.value(OverflowDbTestEdge.LONG_PROPERTY));
       assertEquals(Long.MAX_VALUE, (long) edgeViaV1Deserialized.value(OverflowDbTestEdge.LONG_PROPERTY));
+      assertEquals(v0, edgeViaV0Deserialized.outVertex());
+      assertEquals(v1, edgeViaV0Deserialized.inVertex());
+      assertEquals(v0, edgeViaV1Deserialized.outVertex());
+      assertEquals(v1, edgeViaV1Deserialized.inVertex());
 
       assertEquals(v0.id(), edgeViaV0Deserialized.outVertex().id());
       assertEquals(v1.id(), edgeViaV0Deserialized.inVertex().id());
