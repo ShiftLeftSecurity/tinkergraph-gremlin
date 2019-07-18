@@ -95,10 +95,6 @@ public abstract class OverflowDbEdge implements Edge {
     return label;
   }
 
-  protected <V> Property<V> specificProperty(String key) {
-    throw new RuntimeException("Not supported.");
-  }
-
   @Override
   public Graph graph() {
     return graph;
@@ -127,16 +123,6 @@ public abstract class OverflowDbEdge implements Edge {
   public Set<String> keys() {
     return specificKeys;
   }
-
-//  @Override
-//  protected <V> Property<V> updateSpecificProperty(String key, V value) {
-//    throw new RuntimeException("Not supported.");
-//  }
-
-//  @Override
-//  protected void removeSpecificProperty(String key) {
-//    throw new RuntimeException("Not supported.");
-//  }
 
   @Override
   public void remove() {
