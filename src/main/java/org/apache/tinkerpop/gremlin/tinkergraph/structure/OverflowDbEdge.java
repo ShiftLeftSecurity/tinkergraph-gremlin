@@ -95,10 +95,6 @@ public abstract class OverflowDbEdge implements Edge {
     return label;
   }
 
-  protected <V> Property<V> specificProperty(String key) {
-    throw new RuntimeException("Not supported.");
-  }
-
   @Override
   public Graph graph() {
     return graph;
@@ -127,16 +123,6 @@ public abstract class OverflowDbEdge implements Edge {
   public Set<String> keys() {
     return specificKeys;
   }
-
-//  @Override
-//  protected <V> Property<V> updateSpecificProperty(String key, V value) {
-//    throw new RuntimeException("Not supported.");
-//  }
-
-//  @Override
-//  protected void removeSpecificProperty(String key) {
-//    throw new RuntimeException("Not supported.");
-//  }
 
   @Override
   public void remove() {
@@ -215,14 +201,14 @@ public abstract class OverflowDbEdge implements Edge {
 
   private void initializeInFromOutOffset() {
     int numberOfEdgesWithSameLabelBetweenInAndOutVertex =
-        outVertex.get().blockOffsetToOccurrence(Direction.OUT, label(), inVertex, outBlockOffset);
+        outVertex.get().adjacentVertexToOccurrence(Direction.OUT, label(), inVertex);
     inBlockOffset = inVertex.get().occurrenceToBlockOffset(Direction.IN, label(), outVertex,
         numberOfEdgesWithSameLabelBetweenInAndOutVertex);
   }
 
   private void initializeOutFromInOffset() {
     int numberOfEdgesWithSameLabelBetweenInAndOutVertex =
-        inVertex.get().blockOffsetToOccurrence(Direction.IN, label(), outVertex, inBlockOffset);
+        inVertex.get().adjacentVertexToOccurrence(Direction.IN, label(), outVertex);
     outBlockOffset = outVertex.get().occurrenceToBlockOffset(Direction.OUT, label(), inVertex,
         numberOfEdgesWithSameLabelBetweenInAndOutVertex);
   }
