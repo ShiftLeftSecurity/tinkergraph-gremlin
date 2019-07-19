@@ -350,16 +350,17 @@ public abstract class OverflowDbNode implements Vertex {
     return multiIterator;
   }
 
-  public int adjacentVertexToOccurrence(Direction direction,
-                                        String label,
-                                        VertexRef<OverflowDbNode> otherVertex) {
+  public int blockOffsetToOccurrence(Direction direction,
+                                     String label,
+                                     VertexRef<OverflowDbNode> otherVertex,
+                                     int blockOffset) {
     int offsetPos = getPositionInEdgeOffsets(direction, label);
     int start = startIndex(offsetPos);
     int length = blockLength(offsetPos);
     int strideSize = getEdgeKeyCount(label) + 1;
 
     int currentOccurrence = -1;
-    for (int i = start; i < start + length; i += strideSize) {
+    for (int i = start; i <= start + blockOffset; i += strideSize) {
       if (((VertexRef)adjacentVerticesWithProperties[i]).id().equals(otherVertex.id())) {
         currentOccurrence++;
       }
