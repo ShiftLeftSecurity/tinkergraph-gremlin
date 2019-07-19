@@ -409,10 +409,6 @@ public abstract class OverflowDbNode implements Vertex {
    * @param blockOffset must have been initialized
    */
   protected void removeEdge(Direction direction, String label, VertexRef<OverflowDbNode> adjacentVertex, int blockOffset) {
-    if (blockOffset == -1) {
-      throw new IllegalStateException("blockOffset not initialized for " + direction + " edge of type " + label +
-          " connected with node " + adjacentVertex.id + " of type " + adjacentVertex.label());
-    }
     int offsetPos = getPositionInEdgeOffsets(direction, label);
     int start = startIndex(offsetPos) + blockOffset;
     int strideSize = getEdgeKeyCount(label) + 1;
