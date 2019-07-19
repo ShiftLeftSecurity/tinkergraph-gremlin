@@ -135,12 +135,7 @@ public abstract class OverflowDbEdge implements Edge {
 
   @Override
   public void remove() {
-    if (inBlockOffset == UNINITIALIZED_BLOCK_OFFSET) {
-      initializeInFromOutOffset();
-    }
-    if (outBlockOffset == UNINITIALIZED_BLOCK_OFFSET) {
-      initializeOutFromInOffset();
-    }
+    fixupBlockOffsets();
     outVertex.get().removeEdge(Direction.OUT, label(), inVertex, outBlockOffset);
     inVertex.get().removeEdge(Direction.IN, label(), outVertex, inBlockOffset);
   }
@@ -205,12 +200,16 @@ public abstract class OverflowDbEdge implements Edge {
         otherEdge.inBlockOffset == UNINITIALIZED_BLOCK_OFFSET) &&
         (this.outBlockOffset == UNINITIALIZED_BLOCK_OFFSET ||
             otherEdge.outBlockOffset == UNINITIALIZED_BLOCK_OFFSET)) {
-      if (this.inBlockOffset == UNINITIALIZED_BLOCK_OFFSET) {
-        initializeInFromOutOffset();
-      } else {
-        initializeOutFromInOffset();
-      }
+      fixupBlockOffsets();
+    }
+  }
 
+  private void fixupBlockOffsets() {
+    if (inBlockOffset == UNINITIALIZED_BLOCK_OFFSET) {
+      initializeInFromOutOffset();
+    }
+    if (outBlockOffset == UNINITIALIZED_BLOCK_OFFSET) {
+      initializeOutFromInOffset();
     }
   }
 
