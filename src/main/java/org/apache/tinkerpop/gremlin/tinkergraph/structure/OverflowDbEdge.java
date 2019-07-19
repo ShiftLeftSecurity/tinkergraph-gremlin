@@ -135,7 +135,8 @@ public abstract class OverflowDbEdge implements Edge {
 
   @Override
   public void remove() {
-    throw new RuntimeException("Not supported.");
+    outVertex.get().removeEdge(Direction.OUT, label(), inVertex, outBlockOffset);
+    inVertex.get().removeEdge(Direction.IN, label(), outVertex, inBlockOffset);
   }
 
   @Override

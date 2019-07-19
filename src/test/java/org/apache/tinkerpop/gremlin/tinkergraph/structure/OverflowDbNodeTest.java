@@ -214,6 +214,19 @@ public class OverflowDbNodeTest {
     assertEquals(Long.valueOf(2L), e1ViaIn.property(OverflowDbTestEdge.LONG_PROPERTY).value());
   }
 
+  @Test
+  public void removeEdge() {
+    try (TinkerGraph graph = newGraph()) {
+      Vertex v0 = graph.addVertex(T.label, OverflowDbTestNode.label, OverflowDbTestNode.STRING_PROPERTY, "v0");
+      Vertex v1 = graph.addVertex(T.label, OverflowDbTestNode.label, OverflowDbTestNode.STRING_PROPERTY, "v1");
+      Edge edge = v0.addEdge(OverflowDbTestEdge.label, v1, OverflowDbTestEdge.LONG_PROPERTY, Long.MAX_VALUE);
+
+      edge.remove();
+      assertFalse(v0.edges(Direction.OUT).hasNext());
+      assertFalse(v1.edges(Direction.IN).hasNext());
+    }
+  }
+
   private TinkerGraph newGraph() {
     return TinkerGraph.open(
         Arrays.asList(OverflowDbTestNode.factory),
