@@ -215,15 +215,35 @@ public class OverflowDbNodeTest {
   }
 
   @Test
-  public void removeEdge() {
+  public void removeEdgeSimple() {
     try (TinkerGraph graph = newGraph()) {
       Vertex v0 = graph.addVertex(T.label, OverflowDbTestNode.label, OverflowDbTestNode.STRING_PROPERTY, "v0");
       Vertex v1 = graph.addVertex(T.label, OverflowDbTestNode.label, OverflowDbTestNode.STRING_PROPERTY, "v1");
-      Edge edge = v0.addEdge(OverflowDbTestEdge.label, v1, OverflowDbTestEdge.LONG_PROPERTY, Long.MAX_VALUE);
+      Edge edge = v0.addEdge(OverflowDbTestEdge.label, v1, OverflowDbTestEdge.LONG_PROPERTY, 1l);
 
       edge.remove();
+
       assertFalse(v0.edges(Direction.OUT).hasNext());
       assertFalse(v1.edges(Direction.IN).hasNext());
+    }
+  }
+
+  @Test
+  public void removeEdgeComplex() {
+    try (TinkerGraph graph = newGraph()) {
+      Vertex v0 = graph.addVertex(T.label, OverflowDbTestNode.label, OverflowDbTestNode.STRING_PROPERTY, "v0");
+      Vertex v1 = graph.addVertex(T.label, OverflowDbTestNode.label, OverflowDbTestNode.STRING_PROPERTY, "v1");
+      Edge edge0 = v0.addEdge(OverflowDbTestEdge.label, v1, OverflowDbTestEdge.LONG_PROPERTY, 0l);
+      Edge edge1 = v0.addEdge(OverflowDbTestEdge.label, v1, OverflowDbTestEdge.LONG_PROPERTY, 1l);
+
+      edge0.remove();
+
+      Iterator<Edge> v0outEdges = v0.edges(Direction.OUT);
+      assertEquals(Long.valueOf(1), v0outEdges.next().value(OverflowDbTestEdge.LONG_PROPERTY));
+      assertFalse(v0outEdges.hasNext());
+      Iterator<Edge> v1inEdges = v0.edges(Direction.OUT);
+      assertEquals(Long.valueOf(1), v1inEdges.next().value(OverflowDbTestEdge.LONG_PROPERTY));
+      assertFalse(v1inEdges.hasNext());
     }
   }
 

@@ -462,8 +462,8 @@ public abstract class OverflowDbNode implements Vertex {
     @Override
     public boolean hasNext() {
       // there may be holes, e.g. if an edge was removed
-      while (current < exclusiveEnd) {
-        if (array[current] == null) current += strideSize;
+      while (current < exclusiveEnd && array[current] == null) {
+        current += strideSize;
       }
       return current < exclusiveEnd;
     }
