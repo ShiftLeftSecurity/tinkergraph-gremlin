@@ -48,7 +48,7 @@ public abstract class OverflowDbEdge implements Edge {
   private final Set<String> specificKeys;
   private boolean removed = false;
 
-  public static final int UNINITIALIZED_BLOCK_OFFSET = -1;
+  private static final int UNINITIALIZED_BLOCK_OFFSET = -1;
 
   public OverflowDbEdge(TinkerGraph graph,
                         String label,
@@ -135,6 +135,12 @@ public abstract class OverflowDbEdge implements Edge {
 
   @Override
   public void remove() {
+    if (inBlockOffset == UNINITIALIZED_BLOCK_OFFSET) {
+      initializeInFromOutOffset();
+    }
+    if (outBlockOffset == UNINITIALIZED_BLOCK_OFFSET) {
+      initializeOutFromInOffset();
+    }
     outVertex.get().removeEdge(Direction.OUT, label(), inVertex, outBlockOffset);
     inVertex.get().removeEdge(Direction.IN, label(), outVertex, inBlockOffset);
   }
