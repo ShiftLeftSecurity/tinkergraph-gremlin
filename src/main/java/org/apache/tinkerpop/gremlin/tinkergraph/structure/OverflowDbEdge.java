@@ -200,17 +200,17 @@ public abstract class OverflowDbEdge implements Edge {
   }
 
   private void initializeInFromOutOffset() {
-    int numberOfEdgesWithSameLabelBetweenInAndOutVertex =
+    int edgeOccurenceForSameLabelEdgesBetweenSameNodePair =
         outVertex.get().blockOffsetToOccurrence(Direction.OUT, label(), inVertex, outBlockOffset);
     inBlockOffset = inVertex.get().occurrenceToBlockOffset(Direction.IN, label(), outVertex,
-        numberOfEdgesWithSameLabelBetweenInAndOutVertex);
+        edgeOccurenceForSameLabelEdgesBetweenSameNodePair);
   }
 
   private void initializeOutFromInOffset() {
-    int numberOfEdgesWithSameLabelBetweenInAndOutVertex =
+    int edgeOccurenceForSameLabelEdgesBetweenSameNodePair =
         inVertex.get().blockOffsetToOccurrence(Direction.IN, label(), outVertex, inBlockOffset);
     outBlockOffset = outVertex.get().occurrenceToBlockOffset(Direction.OUT, label(), inVertex,
-        numberOfEdgesWithSameLabelBetweenInAndOutVertex);
+        edgeOccurenceForSameLabelEdgesBetweenSameNodePair);
   }
 
 }

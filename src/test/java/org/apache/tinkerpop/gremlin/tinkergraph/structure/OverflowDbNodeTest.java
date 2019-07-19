@@ -26,6 +26,7 @@ import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Set;
 
 import static org.apache.tinkerpop.gremlin.process.traversal.dsl.graph.__.__;
@@ -105,6 +106,112 @@ public class OverflowDbNodeTest {
         assertEquals(e0, e0FromOut);
         assertEquals(e0, e0FromIn);
         assertEquals(e0FromOut, e0FromIn);
+    }
+
+    @Test
+    public void setAndGetEdgePropertyViaNewEdge() {
+        TinkerGraph graph = newGraph();
+
+        Vertex v0 = graph.addVertex(T.label, OverflowDbTestNode.label);
+        Vertex v1 = graph.addVertex(T.label, OverflowDbTestNode.label);
+
+        Edge e0 = v0.addEdge(OverflowDbTestEdge.label, v1);
+        e0.property(OverflowDbTestEdge.LONG_PROPERTY, 1L);
+        assertEquals(Long.valueOf(1L), e0.property(OverflowDbTestEdge.LONG_PROPERTY).value());
+    }
+
+    @Test
+    public void setAndGetEdgePropertyViaQueriedEdge() {
+        TinkerGraph graph = newGraph();
+
+        Vertex v0 = graph.addVertex(T.label, OverflowDbTestNode.label);
+        Vertex v1 = graph.addVertex(T.label, OverflowDbTestNode.label);
+
+        v0.addEdge(OverflowDbTestEdge.label, v1);
+
+        Edge e0 = v0.edges(Direction.OUT, OverflowDbTestEdge.label).next();
+        e0.property(OverflowDbTestEdge.LONG_PROPERTY, 1L);
+        assertEquals(Long.valueOf(1L), e0.property(OverflowDbTestEdge.LONG_PROPERTY).value());
+    }
+
+    @Test
+    public void setAndGetEdgePropertyViaDifferenceQueriedEdges() {
+        TinkerGraph graph = newGraph();
+
+        Vertex v0 = graph.addVertex(T.label, OverflowDbTestNode.label);
+        Vertex v1 = graph.addVertex(T.label, OverflowDbTestNode.label);
+
+        v0.addEdge(OverflowDbTestEdge.label, v1);
+
+        Edge e0ViaOut = v0.edges(Direction.OUT, OverflowDbTestEdge.label).next();
+        e0ViaOut.property(OverflowDbTestEdge.LONG_PROPERTY, 1L);
+
+        Edge e0ViaIn = v1.edges(Direction.IN, OverflowDbTestEdge.label).next();
+        assertEquals(Long.valueOf(1L), e0ViaIn.property(OverflowDbTestEdge.LONG_PROPERTY).value());
+    }
+
+    @Test
+    public void setAndGetEdgePropertyViaNewEdgeMultiple() {
+        TinkerGraph graph = newGraph();
+
+        Vertex v0 = graph.addVertex(T.label, OverflowDbTestNode.label);
+        Vertex v1 = graph.addVertex(T.label, OverflowDbTestNode.label);
+
+        Edge e0 = v0.addEdge(OverflowDbTestEdge.label, v1);
+        Edge e1 = v0.addEdge(OverflowDbTestEdge.label, v1);
+
+        e0.property(OverflowDbTestEdge.LONG_PROPERTY, 1L);
+        e1.property(OverflowDbTestEdge.LONG_PROPERTY, 2L);
+
+        assertEquals(Long.valueOf(1L), e0.property(OverflowDbTestEdge.LONG_PROPERTY).value());
+        assertEquals(Long.valueOf(2L), e1.property(OverflowDbTestEdge.LONG_PROPERTY).value());
+    }
+
+    @Test
+    public void setAndGetEdgePropertyViaQueriedEdgeMultiple() {
+        TinkerGraph graph = newGraph();
+
+        Vertex v0 = graph.addVertex(T.label, OverflowDbTestNode.label);
+        Vertex v1 = graph.addVertex(T.label, OverflowDbTestNode.label);
+
+        v0.addEdge(OverflowDbTestEdge.label, v1);
+        v0.addEdge(OverflowDbTestEdge.label, v1);
+
+        Iterator<Edge> edgeIt = v0.edges(Direction.OUT, OverflowDbTestEdge.label);
+
+        Edge e0 = edgeIt.next();
+        Edge e1 = edgeIt.next();
+
+        e0.property(OverflowDbTestEdge.LONG_PROPERTY, 1L);
+        e1.property(OverflowDbTestEdge.LONG_PROPERTY, 2L);
+
+        assertEquals(Long.valueOf(1L), e0.property(OverflowDbTestEdge.LONG_PROPERTY).value());
+        assertEquals(Long.valueOf(2L), e1.property(OverflowDbTestEdge.LONG_PROPERTY).value());
+    }
+
+    @Test
+    public void setAndGetEdgePropertyViaDifferenceQueriedEdgesMultiple() {
+        TinkerGraph graph = newGraph();
+
+        Vertex v0 = graph.addVertex(T.label, OverflowDbTestNode.label);
+        Vertex v1 = graph.addVertex(T.label, OverflowDbTestNode.label);
+
+        v0.addEdge(OverflowDbTestEdge.label, v1);
+        v0.addEdge(OverflowDbTestEdge.label, v1);
+
+        Iterator<Edge> outEdgeIt = v0.edges(Direction.OUT, OverflowDbTestEdge.label);
+        Iterator<Edge> inEdgeIt = v1.edges(Direction.IN, OverflowDbTestEdge.label);
+
+        Edge e0ViaOut = outEdgeIt.next();
+        Edge e1ViaOut = outEdgeIt.next();
+        Edge e0ViaIn = inEdgeIt.next();
+        Edge e1ViaIn = inEdgeIt.next();
+
+        e0ViaOut.property(OverflowDbTestEdge.LONG_PROPERTY, 1L);
+        e1ViaOut.property(OverflowDbTestEdge.LONG_PROPERTY, 2L);
+
+        assertEquals(Long.valueOf(1L), e0ViaIn.property(OverflowDbTestEdge.LONG_PROPERTY).value());
+        assertEquals(Long.valueOf(2L), e1ViaIn.property(OverflowDbTestEdge.LONG_PROPERTY).value());
     }
 
     private TinkerGraph newGraph() {

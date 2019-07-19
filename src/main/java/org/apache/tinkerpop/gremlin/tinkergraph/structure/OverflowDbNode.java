@@ -356,7 +356,6 @@ public abstract class OverflowDbNode implements Vertex {
                                      int blockOffset) {
     int offsetPos = getPositionInEdgeOffsets(direction, label);
     int start = startIndex(offsetPos);
-    int length = blockLength(offsetPos);
     int strideSize = getEdgeKeyCount(label) + 1;
 
     int currentOccurrence = -1;
@@ -371,8 +370,9 @@ public abstract class OverflowDbNode implements Vertex {
   /**
    * @param direction OUT or IN
    * @param label the edge label
-   * @param occurrence if there are multiple edges edges between the same two nodes, this is used to differentiate
-   *                   between those edges. both nodes use the same occurrence index for the same edge
+   * @param occurrence if there are multiple edges between the same two nodes with the same label,
+   *                   this is used to differentiate between those edges.
+   *                   Both nodes use the same occurrence index for the same edge
    * @return the index into `adjacentVerticesWithProperties`
    */
   public int occurrenceToBlockOffset(Direction direction,
