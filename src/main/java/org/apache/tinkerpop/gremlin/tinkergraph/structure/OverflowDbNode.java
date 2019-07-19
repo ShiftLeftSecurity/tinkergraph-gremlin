@@ -183,13 +183,6 @@ public abstract class OverflowDbNode implements Vertex {
   protected abstract <V> VertexProperty<V> updateSpecificProperty(
       VertexProperty.Cardinality cardinality, String key, V value);
 
-  public void removeProperty(String key) {
-    synchronized (this) {
-//            modifiedSinceLastSerialization = true;
-      removeSpecificProperty(key);
-    }
-  }
-
   protected abstract void removeSpecificProperty(String key);
 
   @Override
