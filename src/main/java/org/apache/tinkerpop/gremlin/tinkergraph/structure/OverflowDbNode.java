@@ -350,6 +350,14 @@ public abstract class OverflowDbNode implements Vertex {
     return multiIterator;
   }
 
+  /**
+   * If there are multiple edges between the same two nodes with the same label, we use the
+   * `occurrence` to differentiate between those edges. Both nodes use the same occurrence
+   * index for the same edge.
+   *
+   * @return the occurrence for a given edge, calculated by counting the number times the given
+   *         adjacent vertex occurred between the start of the edge-specific block and the blockOffset
+   */
   public int blockOffsetToOccurrence(Direction direction,
                                      String label,
                                      VertexRef<OverflowDbNode> otherVertex,
@@ -358,13 +366,13 @@ public abstract class OverflowDbNode implements Vertex {
     int start = startIndex(offsetPos);
     int strideSize = getEdgeKeyCount(label) + 1;
 
-    int currentOccurrence = -1;
+    int occurrenceCount = -1;
     for (int i = start; i <= start + blockOffset; i += strideSize) {
       if (((VertexRef)adjacentVerticesWithProperties[i]).id().equals(otherVertex.id())) {
-        currentOccurrence++;
+        occurrenceCount++;
       }
     }
-    return currentOccurrence;
+    return occurrenceCount;
   }
 
   /**
@@ -372,7 +380,7 @@ public abstract class OverflowDbNode implements Vertex {
    * @param label the edge label
    * @param occurrence if there are multiple edges between the same two nodes with the same label,
    *                   this is used to differentiate between those edges.
-   *                   Both nodes use the same occurrence index for the same edge
+   *                   Both nodes use the same occurrence index for the same edge.
    * @return the index into `adjacentVerticesWithProperties`
    */
   public int occurrenceToBlockOffset(Direction direction,
