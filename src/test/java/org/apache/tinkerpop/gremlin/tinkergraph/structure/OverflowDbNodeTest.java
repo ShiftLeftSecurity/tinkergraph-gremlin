@@ -18,6 +18,7 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
+import org.apache.tinkerpop.gremlin.process.traversal.P;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.T;
@@ -256,24 +257,30 @@ public class OverflowDbNodeTest {
       v0.addEdge(OverflowDbTestEdge.label, v1, OverflowDbTestEdge.LONG_PROPERTY, 0l);
       v0.addEdge(OverflowDbTestEdge.label, v1, OverflowDbTestEdge.LONG_PROPERTY, 1l);
 
-      // round trip serialization
-      byte[] serialized = new NodeSerializer().serialize(((VertexRef<OverflowDbNode>) v0).get());
-      OverflowDbNode v0AfterSerialization = newDeserializer(graph).deserialize(serialized);
-
-      // remove edge with longProperty == 0l
-      for (Iterator<Edge> it = v0.edges(Direction.OUT); it.hasNext();) {
-        Edge e = it.next();
-        if (e.value(OverflowDbTestEdge.LONG_PROPERTY).equals(0l)) {
-          e.remove();
-        }
-      }
+      // round trip serialization, delete edge with longProperty=0;
+      graph.referenceManager.clearAllReferences();
+      graph.traversal().V(v0.id()).outE().has(OverflowDbTestEdge.LONG_PROPERTY, P.eq(0l)).drop().iterate();
 
       Iterator<Edge> v0outEdges = v0.edges(Direction.OUT);
       assertEquals(Long.valueOf(1), v0outEdges.next().value(OverflowDbTestEdge.LONG_PROPERTY));
       assertFalse(v0outEdges.hasNext());
-      Iterator<Edge> v1inEdges = v0.edges(Direction.OUT);
+      Iterator<Edge> v1inEdges = v1.edges(Direction.IN);
       assertEquals(Long.valueOf(1), v1inEdges.next().value(OverflowDbTestEdge.LONG_PROPERTY));
       assertFalse(v1inEdges.hasNext());
+    }
+  }
+
+  @Test
+  public void removeNodeSimple() {
+    try (TinkerGraph graph = newGraph()) {
+      Vertex v0 = graph.addVertex(T.label, OverflowDbTestNode.label, OverflowDbTestNode.STRING_PROPERTY, "v0");
+      Vertex v1 = graph.addVertex(T.label, OverflowDbTestNode.label, OverflowDbTestNode.STRING_PROPERTY, "v1");
+      v0.addEdge(OverflowDbTestEdge.label, v1, OverflowDbTestEdge.LONG_PROPERTY, 1l);
+
+      v0.remove();
+
+      assertEquals(Long.valueOf(1), graph.traversal().V().count().next());
+      assertFalse(v1.edges(Direction.IN).hasNext());
     }
   }
 
