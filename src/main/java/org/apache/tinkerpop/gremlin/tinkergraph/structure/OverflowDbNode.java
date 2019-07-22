@@ -621,6 +621,6 @@ public abstract class OverflowDbNode implements Vertex {
                                                 VertexRef<OverflowDbNode> inVertex) {
     final OverflowElementFactory.ForEdge edgeFactory = ref.graph.edgeFactoryByLabel.get(label);
     if (edgeFactory == null) throw new IllegalArgumentException("specializedEdgeFactory for label=" + label + " not found - please register on startup!");
-    return edgeFactory.createEdge(-1l, ref.graph, outVertex, inVertex);
+    return edgeFactory.createEdge(ref.graph, outVertex, inVertex);
   }
 }
