@@ -572,7 +572,7 @@ public abstract class OverflowDbNode implements Vertex {
                                                       int insertAt,
                                                       int currentLength) {
     int currentCapacity = currentLength / strideSize;
-    double additionalCapacity = Math.sqrt(currentCapacity * 2) + 1;
+    double additionalCapacity = Math.sqrt(currentCapacity) + 1;
     int additionalCapacityInt = (int) Math.ceil(additionalCapacity);
     int additionalEntriesCount = additionalCapacityInt * strideSize;
     int newSize = adjacentVerticesWithProperties.length + additionalEntriesCount;
