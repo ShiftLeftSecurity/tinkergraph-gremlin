@@ -35,54 +35,70 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.stream.StreamSupport;
 
-import static org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerElement.elementAlreadyRemoved;
-
 /**
- * Vertex that stores adjacent Nodes directly, rather than via edges.
+ * Node/Vertex that stores adjacent Nodes directly, rather than via edges.
  * Motivation: in many graph use cases, edges don't hold any properties and thus accounts for more memory and
  * traversal time than necessary
  */
 public abstract class OverflowDbNode implements Vertex {
 
-  public final VertexRef<Vertex> ref;
-
-  /** property keys for a specialized vertex  */
+  /** property keys for this node */
   protected abstract Set<String> specificKeys();
 
   public abstract String[] allowedOutEdgeLabels();
   public abstract String[] allowedInEdgeLabels();
 
+  public final VertexRef<Vertex> ref;
+
+  /** position for given OUT edge label in edgeOffsets */
+  private final Map<String, Integer> outEdgeToOffsetPosition;
+
+  /** position for given IN edge label in edgeOffsets */
+  private final Map<String, Integer> inEdgeToOffsetPosition;
+
+  /** holds refs to all adjacent nodes (a.k.a. dummy edges) and the edge properties */
   private Object[] adjacentVerticesWithProperties = new Object[0];
 
   /* store the start offset and length into the above `adjacentVerticesWithProperties` array in an interleaved manner,
    * i.e. each outgoing edge type has two entries in this array. */
   private int[] edgeOffsets;
 
-  /**
-   * @param numberOfDifferentAdjacentTypes The number fo different IN|OUT edge relations. E.g. a node has AST edges in
-   *                                       and out, then we would have 2. If in addition it has incoming
-   *                                       ref edges it would have 3.
-   */
-  protected OverflowDbNode(int numberOfDifferentAdjacentTypes,
+  protected OverflowDbNode(Map<String, Integer> outEdgeToOffsetPosition,
+                           Map<String, Integer> inEdgeToOffsetPosition,
                            VertexRef<Vertex> ref) {
     this.ref = ref;
+    this.outEdgeToOffsetPosition = outEdgeToOffsetPosition;
+    this.inEdgeToOffsetPosition = inEdgeToOffsetPosition;
     ref.setElement(this);
     if (ref.graph != null && ref.graph.referenceManager != null) {
       ref.graph.referenceManager.applyBackpressureMaybe();
     }
+
+    int numberOfDifferentAdjacentTypes = outEdgeToOffsetPosition.size() + inEdgeToOffsetPosition.size();
     edgeOffsets = new int[numberOfDifferentAdjacentTypes * 2];
   }
 
   /**
    * @return The position in edgeOffsets array. -1 if the edge label is not supported
    */
-  protected abstract int getPositionInEdgeOffsets(Direction direction, String label);
+  private int getPositionInEdgeOffsets(Direction direction, String label) {
+    final Integer positionOrNull;
+    if (direction == Direction.OUT) {
+      positionOrNull = outEdgeToOffsetPosition.get(label);
+    } else {
+      positionOrNull = inEdgeToOffsetPosition.get(label);
+    }
+    if (positionOrNull != null) {
+      return positionOrNull;
+    } else {
+      return -1;
+    }
+  }
 
   /**
    *

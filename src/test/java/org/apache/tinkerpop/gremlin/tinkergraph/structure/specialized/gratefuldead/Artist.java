@@ -48,21 +48,21 @@ public class Artist extends OverflowDbNode {
 
   private static final Map<String, Integer> edgeKeyCount = new HashMap<>();
   private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
-  private static final Map<String, Integer> outEdgeToPosition = new HashMap<>();
-  private static final Map<String, Integer> inEdgeToPosition = new HashMap<>();
+  private static final Map<String, Integer> outEdgeToOffsetPosition = new HashMap<>();
+  private static final Map<String, Integer> inEdgeToOffsetPosition = new HashMap<>();
 
   static {
     edgeKeyCount.put(SungBy.label, SungBy.SPECIFIC_KEYS.size());
     edgeKeyCount.put(WrittenBy.label, WrittenBy.SPECIFIC_KEYS.size());
-    inEdgeToPosition.put(SungBy.label, 0);
-    inEdgeToPosition.put(WrittenBy.label, 1);
+    inEdgeToOffsetPosition.put(SungBy.label, 0);
+    inEdgeToOffsetPosition.put(WrittenBy.label, 1);
   }
 
   /* properties */
   private String name;
 
   protected Artist(VertexRef ref) {
-    super(outEdgeToPosition.size() + inEdgeToPosition.size(), ref);
+    super(outEdgeToOffsetPosition, inEdgeToOffsetPosition, ref);
   }
 
   public String getName() {
@@ -83,21 +83,6 @@ public class Artist extends OverflowDbNode {
   @Override
   public String[] allowedInEdgeLabels() {
     return ALLOWED_IN_EDGE_LABELS;
-  }
-
-  @Override
-  protected int getPositionInEdgeOffsets(Direction direction, String label) {
-    final Integer positionOrNull;
-    if (direction == Direction.OUT) {
-      positionOrNull = outEdgeToPosition.get(label);
-    } else {
-      positionOrNull = inEdgeToPosition.get(label);
-    }
-    if (positionOrNull != null) {
-      return positionOrNull;
-    } else {
-      return -1;
-    }
   }
 
   @Override

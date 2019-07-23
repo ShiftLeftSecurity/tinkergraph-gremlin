@@ -18,7 +18,6 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
-import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowDbNode;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowElementFactory;
@@ -51,18 +50,18 @@ public class Song extends OverflowDbNode {
 
   private static final Map<String, Integer> edgeKeyCount = new HashMap<>();
   private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
-  private static final Map<String, Integer> outEdgeToPosition = new HashMap<>();
-  private static final Map<String, Integer> inEdgeToPosition = new HashMap<>();
+  private static final Map<String, Integer> outEdgeToOffsetPosition = new HashMap<>();
+  private static final Map<String, Integer> inEdgeToOffsetPosition = new HashMap<>();
 
   static {
     edgeKeyCount.put(SungBy.label, SungBy.SPECIFIC_KEYS.size());
     edgeKeyCount.put(WrittenBy.label, WrittenBy.SPECIFIC_KEYS.size());
     edgeKeyCount.put(FollowedBy.label, FollowedBy.SPECIFIC_KEYS.size());
     edgeLabelAndKeyToPosition.put(FollowedBy.label + FollowedBy.WEIGHT, 1);
-    outEdgeToPosition.put(SungBy.label, 0);
-    outEdgeToPosition.put(WrittenBy.label, 1);
-    outEdgeToPosition.put(FollowedBy.label, 2);
-    inEdgeToPosition.put(FollowedBy.label, 3);
+    outEdgeToOffsetPosition.put(SungBy.label, 0);
+    outEdgeToOffsetPosition.put(WrittenBy.label, 1);
+    outEdgeToOffsetPosition.put(FollowedBy.label, 2);
+    inEdgeToOffsetPosition.put(FollowedBy.label, 3);
   }
 
   /* properties */
@@ -72,7 +71,7 @@ public class Song extends OverflowDbNode {
   private int[] testProp;
 
   protected Song(VertexRef ref) {
-    super(outEdgeToPosition.size() + inEdgeToPosition.size(), ref);
+    super(outEdgeToOffsetPosition, inEdgeToOffsetPosition, ref);
   }
 
   public String getName() {
@@ -100,21 +99,6 @@ public class Song extends OverflowDbNode {
   @Override
   public String[] allowedInEdgeLabels() {
     return ALLOWED_IN_EDGE_LABELS;
-  }
-
-  @Override
-  protected int getPositionInEdgeOffsets(Direction direction, String label) {
-    final Integer positionOrNull;
-    if (direction == Direction.OUT) {
-      positionOrNull = outEdgeToPosition.get(label);
-    } else {
-      positionOrNull = inEdgeToPosition.get(label);
-    }
-    if (positionOrNull != null) {
-      return positionOrNull;
-    } else {
-      return -1;
-    }
   }
 
   @Override

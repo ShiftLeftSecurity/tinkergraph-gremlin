@@ -18,7 +18,6 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
@@ -47,14 +46,14 @@ public class OverflowDbTestNode extends OverflowDbNode {
 
   private static final Map<String, Integer> edgeKeyCount = new HashMap<>();
   private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
-  private static final Map<String, Integer> outEdgeToPosition = new HashMap<>();
-  private static final Map<String, Integer> inEdgeToPosition = new HashMap<>();
+  private static final Map<String, Integer> outEdgeToOffsetPosition = new HashMap<>();
+  private static final Map<String, Integer> inEdgeToOffsetPosition = new HashMap<>();
 
   static {
     edgeKeyCount.put(OverflowDbTestEdge.label, OverflowDbTestEdge.SPECIFIC_KEYS.size());
     edgeLabelAndKeyToPosition.put(OverflowDbTestEdge.label + OverflowDbTestEdge.LONG_PROPERTY, 1);
-    outEdgeToPosition.put(OverflowDbTestEdge.label, 0);
-    inEdgeToPosition.put(OverflowDbTestEdge.label, 1);
+    outEdgeToOffsetPosition.put(OverflowDbTestEdge.label, 0);
+    inEdgeToOffsetPosition.put(OverflowDbTestEdge.label, 1);
   }
 
   /* properties */
@@ -64,32 +63,12 @@ public class OverflowDbTestNode extends OverflowDbNode {
   private List<Integer> intListProperty;
 
   protected OverflowDbTestNode(VertexRef ref) {
-    super(outEdgeToPosition.size() + inEdgeToPosition.size(), ref);
-  }
-
-  @Override
-  protected int getPositionInEdgeOffsets(Direction direction, String label) {
-    final Integer positionOrNull;
-    if (direction == Direction.OUT) {
-      positionOrNull = outEdgeToPosition.get(label);
-    } else {
-      positionOrNull = inEdgeToPosition.get(label);
-    }
-    if (positionOrNull != null) {
-      return positionOrNull;
-    } else {
-      return -1;
-    }
+    super(outEdgeToOffsetPosition, inEdgeToOffsetPosition, ref);
   }
 
   @Override
   protected int getOffsetRelativeToAdjacentVertexRef(String edgeLabel, String key) {
-    final Integer offsetOrNull = edgeLabelAndKeyToPosition.get(edgeLabel + key);
-    if (offsetOrNull != null) {
-      return offsetOrNull;
-    } else {
-      return -1;
-    }
+    return edgeLabelAndKeyToPosition.getOrDefault(edgeLabel + key, -1);
   }
 
   @Override
