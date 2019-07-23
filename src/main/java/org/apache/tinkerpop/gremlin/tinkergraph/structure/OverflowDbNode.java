@@ -571,10 +571,13 @@ public abstract class OverflowDbNode implements Vertex {
                                                       int strideSize,
                                                       int insertAt,
                                                       int currentLength) {
-    int currentCapacity = currentLength / strideSize;
-    double additionalCapacity = Math.sqrt(currentCapacity) + 1;
-    int additionalCapacityInt = (int) Math.ceil(additionalCapacity);
-    int additionalEntriesCount = additionalCapacityInt * strideSize;
+    // TODO optimize growth function - optimizing has potential to save a lot of memory, but the below slowed down processing massively
+//    int currentCapacity = currentLength / strideSize;
+//    double additionalCapacity = Math.sqrt(currentCapacity) + 1;
+//    int additionalCapacityInt = (int) Math.ceil(additionalCapacity);
+//    int additionalEntriesCount = additionalCapacityInt * strideSize;
+    int growthEmptyFactor = 2;
+    int additionalEntriesCount = (currentLength + strideSize) * growthEmptyFactor;
     int newSize = adjacentVerticesWithProperties.length + additionalEntriesCount;
     Object[] newArray = new Object[newSize];
     System.arraycopy(adjacentVerticesWithProperties, 0, newArray, 0, insertAt);
