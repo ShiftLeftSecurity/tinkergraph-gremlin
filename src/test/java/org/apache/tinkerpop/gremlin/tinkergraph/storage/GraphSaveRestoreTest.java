@@ -29,6 +29,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefulde
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.Song;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.SungBy;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead.WrittenBy;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.File;
@@ -44,6 +45,7 @@ import static org.junit.Assert.assertEquals;
 public class GraphSaveRestoreTest {
 
   @Test
+  @Ignore
   public void greenField() throws IOException {
     final File overflowDb = Files.createTempFile("overflowdb", "bin").toFile();
     overflowDb.deleteOnExit();
@@ -76,6 +78,7 @@ public class GraphSaveRestoreTest {
   }
 
   @Test
+  @Ignore
   public void completeGratefulDeadGraph() throws IOException {
     final File overflowDb = Files.createTempFile("overflowdb", "bin").toFile();
     overflowDb.deleteOnExit();
