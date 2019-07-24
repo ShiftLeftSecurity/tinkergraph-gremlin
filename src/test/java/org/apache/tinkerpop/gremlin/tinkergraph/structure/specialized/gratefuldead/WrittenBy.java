@@ -27,12 +27,11 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.VertexRef;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashSet;
-import java.util.Set;
 
 public class WrittenBy extends OverflowDbEdge implements Serializable {
   public static final String label = "writtenBy";
 
-  public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList());
+  public static final HashSet<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList());
 
   public WrittenBy(TinkerGraph graph, VertexRef<OverflowDbNode> outVertex, VertexRef<OverflowDbNode> inVertex) {
     super(graph, label, outVertex, inVertex, SPECIFIC_KEYS);

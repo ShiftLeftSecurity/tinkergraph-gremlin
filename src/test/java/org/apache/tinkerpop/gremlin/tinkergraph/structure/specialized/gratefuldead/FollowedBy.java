@@ -26,7 +26,7 @@ public class FollowedBy extends OverflowDbEdge {
   public static final String label = "followedBy";
 
   public static final String WEIGHT = "weight";
-  public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(WEIGHT));
+  public static final HashSet<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(WEIGHT));
 
   public Integer weight() {
     return (Integer) property(WEIGHT).value();

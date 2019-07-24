@@ -41,19 +41,16 @@ public class OverflowDbTestNode extends OverflowDbNode {
 
   public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(STRING_PROPERTY, INT_PROPERTY, STRING_LIST_PROPERTY, INT_LIST_PROPERTY));
 
-  public static final String[] ALLOWED_IN_EDGE_LABELS = {OverflowDbTestEdge.label};
-  public static final String[] ALLOWED_OUT_EDGE_LABELS = {OverflowDbTestEdge.label};
-
-  private static final Map<String, Integer> edgeKeyCount = new HashMap<>();
-  private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
   private static final Map<String, Integer> outEdgeToOffsetPosition = new HashMap<>();
   private static final Map<String, Integer> inEdgeToOffsetPosition = new HashMap<>();
+  private static final Map<String, HashSet<String>> edgeKeysByLabel = new HashMap<>();
+  private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
 
   static {
-    edgeKeyCount.put(OverflowDbTestEdge.label, OverflowDbTestEdge.SPECIFIC_KEYS.size());
-    edgeLabelAndKeyToPosition.put(OverflowDbTestEdge.label + OverflowDbTestEdge.LONG_PROPERTY, 1);
     outEdgeToOffsetPosition.put(OverflowDbTestEdge.label, 0);
     inEdgeToOffsetPosition.put(OverflowDbTestEdge.label, 1);
+    edgeKeysByLabel.put(OverflowDbTestEdge.label, OverflowDbTestEdge.SPECIFIC_KEYS);
+    edgeLabelAndKeyToPosition.put(OverflowDbTestEdge.label + OverflowDbTestEdge.LONG_PROPERTY, 1);
   }
 
   /* properties */
@@ -63,27 +60,12 @@ public class OverflowDbTestNode extends OverflowDbNode {
   private List<Integer> intListProperty;
 
   protected OverflowDbTestNode(VertexRef ref) {
-    super(outEdgeToOffsetPosition, inEdgeToOffsetPosition, ref);
+    super(ref, outEdgeToOffsetPosition, inEdgeToOffsetPosition, edgeKeysByLabel);
   }
 
   @Override
   protected int getOffsetRelativeToAdjacentVertexRef(String edgeLabel, String key) {
     return edgeLabelAndKeyToPosition.getOrDefault(edgeLabel + key, -1);
-  }
-
-  @Override
-  protected int getEdgeKeyCount(String edgeLabel) {
-    // TODO handle if it's not allowed
-    return edgeKeyCount.get(edgeLabel);
-  }
-
-  @Override
-  protected List<String> allowedEdgeKeys(String edgeLabel) {
-    List<String> allowedEdgeKeys = new ArrayList<>();
-    if (edgeLabel.equals(OverflowDbTestEdge.label)) {
-      allowedEdgeKeys.add(OverflowDbTestEdge.LONG_PROPERTY);
-    }
-    return allowedEdgeKeys;
   }
 
   @Override
@@ -162,16 +144,6 @@ public class OverflowDbTestNode extends OverflowDbNode {
     } else {
       throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
     }
-  }
-
-  @Override
-  public String[] allowedOutEdgeLabels() {
-    return ALLOWED_OUT_EDGE_LABELS;
-  }
-
-  @Override
-  public String[] allowedInEdgeLabels() {
-    return ALLOWED_IN_EDGE_LABELS;
   }
 
   public static OverflowElementFactory.ForVertex<OverflowDbTestNode> factory = new OverflowElementFactory.ForVertex<OverflowDbTestNode>() {

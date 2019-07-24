@@ -32,6 +32,7 @@ import org.apache.tinkerpop.gremlin.tinkergraph.storage.iterator.MultiIterator2;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -43,15 +44,11 @@ import java.util.stream.StreamSupport;
 /**
  * Node/Vertex that stores adjacent Nodes directly, rather than via edges.
  * Motivation: in many graph use cases, edges don't hold any properties and thus accounts for more memory and
- * traversal time than necessary
- */
+ * traversal time than necessary */
 public abstract class OverflowDbNode implements Vertex {
 
   /** property keys for this node */
   protected abstract Set<String> specificKeys();
-
-  public abstract String[] allowedOutEdgeLabels();
-  public abstract String[] allowedInEdgeLabels();
 
   public final VertexRef<Vertex> ref;
 
@@ -61,6 +58,13 @@ public abstract class OverflowDbNode implements Vertex {
   /** position for given IN edge label in edgeOffsets */
   private final Map<String, Integer> inEdgeToOffsetPosition;
 
+  private final String[] allowedOutEdgeLabels;
+  private final String[] allowedInEdgeLabels;
+
+  /** possible edge property keys, grouped by edge label
+   * keys are of type `HashSet` (rather than just `Set`) to ensure `.size` has constant time */
+  private final Map<String, HashSet<String>> edgeKeysByLabel;
+
   /** holds refs to all adjacent nodes (a.k.a. dummy edges) and the edge properties */
   private Object[] adjacentVerticesWithProperties = new Object[0];
 
@@ -68,12 +72,19 @@ public abstract class OverflowDbNode implements Vertex {
    * i.e. each outgoing edge type has two entries in this array. */
   private int[] edgeOffsets;
 
-  protected OverflowDbNode(Map<String, Integer> outEdgeToOffsetPosition,
+  protected OverflowDbNode(VertexRef<Vertex> ref,
+                           Map<String, Integer> outEdgeToOffsetPosition,
                            Map<String, Integer> inEdgeToOffsetPosition,
-                           VertexRef<Vertex> ref) {
+                           Map<String, HashSet<String>> edgeKeysByLabel) {
     this.ref = ref;
     this.outEdgeToOffsetPosition = outEdgeToOffsetPosition;
     this.inEdgeToOffsetPosition = inEdgeToOffsetPosition;
+    this.edgeKeysByLabel = edgeKeysByLabel;
+
+    /* only so we don't need to calculate it every time */
+    allowedOutEdgeLabels = outEdgeToOffsetPosition.keySet().toArray(new String[0]);
+    allowedInEdgeLabels = inEdgeToOffsetPosition.keySet().toArray(new String[0]);
+
     ref.setElement(this);
     if (ref.graph != null && ref.graph.referenceManager != null) {
       ref.graph.referenceManager.applyBackpressureMaybe();
@@ -108,9 +119,12 @@ public abstract class OverflowDbNode implements Vertex {
    */
   protected abstract int getOffsetRelativeToAdjacentVertexRef(String edgeLabel, String key);
 
-  protected abstract int getEdgeKeyCount(String edgeLabel);
-
-  protected abstract List<String> allowedEdgeKeys(String edgeLabel);
+  /** calculate stride size (number of elements reserved in `adjacentVerticesWithProperties`) for a given edge label */
+  private int getStrideSize(String edgeLabel) {
+    int sizeForNodeRef = 1;
+    Set<String> allowedPropertyKeys = edgeKeysByLabel.get(edgeLabel);
+    return sizeForNodeRef + allowedPropertyKeys.size();
+  }
 
   /* implement in concrete specialised instance to avoid using generic HashMaps */
   protected abstract <V> Iterator<VertexProperty<V>> specificProperties(String key);
@@ -236,8 +250,8 @@ public abstract class OverflowDbNode implements Vertex {
         result.add(getEdgeProperty(direction, edge, blockOffset, key));
       }
     } else {
-      for (String key: allowedEdgeKeys(edge.label())) {
-        result.add(getEdgeProperty(direction, edge, blockOffset, key));
+      for (String propertyKey: edgeKeysByLabel.get(edge.label())) {
+        result.add(getEdgeProperty(direction, edge, blockOffset, propertyKey));
       }
     }
 
@@ -371,7 +385,7 @@ public abstract class OverflowDbNode implements Vertex {
                                      int blockOffset) {
     int offsetPos = getPositionInEdgeOffsets(direction, label);
     int start = startIndex(offsetPos);
-    int strideSize = getEdgeKeyCount(label) + 1;
+    int strideSize = getStrideSize(label);
 
     int occurrenceCount = -1;
     for (int i = start; i <= start + blockOffset; i += strideSize) {
@@ -397,7 +411,7 @@ public abstract class OverflowDbNode implements Vertex {
     int offsetPos = getPositionInEdgeOffsets(direction, label);
     int start = startIndex(offsetPos);
     int length = blockLength(offsetPos);
-    int strideSize = getEdgeKeyCount(label) + 1;
+    int strideSize = getStrideSize(label);
 
     int currentOccurrence = 0;
     for (int i = start; i < start + length; i += strideSize) {
@@ -424,7 +438,7 @@ public abstract class OverflowDbNode implements Vertex {
   protected void removeEdge(Direction direction, String label, VertexRef<OverflowDbNode> adjacentVertex, int blockOffset) {
     int offsetPos = getPositionInEdgeOffsets(direction, label);
     int start = startIndex(offsetPos) + blockOffset;
-    int strideSize = getEdgeKeyCount(label) + 1;
+    int strideSize = getStrideSize(label);
 
     for (int i = start; i < start + strideSize; i++) {
       adjacentVerticesWithProperties[i] = null;
@@ -437,7 +451,7 @@ public abstract class OverflowDbNode implements Vertex {
     if (offsetPos != -1) {
       int start = startIndex(offsetPos);
       int length = blockLength(offsetPos);
-      int strideSize = getEdgeKeyCount(label) + 1;
+      int strideSize = getStrideSize(label);
 
       return new DummyEdgeIterator(adjacentVerticesWithProperties, start, start + length, strideSize,
           direction, label, (VertexRef)ref);
@@ -451,7 +465,7 @@ public abstract class OverflowDbNode implements Vertex {
     if (offsetPos != -1) {
       int start = startIndex(offsetPos);
       int length = blockLength(offsetPos);
-      int strideSize = getEdgeKeyCount(label) + 1;
+      int strideSize = getStrideSize(label);
 
       return new ArrayOffsetIterator<>(adjacentVerticesWithProperties, start, start + length, strideSize);
     } else {
@@ -485,7 +499,7 @@ public abstract class OverflowDbNode implements Vertex {
     }
     int start = startIndex(offsetPos);
     int length = blockLength(offsetPos);
-    int strideSize = getEdgeKeyCount(edgeLabel) + 1;
+    int strideSize = getStrideSize(edgeLabel);
 
     int insertAt = start + length;
     if (adjacentVerticesWithProperties.length <= insertAt || adjacentVerticesWithProperties[insertAt] != null) {
@@ -547,7 +561,7 @@ public abstract class OverflowDbNode implements Vertex {
     if (edgeLabels.length != 0) {
       return edgeLabels;
     } else {
-      return allowedInEdgeLabels();
+      return allowedInEdgeLabels;
     }
   }
 
@@ -555,7 +569,7 @@ public abstract class OverflowDbNode implements Vertex {
     if (edgeLabels.length != 0) {
       return edgeLabels;
     } else {
-      return allowedOutEdgeLabels();
+      return allowedOutEdgeLabels;
     }
   }
 

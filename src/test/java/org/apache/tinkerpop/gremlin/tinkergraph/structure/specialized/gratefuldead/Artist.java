@@ -18,7 +18,6 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
-import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowDbNode;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowElementFactory;
@@ -28,13 +27,11 @@ import org.apache.tinkerpop.gremlin.tinkergraph.structure.VertexRef;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.VertexRefWithLabel;
 import org.apache.tinkerpop.gremlin.util.iterator.IteratorUtils;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -43,26 +40,24 @@ public class Artist extends OverflowDbNode {
 
   public static final String NAME = "name";
   public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(NAME));
-  public static final String[] ALLOWED_IN_EDGE_LABELS = {SungBy.label, WrittenBy.label};
-  public static final String[] ALLOWED_OUT_EDGE_LABELS = {};
 
-  private static final Map<String, Integer> edgeKeyCount = new HashMap<>();
-  private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
   private static final Map<String, Integer> outEdgeToOffsetPosition = new HashMap<>();
   private static final Map<String, Integer> inEdgeToOffsetPosition = new HashMap<>();
+  private static final Map<String, HashSet<String>> edgeKeysByLabel = new HashMap<>();
+  private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
 
   static {
-    edgeKeyCount.put(SungBy.label, SungBy.SPECIFIC_KEYS.size());
-    edgeKeyCount.put(WrittenBy.label, WrittenBy.SPECIFIC_KEYS.size());
     inEdgeToOffsetPosition.put(SungBy.label, 0);
     inEdgeToOffsetPosition.put(WrittenBy.label, 1);
+    edgeKeysByLabel.put(SungBy.label, SungBy.SPECIFIC_KEYS);
+    edgeKeysByLabel.put(WrittenBy.label, WrittenBy.SPECIFIC_KEYS);
   }
 
   /* properties */
   private String name;
 
   protected Artist(VertexRef ref) {
-    super(outEdgeToOffsetPosition, inEdgeToOffsetPosition, ref);
+    super(ref, outEdgeToOffsetPosition, inEdgeToOffsetPosition, edgeKeysByLabel);
   }
 
   public String getName() {
@@ -76,16 +71,6 @@ public class Artist extends OverflowDbNode {
   }
 
   @Override
-  public String[] allowedOutEdgeLabels() {
-    return ALLOWED_OUT_EDGE_LABELS;
-  }
-
-  @Override
-  public String[] allowedInEdgeLabels() {
-    return ALLOWED_IN_EDGE_LABELS;
-  }
-
-  @Override
   protected int getOffsetRelativeToAdjacentVertexRef(String edgeLabel, String key) {
     final Integer offsetOrNull = edgeLabelAndKeyToPosition.get(edgeLabel + key);
     if (offsetOrNull != null) {
@@ -93,17 +78,6 @@ public class Artist extends OverflowDbNode {
     } else {
       return -1;
     }
-  }
-
-  @Override
-  protected int getEdgeKeyCount(String edgeLabel) {
-    // TODO handle if it's not allowed
-    return edgeKeyCount.get(edgeLabel);
-  }
-
-  @Override
-  protected List<String> allowedEdgeKeys(String edgeLabel) {
-    return new ArrayList<>();
   }
 
   /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
