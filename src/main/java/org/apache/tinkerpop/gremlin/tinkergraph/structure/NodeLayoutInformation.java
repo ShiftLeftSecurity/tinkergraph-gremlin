@@ -1,8 +1,32 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 /**
  * Contains all static node-specific information. This could in theory be part of OverflowDbNode, but to save memory
@@ -13,39 +37,88 @@ import java.util.Set;
  */
 public class NodeLayoutInformation {
   private final Set<String> propertyKeys;
-  private final Map<String, Integer> outEdgeToOffsetPosition;
-  private final Map<String, Integer> inEdgeToOffsetPosition;
-  private final Map<String, HashSet<String>> edgePropertyKeysByLabel;
-  private final Map<String, Integer> edgeLabelAndKeyToPosition;
-
   private final String[] allowedOutEdgeLabels;
   private final String[] allowedInEdgeLabels;
 
-  /**
-   * @param propertyKeys              possible property key names, e.g. ["NAME", "AGE"]
-   * @param outEdgeToOffsetPosition   position for given OUT edge label in edgeOffsets
-   * @param inEdgeToOffsetPosition    position for given IN edge label in edgeOffsets
-   * @param edgePropertyKeysByLabel   possible edge property keys, grouped by edge label.
-   *                                  n.b. property keys are of type `HashSet` (rather than just `Set`) to ensure `.size` has constant time
-   * @param edgeLabelAndKeyToPosition position in edge offsets helper array
-   */
+  /* position for given OUT edge label in edgeOffsets */
+  private final Map<String, Integer> outEdgeToOffsetPosition;
+
+  /* position for given IN edge label in edgeOffsets */
+  private final Map<String, Integer> inEdgeToOffsetPosition;
+
+  /* possible edge property keys, grouped by edge label.
+   * n.b. property keys are of type `HashSet` (rather than just `Set`) to ensure `.size` has constant time */
+  private final Map<String, HashSet<String>> edgePropertyKeysByLabel;
+
+  /* position in stride (entry within `adjacentVerticesWithProperties`) for a given edge label and edge property key
+   * 1-based, because index `0` is the adjacent node ref */
+  private final Map<LabelAndKey, Integer> edgeLabelAndKeyToStrideIndex;
+
   public NodeLayoutInformation(Set<String> propertyKeys,
-                               Map<String, Integer> outEdgeToOffsetPosition,
-                               Map<String, Integer> inEdgeToOffsetPosition,
-                               Map<String, HashSet<String>> edgePropertyKeysByLabel,
-                               Map<String, Integer> edgeLabelAndKeyToPosition) {
+                               List<EdgeLayoutInformation> outEdgeLayouts,
+                               List<EdgeLayoutInformation> inEdgeLayouts) {
     this.propertyKeys = propertyKeys;
-    this.outEdgeToOffsetPosition = outEdgeToOffsetPosition;
-    this.inEdgeToOffsetPosition = inEdgeToOffsetPosition;
-    this.edgePropertyKeysByLabel = edgePropertyKeysByLabel;
-    this.edgeLabelAndKeyToPosition = edgeLabelAndKeyToPosition;
+
+    Set<EdgeLayoutInformation> allEdgeLayouts = new HashSet<>();
+    allEdgeLayouts.addAll(outEdgeLayouts);
+    allEdgeLayouts.addAll(inEdgeLayouts);
+
+    edgePropertyKeysByLabel = createEdgePropertyKeysByLabel(allEdgeLayouts);
+    edgeLabelAndKeyToStrideIndex = createEdgeLabelAndKeyToStrideIndex(allEdgeLayouts);
+
+    /* create unique offsets for each edge type and direction
+     * sort them by edge label to ensure we get the same offsets between restarts
+     * n.b. this doesn't support schema changes */
+    int offsetPosition = 0;
+    outEdgeToOffsetPosition = new HashMap<>(outEdgeLayouts.size());
+    for (EdgeLayoutInformation edgeLayout : sortByLabel(outEdgeLayouts)) {
+      outEdgeToOffsetPosition.put(edgeLayout.label, offsetPosition++);
+    }
+    inEdgeToOffsetPosition = new HashMap<>(inEdgeLayouts.size());
+    for (EdgeLayoutInformation edgeLayout : sortByLabel(inEdgeLayouts)) {
+      inEdgeToOffsetPosition.put(edgeLayout.label, offsetPosition++);
+    }
 
     /* only so we don't need to calculate it every time */
     allowedOutEdgeLabels = outEdgeToOffsetPosition.keySet().toArray(new String[0]);
     allowedInEdgeLabels = inEdgeToOffsetPosition.keySet().toArray(new String[0]);
   }
 
-  /* property keys for this node */
+  private Map<String, HashSet<String>> createEdgePropertyKeysByLabel(Set<EdgeLayoutInformation> allEdgeLayouts) {
+    Map<String, HashSet<String>> edgePropertyKeysByLabel = new HashMap<>(allEdgeLayouts.size());
+    for (EdgeLayoutInformation edgeLayout : allEdgeLayouts) {
+      edgePropertyKeysByLabel.put(edgeLayout.label, new HashSet<>(edgeLayout.propertyKeys));
+    }
+    return edgePropertyKeysByLabel;
+  }
+
+  private Map<LabelAndKey, Integer> createEdgeLabelAndKeyToStrideIndex(Set<EdgeLayoutInformation> allEdgeLayouts) {
+    Map<LabelAndKey, Integer> edgeLabelAndKeyToStrideIndex = new HashMap<>(allEdgeLayouts.size());
+    for (EdgeLayoutInformation edgeLayout : allEdgeLayouts) {
+      /* 1-based, because index `0` is the adjacent node ref */
+      int strideIndex = 1;
+
+      /* sort property keys to ensure we get the same offsets between restarts
+       * n.b. this doesn't support schema changes */
+      for (String propertyKey : sorted(edgeLayout.propertyKeys)) {
+        edgeLabelAndKeyToStrideIndex.put(new LabelAndKey(edgeLayout.label, propertyKey), strideIndex++);
+      }
+    }
+    return edgeLabelAndKeyToStrideIndex;
+  }
+
+  private Iterable<String> sorted(Set<String> propertyKeys) {
+    SortedSet<String> sortedSet = new TreeSet<>(String::compareTo);
+    sortedSet.addAll(propertyKeys);
+    return sortedSet;
+  }
+
+  private SortedSet<EdgeLayoutInformation> sortByLabel(List<EdgeLayoutInformation> outEdgeLayouts) {
+    SortedSet<EdgeLayoutInformation> sorted = new TreeSet<>(Comparator.comparing(a -> a.label));
+    sorted.addAll(outEdgeLayouts);
+    return sorted;
+  }
+
   public Set<String> propertyKeys() {
     return propertyKeys;
   }
@@ -84,8 +157,33 @@ public class NodeLayoutInformation {
    * key does not exist for given edgeLabel.
    */
   public int getOffsetRelativeToAdjacentVertexRef(String edgeLabel, String key) {
-    return edgeLabelAndKeyToPosition.getOrDefault(edgeLabel + key, -1);
+    return edgeLabelAndKeyToStrideIndex.getOrDefault(new LabelAndKey(edgeLabel, key), -1);
   }
+
+  class LabelAndKey {
+    final String label;
+    final String propertyKey;
+
+    LabelAndKey(String label, String propertyKey) {
+      this.label = label;
+      this.propertyKey = propertyKey;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      LabelAndKey that = (LabelAndKey) o;
+      return label.equals(that.label) &&
+          propertyKey.equals(that.propertyKey);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(label, propertyKey);
+    }
+  }
+
 
 }
 

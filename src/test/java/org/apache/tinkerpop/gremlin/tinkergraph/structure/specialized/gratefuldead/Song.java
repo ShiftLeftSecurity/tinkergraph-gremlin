@@ -21,6 +21,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuld
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.NodeLayoutInformation;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowDbNode;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowDbTestEdge;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowNodeProperty;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
@@ -129,25 +130,10 @@ public class Song extends OverflowDbNode {
     }
   }
 
-  private static final Set<String> specificKeys = new HashSet<>(Arrays.asList(NAME, SONG_TYPE, PERFORMANCES, TEST_PROP));
-  private static final Map<String, Integer> outEdgeToOffsetPosition = new HashMap<>();
-  private static final Map<String, Integer> inEdgeToOffsetPosition = new HashMap<>();
-  private static final Map<String, HashSet<String>> edgeKeysByLabel = new HashMap<>();
-  private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
-
-  static {
-    edgeKeysByLabel.put(SungBy.label, SungBy.SPECIFIC_KEYS);
-    edgeKeysByLabel.put(WrittenBy.label, WrittenBy.SPECIFIC_KEYS);
-    edgeKeysByLabel.put(FollowedBy.label, FollowedBy.SPECIFIC_KEYS);
-    edgeLabelAndKeyToPosition.put(FollowedBy.label + FollowedBy.WEIGHT, 1);
-    outEdgeToOffsetPosition.put(SungBy.label, 0);
-    outEdgeToOffsetPosition.put(WrittenBy.label, 1);
-    outEdgeToOffsetPosition.put(FollowedBy.label, 2);
-    inEdgeToOffsetPosition.put(FollowedBy.label, 3);
-  }
-
   private static NodeLayoutInformation layoutInformation = new NodeLayoutInformation(
-      specificKeys, outEdgeToOffsetPosition, inEdgeToOffsetPosition, edgeKeysByLabel, edgeLabelAndKeyToPosition);
+      new HashSet<>(Arrays.asList(NAME, SONG_TYPE, PERFORMANCES, TEST_PROP)),
+      Arrays.asList(SungBy.layoutInformation, WrittenBy.layoutInformation, FollowedBy.layoutInformation),
+      Arrays.asList(FollowedBy.layoutInformation));
 
   public static OverflowElementFactory.ForNode<Song> factory = new OverflowElementFactory.ForNode<Song>() {
     @Override

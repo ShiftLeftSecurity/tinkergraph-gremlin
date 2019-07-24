@@ -122,21 +122,10 @@ public class OverflowDbTestNode extends OverflowDbNode {
     }
   }
 
-  private static final Set<String> specificKeys = new HashSet<>(Arrays.asList(STRING_PROPERTY, INT_PROPERTY, STRING_LIST_PROPERTY, INT_LIST_PROPERTY));
-  private static final Map<String, Integer> outEdgeToOffsetPosition = new HashMap<>();
-  private static final Map<String, Integer> inEdgeToOffsetPosition = new HashMap<>();
-  private static final Map<String, HashSet<String>> edgeKeysByLabel = new HashMap<>();
-  private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
-
-  static {
-    outEdgeToOffsetPosition.put(OverflowDbTestEdge.label, 0);
-    inEdgeToOffsetPosition.put(OverflowDbTestEdge.label, 1);
-    edgeKeysByLabel.put(OverflowDbTestEdge.label, OverflowDbTestEdge.SPECIFIC_KEYS);
-    edgeLabelAndKeyToPosition.put(OverflowDbTestEdge.label + OverflowDbTestEdge.LONG_PROPERTY, 1);
-  }
-
   private static NodeLayoutInformation layoutInformation = new NodeLayoutInformation(
-      specificKeys, outEdgeToOffsetPosition, inEdgeToOffsetPosition, edgeKeysByLabel, edgeLabelAndKeyToPosition);
+      new HashSet<>(Arrays.asList(STRING_PROPERTY, INT_PROPERTY, STRING_LIST_PROPERTY, INT_LIST_PROPERTY)),
+      Arrays.asList(OverflowDbTestEdge.layoutInformation),
+      Arrays.asList(OverflowDbTestEdge.layoutInformation));
 
   public static OverflowElementFactory.ForNode<OverflowDbTestNode> factory = new OverflowElementFactory.ForNode<OverflowDbTestNode>() {
 

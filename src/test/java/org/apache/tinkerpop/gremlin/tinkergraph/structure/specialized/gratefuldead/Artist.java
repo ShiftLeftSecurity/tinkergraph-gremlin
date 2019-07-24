@@ -47,6 +47,11 @@ public class Artist extends OverflowDbNode {
     super(ref, layoutInformation);
   }
 
+  @Override
+  public String label() {
+    return Artist.label;
+  }
+
   public String getName() {
     return name;
   }
@@ -88,21 +93,10 @@ public class Artist extends OverflowDbNode {
     }
   }
 
-  private static final Set<String> specificKeys = new HashSet<>(Arrays.asList(NAME));
-  private static final Map<String, Integer> outEdgeToOffsetPosition = new HashMap<>();
-  private static final Map<String, Integer> inEdgeToOffsetPosition = new HashMap<>();
-  private static final Map<String, HashSet<String>> edgeKeysByLabel = new HashMap<>();
-  private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
-
-  static {
-    inEdgeToOffsetPosition.put(SungBy.label, 0);
-    inEdgeToOffsetPosition.put(WrittenBy.label, 1);
-    edgeKeysByLabel.put(SungBy.label, SungBy.SPECIFIC_KEYS);
-    edgeKeysByLabel.put(WrittenBy.label, WrittenBy.SPECIFIC_KEYS);
-  }
-
   private static NodeLayoutInformation layoutInformation = new NodeLayoutInformation(
-      specificKeys, outEdgeToOffsetPosition, inEdgeToOffsetPosition, edgeKeysByLabel, edgeLabelAndKeyToPosition);
+      new HashSet<>(Arrays.asList(NAME)),
+      Arrays.asList(),
+      Arrays.asList(SungBy.layoutInformation, WrittenBy.layoutInformation));
 
   public static OverflowElementFactory.ForNode<Artist> factory = new OverflowElementFactory.ForNode<Artist>() {
 
@@ -129,9 +123,4 @@ public class Artist extends OverflowDbNode {
       return new VertexRefWithLabel<>(id, graph, null, Artist.label);
     }
   };
-
-  @Override
-  public String label() {
-    return Artist.label;
-  }
 }
