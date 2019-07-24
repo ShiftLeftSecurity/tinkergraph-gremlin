@@ -89,7 +89,7 @@ public class SerializerTest {
   }
 
   private NodeDeserializer newDeserializer(TinkerGraph graph) {
-    Map<String, OverflowElementFactory.ForVertex> vertexFactories = new HashMap();
+    Map<String, OverflowElementFactory.ForNode> vertexFactories = new HashMap();
     vertexFactories.put(OverflowDbTestNode.label, OverflowDbTestNode.factory);
     return new NodeDeserializer(graph, vertexFactories);
   }

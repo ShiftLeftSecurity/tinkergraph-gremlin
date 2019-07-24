@@ -19,6 +19,7 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.NodeLayoutInformation;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowDbNode;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowNodeProperty;
@@ -37,28 +38,10 @@ import java.util.Set;
 
 public class Song extends OverflowDbNode {
   public static final String label = "song";
-
   public static final String NAME = "name";
   public static final String SONG_TYPE = "songType";
   public static final String PERFORMANCES = "performances";
   public static final String TEST_PROP = "testProperty";
-  public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(NAME, SONG_TYPE, PERFORMANCES, TEST_PROP));
-
-  private static final Map<String, Integer> outEdgeToOffsetPosition = new HashMap<>();
-  private static final Map<String, Integer> inEdgeToOffsetPosition = new HashMap<>();
-  private static final Map<String, HashSet<String>> edgeKeysByLabel = new HashMap<>();
-  private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
-
-  static {
-    edgeKeysByLabel.put(SungBy.label, SungBy.SPECIFIC_KEYS);
-    edgeKeysByLabel.put(WrittenBy.label, WrittenBy.SPECIFIC_KEYS);
-    edgeKeysByLabel.put(FollowedBy.label, FollowedBy.SPECIFIC_KEYS);
-    edgeLabelAndKeyToPosition.put(FollowedBy.label + FollowedBy.WEIGHT, 1);
-    outEdgeToOffsetPosition.put(SungBy.label, 0);
-    outEdgeToOffsetPosition.put(WrittenBy.label, 1);
-    outEdgeToOffsetPosition.put(FollowedBy.label, 2);
-    inEdgeToOffsetPosition.put(FollowedBy.label, 3);
-  }
 
   /* properties */
   private String name;
@@ -66,8 +49,13 @@ public class Song extends OverflowDbNode {
   private Integer performances;
   private int[] testProp;
 
-  protected Song(VertexRef ref) {
-    super(ref, outEdgeToOffsetPosition, inEdgeToOffsetPosition, edgeKeysByLabel);
+  protected Song(VertexRef ref, NodeLayoutInformation layoutInformation) {
+    super(ref, layoutInformation);
+  }
+
+  @Override
+  public String label() {
+    return Song.label;
   }
 
   public String getName() {
@@ -82,22 +70,6 @@ public class Song extends OverflowDbNode {
     return performances;
   }
 
-  @Override
-  protected Set<String> specificKeys() {
-    return SPECIFIC_KEYS;
-  }
-
-  @Override
-  protected int getOffsetRelativeToAdjacentVertexRef(String edgeLabel, String key) {
-    final Integer offsetOrNull = edgeLabelAndKeyToPosition.get(edgeLabel + key);
-    if (offsetOrNull != null) {
-      return offsetOrNull;
-    } else {
-      return -1;
-    }
-  }
-
-  /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
   @Override
   protected <V> Iterator<VertexProperty<V>> specificProperties(String key) {
     final VertexProperty<V> ret;
@@ -157,7 +129,27 @@ public class Song extends OverflowDbNode {
     }
   }
 
-  public static OverflowElementFactory.ForVertex<Song> factory = new OverflowElementFactory.ForVertex<Song>() {
+  private static final Set<String> specificKeys = new HashSet<>(Arrays.asList(NAME, SONG_TYPE, PERFORMANCES, TEST_PROP));
+  private static final Map<String, Integer> outEdgeToOffsetPosition = new HashMap<>();
+  private static final Map<String, Integer> inEdgeToOffsetPosition = new HashMap<>();
+  private static final Map<String, HashSet<String>> edgeKeysByLabel = new HashMap<>();
+  private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
+
+  static {
+    edgeKeysByLabel.put(SungBy.label, SungBy.SPECIFIC_KEYS);
+    edgeKeysByLabel.put(WrittenBy.label, WrittenBy.SPECIFIC_KEYS);
+    edgeKeysByLabel.put(FollowedBy.label, FollowedBy.SPECIFIC_KEYS);
+    edgeLabelAndKeyToPosition.put(FollowedBy.label + FollowedBy.WEIGHT, 1);
+    outEdgeToOffsetPosition.put(SungBy.label, 0);
+    outEdgeToOffsetPosition.put(WrittenBy.label, 1);
+    outEdgeToOffsetPosition.put(FollowedBy.label, 2);
+    inEdgeToOffsetPosition.put(FollowedBy.label, 3);
+  }
+
+  private static NodeLayoutInformation layoutInformation = new NodeLayoutInformation(
+      specificKeys, outEdgeToOffsetPosition, inEdgeToOffsetPosition, edgeKeysByLabel, edgeLabelAndKeyToPosition);
+
+  public static OverflowElementFactory.ForNode<Song> factory = new OverflowElementFactory.ForNode<Song>() {
     @Override
     public String forLabel() {
       return Song.label;
@@ -165,7 +157,7 @@ public class Song extends OverflowDbNode {
 
     @Override
     public Song createVertex(VertexRef<Song> ref) {
-      return new Song(ref);
+      return new Song(ref, layoutInformation);
     }
 
     @Override
@@ -182,8 +174,5 @@ public class Song extends OverflowDbNode {
     }
   };
 
-  @Override
-  public String label() {
-    return Song.label;
-  }
+
 }

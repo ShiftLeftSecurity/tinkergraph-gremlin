@@ -39,38 +39,14 @@ public class OverflowDbTestNode extends OverflowDbNode {
   public static final String STRING_LIST_PROPERTY = "StringListProperty";
   public static final String INT_LIST_PROPERTY = "IntListProperty";
 
-  public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(STRING_PROPERTY, INT_PROPERTY, STRING_LIST_PROPERTY, INT_LIST_PROPERTY));
-
-  private static final Map<String, Integer> outEdgeToOffsetPosition = new HashMap<>();
-  private static final Map<String, Integer> inEdgeToOffsetPosition = new HashMap<>();
-  private static final Map<String, HashSet<String>> edgeKeysByLabel = new HashMap<>();
-  private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
-
-  static {
-    outEdgeToOffsetPosition.put(OverflowDbTestEdge.label, 0);
-    inEdgeToOffsetPosition.put(OverflowDbTestEdge.label, 1);
-    edgeKeysByLabel.put(OverflowDbTestEdge.label, OverflowDbTestEdge.SPECIFIC_KEYS);
-    edgeLabelAndKeyToPosition.put(OverflowDbTestEdge.label + OverflowDbTestEdge.LONG_PROPERTY, 1);
-  }
-
   /* properties */
   private String stringProperty;
   private Integer intProperty;
   private List<String> stringListProperty;
   private List<Integer> intListProperty;
 
-  protected OverflowDbTestNode(VertexRef ref) {
-    super(ref, outEdgeToOffsetPosition, inEdgeToOffsetPosition, edgeKeysByLabel);
-  }
-
-  @Override
-  protected int getOffsetRelativeToAdjacentVertexRef(String edgeLabel, String key) {
-    return edgeLabelAndKeyToPosition.getOrDefault(edgeLabel + key, -1);
-  }
-
-  @Override
-  protected Set<String> specificKeys() {
-    return SPECIFIC_KEYS;
+  protected OverflowDbTestNode(VertexRef ref, NodeLayoutInformation layoutInformation) {
+    super(ref, layoutInformation);
   }
 
   @Override
@@ -146,7 +122,24 @@ public class OverflowDbTestNode extends OverflowDbNode {
     }
   }
 
-  public static OverflowElementFactory.ForVertex<OverflowDbTestNode> factory = new OverflowElementFactory.ForVertex<OverflowDbTestNode>() {
+  private static final Set<String> specificKeys = new HashSet<>(Arrays.asList(STRING_PROPERTY, INT_PROPERTY, STRING_LIST_PROPERTY, INT_LIST_PROPERTY));
+  private static final Map<String, Integer> outEdgeToOffsetPosition = new HashMap<>();
+  private static final Map<String, Integer> inEdgeToOffsetPosition = new HashMap<>();
+  private static final Map<String, HashSet<String>> edgeKeysByLabel = new HashMap<>();
+  private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
+
+  static {
+    outEdgeToOffsetPosition.put(OverflowDbTestEdge.label, 0);
+    inEdgeToOffsetPosition.put(OverflowDbTestEdge.label, 1);
+    edgeKeysByLabel.put(OverflowDbTestEdge.label, OverflowDbTestEdge.SPECIFIC_KEYS);
+    edgeLabelAndKeyToPosition.put(OverflowDbTestEdge.label + OverflowDbTestEdge.LONG_PROPERTY, 1);
+  }
+
+  private static NodeLayoutInformation layoutInformation = new NodeLayoutInformation(
+      specificKeys, outEdgeToOffsetPosition, inEdgeToOffsetPosition, edgeKeysByLabel, edgeLabelAndKeyToPosition);
+
+  public static OverflowElementFactory.ForNode<OverflowDbTestNode> factory = new OverflowElementFactory.ForNode<OverflowDbTestNode>() {
+
     @Override
     public String forLabel() {
       return OverflowDbTestNode.label;
@@ -154,7 +147,7 @@ public class OverflowDbTestNode extends OverflowDbNode {
 
     @Override
     public OverflowDbTestNode createVertex(VertexRef<OverflowDbTestNode> ref) {
-      return new OverflowDbTestNode(ref);
+      return new OverflowDbTestNode(ref, layoutInformation);
     }
 
     @Override

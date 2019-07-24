@@ -19,6 +19,7 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
 import org.apache.tinkerpop.gremlin.structure.VertexProperty;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.NodeLayoutInformation;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowDbNode;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowElementFactory;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowNodeProperty;
@@ -37,50 +38,19 @@ import java.util.Set;
 
 public class Artist extends OverflowDbNode {
   public static final String label = "artist";
-
   public static final String NAME = "name";
-  public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(NAME));
-
-  private static final Map<String, Integer> outEdgeToOffsetPosition = new HashMap<>();
-  private static final Map<String, Integer> inEdgeToOffsetPosition = new HashMap<>();
-  private static final Map<String, HashSet<String>> edgeKeysByLabel = new HashMap<>();
-  private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
-
-  static {
-    inEdgeToOffsetPosition.put(SungBy.label, 0);
-    inEdgeToOffsetPosition.put(WrittenBy.label, 1);
-    edgeKeysByLabel.put(SungBy.label, SungBy.SPECIFIC_KEYS);
-    edgeKeysByLabel.put(WrittenBy.label, WrittenBy.SPECIFIC_KEYS);
-  }
 
   /* properties */
   private String name;
 
-  protected Artist(VertexRef ref) {
-    super(ref, outEdgeToOffsetPosition, inEdgeToOffsetPosition, edgeKeysByLabel);
+  protected Artist(VertexRef ref, NodeLayoutInformation layoutInformation) {
+    super(ref, layoutInformation);
   }
 
   public String getName() {
     return name;
   }
 
-
-  @Override
-  protected Set<String> specificKeys() {
-    return SPECIFIC_KEYS;
-  }
-
-  @Override
-  protected int getOffsetRelativeToAdjacentVertexRef(String edgeLabel, String key) {
-    final Integer offsetOrNull = edgeLabelAndKeyToPosition.get(edgeLabel + key);
-    if (offsetOrNull != null) {
-      return offsetOrNull;
-    } else {
-      return -1;
-    }
-  }
-
-  /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
   @Override
   protected <V> Iterator<VertexProperty<V>> specificProperties(String key) {
     final VertexProperty<V> ret;
@@ -118,7 +88,23 @@ public class Artist extends OverflowDbNode {
     }
   }
 
-  public static OverflowElementFactory.ForVertex<Artist> factory = new OverflowElementFactory.ForVertex<Artist>() {
+  private static final Set<String> specificKeys = new HashSet<>(Arrays.asList(NAME));
+  private static final Map<String, Integer> outEdgeToOffsetPosition = new HashMap<>();
+  private static final Map<String, Integer> inEdgeToOffsetPosition = new HashMap<>();
+  private static final Map<String, HashSet<String>> edgeKeysByLabel = new HashMap<>();
+  private static final Map<String, Integer> edgeLabelAndKeyToPosition = new HashMap<>();
+
+  static {
+    inEdgeToOffsetPosition.put(SungBy.label, 0);
+    inEdgeToOffsetPosition.put(WrittenBy.label, 1);
+    edgeKeysByLabel.put(SungBy.label, SungBy.SPECIFIC_KEYS);
+    edgeKeysByLabel.put(WrittenBy.label, WrittenBy.SPECIFIC_KEYS);
+  }
+
+  private static NodeLayoutInformation layoutInformation = new NodeLayoutInformation(
+      specificKeys, outEdgeToOffsetPosition, inEdgeToOffsetPosition, edgeKeysByLabel, edgeLabelAndKeyToPosition);
+
+  public static OverflowElementFactory.ForNode<Artist> factory = new OverflowElementFactory.ForNode<Artist>() {
 
     @Override
     public String forLabel() {
@@ -127,7 +113,7 @@ public class Artist extends OverflowDbNode {
 
     @Override
     public Artist createVertex(VertexRef<Artist> ref) {
-      return new Artist(ref);
+      return new Artist(ref, layoutInformation);
     }
 
     @Override
