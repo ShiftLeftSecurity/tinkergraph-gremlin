@@ -29,7 +29,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class OverflowDbTestNode extends OverflowDbNode {
   public static final String label = "testNode";
@@ -45,13 +44,18 @@ public class OverflowDbTestNode extends OverflowDbNode {
   private List<String> stringListProperty;
   private List<Integer> intListProperty;
 
-  protected OverflowDbTestNode(VertexRef ref, NodeLayoutInformation layoutInformation) {
-    super(ref, layoutInformation);
+  protected OverflowDbTestNode(VertexRef ref) {
+    super(ref);
   }
 
   @Override
   public String label() {
     return OverflowDbTestNode.label;
+  }
+
+  @Override
+  protected NodeLayoutInformation layoutInformation() {
+    return layoutInformation;
   }
 
   /* note: usage of `==` (pointer comparison) over `.equals` (String content comparison) is intentional for performance - use the statically defined strings */
@@ -136,7 +140,7 @@ public class OverflowDbTestNode extends OverflowDbNode {
 
     @Override
     public OverflowDbTestNode createVertex(VertexRef<OverflowDbTestNode> ref) {
-      return new OverflowDbTestNode(ref, layoutInformation);
+      return new OverflowDbTestNode(ref);
     }
 
     @Override

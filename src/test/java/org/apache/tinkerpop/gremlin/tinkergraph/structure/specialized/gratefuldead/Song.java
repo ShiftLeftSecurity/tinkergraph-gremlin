@@ -50,13 +50,18 @@ public class Song extends OverflowDbNode {
   private Integer performances;
   private int[] testProp;
 
-  protected Song(VertexRef ref, NodeLayoutInformation layoutInformation) {
-    super(ref, layoutInformation);
+  protected Song(VertexRef ref) {
+    super(ref);
   }
 
   @Override
   public String label() {
     return Song.label;
+  }
+
+  @Override
+  protected NodeLayoutInformation layoutInformation() {
+    return layoutInformation;
   }
 
   public String getName() {
@@ -143,7 +148,7 @@ public class Song extends OverflowDbNode {
 
     @Override
     public Song createVertex(VertexRef<Song> ref) {
-      return new Song(ref, layoutInformation);
+      return new Song(ref);
     }
 
     @Override

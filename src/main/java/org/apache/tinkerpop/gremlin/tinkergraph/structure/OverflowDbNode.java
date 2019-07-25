@@ -47,8 +47,6 @@ import java.util.stream.StreamSupport;
  */
 public abstract class OverflowDbNode implements Vertex {
 
-  private final NodeLayoutInformation layoutInformation;
-
   public final VertexRef<Vertex> ref;
 
   /**
@@ -60,19 +58,19 @@ public abstract class OverflowDbNode implements Vertex {
    * i.e. each outgoing edge type has two entries in this array. */
   private int[] edgeOffsets;
 
-  protected OverflowDbNode(VertexRef<Vertex> ref, NodeLayoutInformation layoutInformation) {
+  protected OverflowDbNode(VertexRef<Vertex> ref) {
     this.ref = ref;
-    this.layoutInformation = layoutInformation;
 
     ref.setElement(this);
     if (ref.graph != null && ref.graph.referenceManager != null) {
       ref.graph.referenceManager.applyBackpressureMaybe();
     }
 
-    edgeOffsets = new int[layoutInformation.numberOfDifferentAdjacentTypes() * 2];
+    edgeOffsets = new int[layoutInformation().numberOfDifferentAdjacentTypes() * 2];
   }
 
-  /* implement in concrete specialised instance to avoid using generic HashMaps */
+  protected abstract NodeLayoutInformation layoutInformation();
+
   protected abstract <V> Iterator<VertexProperty<V>> specificProperties(String key);
 
   public Object[] getAdjacentVerticesWithProperties() {
@@ -105,7 +103,7 @@ public abstract class OverflowDbNode implements Vertex {
 
   @Override
   public Set<String> keys() {
-    return layoutInformation.propertyKeys();
+    return layoutInformation().propertyKeys();
   }
 
   @Override
@@ -128,7 +126,7 @@ public abstract class OverflowDbNode implements Vertex {
   @Override
   public <V> Iterator<VertexProperty<V>> properties(String... propertyKeys) {
     if (propertyKeys.length == 0) { // return all properties
-      return (Iterator) layoutInformation.propertyKeys().stream().flatMap(key ->
+      return (Iterator) layoutInformation().propertyKeys().stream().flatMap(key ->
           StreamSupport.stream(Spliterators.spliteratorUnknownSize(
               specificProperties(key), Spliterator.ORDERED), false)
       ).iterator();
@@ -196,7 +194,7 @@ public abstract class OverflowDbNode implements Vertex {
         result.add(getEdgeProperty(direction, edge, blockOffset, key));
       }
     } else {
-      for (String propertyKey : layoutInformation.edgePropertyKeys(edge.label())) {
+      for (String propertyKey : layoutInformation().edgePropertyKeys(edge.label())) {
         result.add(getEdgeProperty(direction, edge, blockOffset, propertyKey));
       }
     }
@@ -255,7 +253,7 @@ public abstract class OverflowDbNode implements Vertex {
       return -1;
     }
 
-    int propertyOffset = layoutInformation.getOffsetRelativeToAdjacentVertexRef(label, key);
+    int propertyOffset = layoutInformation().getOffsetRelativeToAdjacentVertexRef(label, key);
     if (propertyOffset == -1) {
       return -1;
     }
@@ -472,7 +470,7 @@ public abstract class OverflowDbNode implements Vertex {
    */
   private int getStrideSize(String edgeLabel) {
     int sizeForNodeRef = 1;
-    Set<String> allowedPropertyKeys = layoutInformation.edgePropertyKeys(edgeLabel);
+    Set<String> allowedPropertyKeys = layoutInformation().edgePropertyKeys(edgeLabel);
     return sizeForNodeRef + allowedPropertyKeys.size();
   }
 
@@ -482,9 +480,9 @@ public abstract class OverflowDbNode implements Vertex {
   private int getPositionInEdgeOffsets(Direction direction, String label) {
     final Integer positionOrNull;
     if (direction == Direction.OUT) {
-      positionOrNull = layoutInformation.outEdgeToOffsetPosition(label);
+      positionOrNull = layoutInformation().outEdgeToOffsetPosition(label);
     } else {
-      positionOrNull = layoutInformation.inEdgeToOffsetPosition(label);
+      positionOrNull = layoutInformation().inEdgeToOffsetPosition(label);
     }
     if (positionOrNull != null) {
       return positionOrNull;
@@ -505,7 +503,7 @@ public abstract class OverflowDbNode implements Vertex {
     if (edgeLabels.length != 0) {
       return edgeLabels;
     } else {
-      return layoutInformation.allowedInEdgeLabels();
+      return layoutInformation().allowedInEdgeLabels();
     }
   }
 
@@ -513,7 +511,7 @@ public abstract class OverflowDbNode implements Vertex {
     if (edgeLabels.length != 0) {
       return edgeLabels;
     } else {
-      return layoutInformation.allowedOutEdgeLabels();
+      return layoutInformation().allowedOutEdgeLabels();
     }
   }
 

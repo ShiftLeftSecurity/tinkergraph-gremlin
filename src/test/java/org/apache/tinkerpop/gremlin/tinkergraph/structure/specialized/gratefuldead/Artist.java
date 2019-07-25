@@ -43,13 +43,18 @@ public class Artist extends OverflowDbNode {
   /* properties */
   private String name;
 
-  protected Artist(VertexRef ref, NodeLayoutInformation layoutInformation) {
-    super(ref, layoutInformation);
+  protected Artist(VertexRef ref) {
+    super(ref);
   }
 
   @Override
   public String label() {
     return Artist.label;
+  }
+
+  @Override
+  protected NodeLayoutInformation layoutInformation() {
+    return layoutInformation;
   }
 
   public String getName() {
@@ -107,7 +112,7 @@ public class Artist extends OverflowDbNode {
 
     @Override
     public Artist createVertex(VertexRef<Artist> ref) {
-      return new Artist(ref, layoutInformation);
+      return new Artist(ref);
     }
 
     @Override
