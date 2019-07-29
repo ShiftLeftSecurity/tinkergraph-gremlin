@@ -18,36 +18,56 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.EdgeLayoutInformation;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowDbEdge;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowDbNode;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowElementFactory;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.VertexRef;
+import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.*;
 
-public class WrittenBy extends OverflowDbEdge implements Serializable {
-  public static final String LABEL = "writtenBy";
-  public static final HashSet<String> PROPERTY_KEYS = new HashSet<>(Arrays.asList());
+public class WrittenBy extends SpecializedTinkerEdge implements Serializable {
+    public static final String label = "writtenBy";
 
-  public WrittenBy(TinkerGraph graph, VertexRef<OverflowDbNode> outVertex, VertexRef<OverflowDbNode> inVertex) {
-    super(graph, LABEL, outVertex, inVertex, PROPERTY_KEYS);
-  }
+    public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList());
 
-  public static final EdgeLayoutInformation layoutInformation = new EdgeLayoutInformation(LABEL, PROPERTY_KEYS);
-
-  public static OverflowElementFactory.ForEdge<WrittenBy> factory = new OverflowElementFactory.ForEdge<WrittenBy>() {
-    @Override
-    public String forLabel() {
-      return WrittenBy.LABEL;
+    public WrittenBy(TinkerGraph graph, long id, Vertex outVertex, Vertex inVertex) {
+        super(graph, id, outVertex, label, inVertex, SPECIFIC_KEYS);
     }
 
     @Override
-    public WrittenBy createEdge(TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
-      return new WrittenBy(graph, outVertex, inVertex);
+    protected <V> Property<V> specificProperty(String key) {
+        return Property.empty();
     }
-  };
+
+    @Override
+    protected <V> Property<V> updateSpecificProperty(String key, V value) {
+        throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
+    }
+
+    @Override
+    protected void removeSpecificProperty(String key) {
+        throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
+    }
+
+    public static SpecializedElementFactory.ForEdge<WrittenBy> factory = new SpecializedElementFactory.ForEdge<WrittenBy>() {
+        @Override
+        public String forLabel() {
+            return WrittenBy.label;
+        }
+
+        @Override
+        public WrittenBy createEdge(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
+            return new WrittenBy(graph, id, outVertex, inVertex);
+        }
+
+        @Override
+        public EdgeRef<WrittenBy> createEdgeRef(WrittenBy edge) {
+            return new EdgeRefWithLabel<>(edge.id(), edge.graph(), edge, WrittenBy.label);
+        }
+
+        @Override
+        public EdgeRef<WrittenBy> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
+            return new EdgeRefWithLabel<>(id, graph, null, WrittenBy.label);
+        }
+    };
 }

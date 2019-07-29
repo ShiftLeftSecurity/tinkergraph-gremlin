@@ -18,34 +18,73 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure.specialized.gratefuldead;
 
+import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.Vertex;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.*;
 
+import java.io.Serializable;
 import java.util.*;
 
-public class FollowedBy extends OverflowDbEdge {
-  public static final String LABEL = "followedBy";
-  public static final String WEIGHT = "weight";
-  public static final HashSet<String> PROPERTY_KEYS = new HashSet<>(Arrays.asList(WEIGHT));
+public class FollowedBy extends SpecializedTinkerEdge {
+    public static final String label = "followedBy";
 
-  public Integer weight() {
-    return (Integer) property(WEIGHT).value();
-  }
+    public static final String WEIGHT = "weight";
+    public static final Set<String> SPECIFIC_KEYS = new HashSet<>(Arrays.asList(WEIGHT));
 
-  public FollowedBy(TinkerGraph graph, VertexRef<OverflowDbNode> outVertex, VertexRef<OverflowDbNode> inVertex) {
-    super(graph, LABEL, outVertex, inVertex, PROPERTY_KEYS);
-  }
+    private Integer weight;
 
-  public static final EdgeLayoutInformation layoutInformation = new EdgeLayoutInformation(LABEL, PROPERTY_KEYS);
-
-  public static OverflowElementFactory.ForEdge<FollowedBy> factory = new OverflowElementFactory.ForEdge<FollowedBy>() {
-    @Override
-    public String forLabel() {
-      return FollowedBy.LABEL;
+    public FollowedBy(TinkerGraph graph, long id, Vertex outVertex, Vertex inVertex) {
+        super(graph, id, outVertex, label, inVertex, SPECIFIC_KEYS);
     }
 
     @Override
-    public FollowedBy createEdge(TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
-      return new FollowedBy(graph, outVertex, inVertex);
+    protected <V> Property<V> specificProperty(String key) {
+        // note: use the statically defined strings to take advantage of `==` (pointer comparison) over `.equals` (String content comparison) for performance 
+        if (WEIGHT.equals(key) && weight != null) {
+            return new TinkerProperty(this, key, weight);
+        } else {
+            return Property.empty();
+        }
     }
-  };
+
+    @Override
+    protected <V> Property<V> updateSpecificProperty(String key, V value) {
+        if (WEIGHT.equals(key)) {
+            this.weight = (Integer) value;
+        } else {
+            throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
+        }
+        return property(key);
+    }
+
+    @Override
+    protected void removeSpecificProperty(String key) {
+        if (WEIGHT.equals(key)) {
+            this.weight = null;
+        } else {
+            throw new RuntimeException("property with key=" + key + " not (yet) supported by " + this.getClass().getName());
+        }
+    }
+
+    public static SpecializedElementFactory.ForEdge<FollowedBy> factory = new SpecializedElementFactory.ForEdge<FollowedBy>() {
+        @Override
+        public String forLabel() {
+            return FollowedBy.label;
+        }
+
+        @Override
+        public FollowedBy createEdge(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
+            return new FollowedBy(graph, id, outVertex, inVertex);
+        }
+
+        @Override
+        public EdgeRef<FollowedBy> createEdgeRef(FollowedBy edge) {
+            return new EdgeRefWithLabel<>(edge.id(), edge.graph(), edge, FollowedBy.label);
+        }
+
+        @Override
+        public EdgeRef<FollowedBy> createEdgeRef(Long id, TinkerGraph graph, VertexRef outVertex, VertexRef inVertex) {
+            return new EdgeRefWithLabel<>(id, graph, null, FollowedBy.label);
+        }
+    };
 }

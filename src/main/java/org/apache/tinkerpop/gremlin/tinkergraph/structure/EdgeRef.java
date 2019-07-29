@@ -18,44 +18,42 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.tinkerpop.gremlin.structure.Element;
-import org.apache.tinkerpop.gremlin.structure.Property;
+import org.apache.tinkerpop.gremlin.structure.*;
+import org.apache.tinkerpop.gremlin.structure.util.StringFactory;
 
-import java.util.NoSuchElementException;
+import java.io.IOException;
+import java.util.Iterator;
 
-public class OverflowProperty<V> implements Property<V> {
-  private final String key;
-  private final V value;
-  private final Element element; //set to null
+public abstract class EdgeRef<E extends Edge> extends ElementRef<E> implements Edge {
 
-  public OverflowProperty(String key, V value, Element element) {
-    this.key = key;
-    this.value = value;
-    this.element = element;
+  public EdgeRef(final Object edgeId, final Graph graph, E edge) {
+    super(edgeId, graph, edge);
   }
 
   @Override
-  public String key() {
-    return key;
+  protected E readFromDisk(final long edgeId) throws IOException {
+    return graph.ondiskOverflow.readEdge(edgeId);
   }
 
   @Override
-  public V value() throws NoSuchElementException {
-    return value;
+  public String toString() {
+    return StringFactory.edgeString(this);
+  }
+
+  // delegate methods start
+  @Override
+  public <V> Property<V> property(String key, V value) {
+    return this.get().property(key, value);
   }
 
   @Override
-  public boolean isPresent() {
-    return true;
+  public Iterator<Vertex> vertices(Direction direction) {
+    return this.get().vertices(direction);
   }
 
   @Override
-  public Element element() {
-    return element;
+  public <V> Iterator<Property<V>> properties(String... propertyKeys) {
+    return this.get().properties(propertyKeys);
   }
-
-  @Override
-  public void remove() {
-    throw new RuntimeException("Not supported.");
-  }
+  // delegate methods end
 }
