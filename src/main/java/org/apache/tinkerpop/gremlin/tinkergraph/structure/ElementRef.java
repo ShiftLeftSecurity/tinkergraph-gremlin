@@ -19,35 +19,38 @@
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
 import java.io.IOException;
-
+import java.lang.ref.SoftReference;
 import org.apache.tinkerpop.gremlin.structure.Element;
 import org.apache.tinkerpop.gremlin.structure.Graph;
 
 /**
- * Wrapper for an element element, which may be set to `null` by @ReferenceManager to avoid OutOfMemory errors.
+ * Wrapper for an element reference, which may be set to `null` by @ReferenceManager to avoid OutOfMemory errors.
  * When it's cleared, it will be persisted to an on-disk storage.
  */
 public abstract class ElementRef<E extends Element> implements Element {
   public final long id;
 
   protected final TinkerGraph graph;
-  protected E element;
+  protected E reference;
   private boolean removed = false;
 
-  /** used when creating a element without the underlying element at hand, set element to null
+  /** used when creating a reference without the underlying reference at hand, set element to null
    *  and please ensure it's available on disk */
   public ElementRef(final Object id, final Graph graph, E element) {
     this.id = (long)id;
     this.graph = (TinkerGraph)graph;
-    this.element = element;
+    this.reference = element;
+    if (element != null) {
+      this.graph.referenceManager.registerRef(this);
+    }
   }
 
   public boolean isSet() {
-    return element != null;
+    return reference != null;
   }
 
   public boolean isCleared() {
-    return element == null;
+    return reference == null;
   }
 
   public boolean isRemoved() {
@@ -56,32 +59,28 @@ public abstract class ElementRef<E extends Element> implements Element {
 
   /* only called by @ReferenceManager */
   protected void clear() throws IOException {
-    E ref = element;
+    E ref = reference;
     if (ref != null) {
       graph.ondiskOverflow.persist(ref);
     }
-    element = null;
+    reference = null;
   }
 
   public E get() {
-    E ref = element;
+    E ref = reference;
     if (ref != null) {
       return ref;
     } else {
       try {
         final E element = readFromDisk(id);
         if (element == null) throw new IllegalStateException("unable to read element from disk; id=" + id);
-        this.element = element;
+        this.reference = element;
         graph.referenceManager.registerRef(this); // so it can be cleared on low memory
         return element;
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
     }
-  }
-
-  public void setElement(E e) {
-    this.element = e;
   }
 
   protected abstract E readFromDisk(long elementId) throws IOException;

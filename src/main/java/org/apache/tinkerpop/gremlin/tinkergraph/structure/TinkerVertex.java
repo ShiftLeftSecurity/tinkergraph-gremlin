@@ -18,7 +18,6 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.tinkerpop.gremlin.structure.Direction;
 import org.apache.tinkerpop.gremlin.structure.Edge;
 import org.apache.tinkerpop.gremlin.structure.Graph;
@@ -123,8 +122,7 @@ public class TinkerVertex extends TinkerElement implements Vertex {
     public Edge addEdge(final String label, final Vertex vertex, final Object... keyValues) {
         if (null == vertex) throw Graph.Exceptions.argumentCanNotBeNull("vertex");
         if (this.removed) throw elementAlreadyRemoved(Vertex.class, this.id);
-        throw new NotImplementedException("");
-//        return TinkerHelper.addEdge(this.graph, this, (TinkerVertex) vertex, label, keyValues);
+        return TinkerHelper.addEdge(this.graph, this, (TinkerVertex) vertex, label, keyValues);
     }
 
     @Override
