@@ -18,6 +18,10 @@ limitations under the License.
 [![Build Status](https://travis-ci.org/ShiftLeftSecurity/tinkergraph-gremlin.svg?branch=master)](https://travis-ci.org/ShiftLeftSecurity/tinkergraph-gremlin)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.shiftleft/tinkergraph-gremlin/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.shiftleft/tinkergraph-gremlin)
 
+# Successor notice: OverflowDB
+What started as a tinkergraph fork has slowly but steadily evolved into a separate graph db and has now moded to a separate repository: https://github.com/ShiftLeftSecurity/overflowdb
+Users of this Shiftleft-Tinkergraph can continue to use it, and we still accept PRs and can release new versions. But future development will happen on OverflowDB, and it's already 70% more memory efficient than Shiftleft-Tinkergraph, which itself is 70% more memory efficient than the original Tinkergraph.
+
 # ShiftLeft TinkerGraph
 This is Fork of [Apache TinkerGraph](https://github.com/apache/tinkerpop/tree/master/tinkergraph-gremlin) that uses uses 70% less memory (for our use case, ymmv) and implements a strict schema validation. Related blog article on [ShiftLeft Blog](https://blog.shiftleft.io/open-sourcing-our-specialized-tinkergraph-with-70-memory-reduction-and-strict-schema-validation-fa5cfb3dd82d)
 
