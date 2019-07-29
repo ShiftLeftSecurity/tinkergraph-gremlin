@@ -20,12 +20,7 @@ package org.apache.tinkerpop.gremlin.tinkergraph.storage;
 
 import gnu.trove.map.hash.THashMap;
 import org.apache.commons.lang3.NotImplementedException;
-import org.apache.tinkerpop.gremlin.structure.VertexProperty;
-import org.apache.tinkerpop.gremlin.structure.util.ElementHelper;
 import org.apache.tinkerpop.gremlin.tinkergraph.structure.ElementRef;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowDbNode;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.OverflowElementFactory;
-import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerGraph;
 import org.msgpack.core.MessagePack;
 import org.msgpack.core.MessageUnpacker;
 import org.msgpack.value.ArrayValue;
@@ -39,19 +34,26 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-public class NodeDeserializer {
+public abstract class Deserializer<A> {
   private final Logger logger = LoggerFactory.getLogger(getClass());
-  protected final TinkerGraph graph;
-  protected final Map<String, OverflowElementFactory.ForNode> vertexFactoryByLabel;
   private int deserializedCount = 0;
   private long deserializationTimeSpentMillis = 0;
 
-  public NodeDeserializer(TinkerGraph graph, Map<String, OverflowElementFactory.ForNode> vertexFactoryByLabel) {
-    this.graph = graph;
-    this.vertexFactoryByLabel = vertexFactoryByLabel;
-  }
+  protected abstract boolean elementRefRequiresAdjacentElements();
 
-  public OverflowDbNode deserialize(byte[] bytes) throws IOException {
+  /** edgeId maps are passed dependent on `elementRefRequiresAdjacentElements`*/
+  protected abstract ElementRef createElementRef(long id,
+                                                 String label,
+                                                 Map<String, long[]> inEdgeIdsByLabel,
+                                                 Map<String, long[]> outEdgeIdsByLabel);
+
+  protected abstract A createElement(long id,
+                                     String label,
+                                     Map<String, Object> properties,
+                                     Map<String, long[]> inEdgeIdsByLabel,
+                                     Map<String, long[]> outEdgeIdsByLabel);
+
+  public A deserialize(byte[] bytes) throws IOException {
     long start = System.currentTimeMillis();
     if (null == bytes)
       return null;
@@ -59,19 +61,19 @@ public class NodeDeserializer {
     try (MessageUnpacker unpacker = MessagePack.newDefaultUnpacker(bytes)) {
       final long id = unpacker.unpackLong();
       final String label = unpacker.unpackString();
+      final Map<String, long[]> inEdgeIdsByLabel = unpackEdgeIdsByLabel(unpacker);
+      final Map<String, long[]> outEdgeIdsByLabel = unpackEdgeIdsByLabel(unpacker);
       final Map<String, Object> properties = unpackProperties(unpacker);
-      final int[] edgeOffsets = unpackEdgeOffsets(unpacker);
-      final Object[] adjacentVerticesWithProperties = unpackAdjacentVerticesWithProperties(unpacker);
 
-      OverflowDbNode node = createNode(id, label, properties, edgeOffsets, adjacentVerticesWithProperties);
+      A a = createElement(id, label, properties, inEdgeIdsByLabel, outEdgeIdsByLabel);
 
       deserializedCount++;
       deserializationTimeSpentMillis += System.currentTimeMillis() - start;
-      if (deserializedCount % 131072 == 0) { //2^17
+      if (deserializedCount % 100000 == 0) {
         float avgDeserializationTime = deserializationTimeSpentMillis / (float) deserializedCount;
         logger.debug("stats: deserialized " + deserializedCount + " vertices in total (avg time: " + avgDeserializationTime + "ms)");
       }
-      return node;
+      return a;
     }
   }
 
@@ -83,7 +85,13 @@ public class NodeDeserializer {
       long id = unpacker.unpackLong();
       String label = unpacker.unpackString();
 
-      return createNodeRef(id, label);
+      Map<String, long[]> inEdgeIdsByLabel = null;
+      Map<String, long[]> outEdgeIdsByLabel = null;
+      if (elementRefRequiresAdjacentElements()) {
+        inEdgeIdsByLabel = unpackEdgeIdsByLabel(unpacker);
+        outEdgeIdsByLabel = unpackEdgeIdsByLabel(unpacker);
+      }
+      return createElementRef(id, label, inEdgeIdsByLabel, outEdgeIdsByLabel);
     }
   }
 
@@ -92,41 +100,18 @@ public class NodeDeserializer {
     Map<String, Object> res = new THashMap<>(propertyCount);
     for (int i = 0; i < propertyCount; i++) {
       final String key = unpacker.unpackString();
-      final Object unpackedProperty = unpackValue(unpacker.unpackValue().asArrayValue());
+      final Object unpackedProperty = unpackProperty(unpacker.unpackValue().asArrayValue());
       res.put(key, unpackedProperty);
     }
     return res;
   }
 
-  private int[] unpackEdgeOffsets(MessageUnpacker unpacker) throws IOException {
-    int size = unpacker.unpackArrayHeader();
-    int[] edgeOffsets = new int[size];
-    for (int i = 0; i < size; i++) {
-      edgeOffsets[i] = unpacker.unpackInt();
-    }
-    return edgeOffsets;
-  }
-
-  protected Object[] unpackAdjacentVerticesWithProperties(MessageUnpacker unpacker) throws IOException {
-    int size = unpacker.unpackArrayHeader();
-    Object[] adjacentVerticesWithProperties = new Object[size];
-    for (int i = 0; i < size; i++) {
-      adjacentVerticesWithProperties[i] = unpackValue(unpacker.unpackValue().asArrayValue());
-    }
-    return adjacentVerticesWithProperties;
-  }
-
-  private Object unpackValue(final ArrayValue packedValueAndType) {
+  private Object unpackProperty(final ArrayValue packedValueAndType) {
     final Iterator<Value> iter = packedValueAndType.iterator();
     final byte valueTypeId = iter.next().asIntegerValue().asByte();
     final Value value = iter.next();
 
     switch (ValueTypes.lookup(valueTypeId)) {
-      case UNKNOWN:
-        return null;
-      case VERTEX_REF:
-        long id = value.asIntegerValue().asLong();
-        return graph.vertex(id);
       case BOOLEAN:
         return value.asBooleanValue().getBoolean();
       case STRING:
@@ -148,12 +133,30 @@ public class NodeDeserializer {
         List deserializedArray = new ArrayList(arrayValue.size());
         final Iterator<Value> valueIterator = arrayValue.iterator();
         while (valueIterator.hasNext()) {
-          deserializedArray.add(unpackValue(valueIterator.next().asArrayValue()));
+          deserializedArray.add(unpackProperty(valueIterator.next().asArrayValue()));
         }
         return deserializedArray;
       default:
         throw new NotImplementedException("unknown valueTypeId=`" + valueTypeId);
     }
+  }
+
+  /**
+   * format: `Map<Label, Array<EdgeId>>`
+   */
+  private Map<String, long[]> unpackEdgeIdsByLabel(MessageUnpacker unpacker) throws IOException {
+    int labelCount = unpacker.unpackMapHeader();
+    Map<String, long[]> edgeIdsByLabel = new THashMap<>(labelCount);
+    for (int i = 0; i < labelCount; i++) {
+      String label = unpacker.unpackString();
+      int edgeIdsCount = unpacker.unpackArrayHeader();
+      long[] edgeIds = new long[edgeIdsCount];
+      for (int j = 0; j < edgeIdsCount; j++) {
+        edgeIds[j] = unpacker.unpackLong();
+      }
+      edgeIdsByLabel.put(label, edgeIds);
+    }
+    return edgeIdsByLabel;
   }
 
   protected Object[] toTinkerpopKeyValues(Map<String, Object> properties) {
@@ -175,26 +178,7 @@ public class NodeDeserializer {
     return keyValues.toArray();
   }
 
-  protected ElementRef createNodeRef(long id, String label) {
-    OverflowElementFactory.ForNode vertexFactory = vertexFactoryByLabel.get(label);
-    if (vertexFactory == null) {
-      throw new AssertionError("vertexFactory not found for label=" + label);
-    }
-
-    return vertexFactory.createVertexRef(id, graph);
-  }
-
-  protected OverflowDbNode createNode(long id, String label, Map<String, Object> properties, int[] edgeOffsets, Object[] adjacentVerticesWithProperties) {
-    OverflowElementFactory.ForNode vertexFactory = vertexFactoryByLabel.get(label);
-    if (vertexFactory == null) {
-      throw new AssertionError("vertexFactory not found for label=" + label);
-    }
-    OverflowDbNode vertex = vertexFactory.createVertex(id, graph);
-    ElementHelper.attachProperties(vertex, VertexProperty.Cardinality.list, toTinkerpopKeyValues(properties));
-    vertex.setEdgeOffsets(edgeOffsets);
-    vertex.setAdjacentVerticesWithProperties(adjacentVerticesWithProperties);
-
-    return vertex;
-  }
 
 }
+
+

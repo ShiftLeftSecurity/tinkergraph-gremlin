@@ -18,25 +18,22 @@
  */
 package org.apache.tinkerpop.gremlin.tinkergraph.structure;
 
-/* To make use of specialized elements (for better memory/performance characteristics), you need to
- * create instances of these factories and register them with TinkerGraph. */
-public class OverflowElementFactory {
+import org.apache.tinkerpop.gremlin.structure.Edge;
+import org.apache.tinkerpop.gremlin.structure.Graph;
 
-  public interface ForNode<V extends OverflowDbNode> {
-    String forLabel();
+public class EdgeRefWithLabel<E extends Edge> extends EdgeRef<E> {
+  private final String label;
 
-    V createVertex(Long id, TinkerGraph graph);
-
-    V createVertex(VertexRef<V> ref);
-
-    VertexRef<V> createVertexRef(Long id, TinkerGraph graph);
+  public EdgeRefWithLabel(final Object edgeId,
+                          final Graph graph,
+                          E edge,
+                          final String label) {
+    super(edgeId, graph, edge);
+    this.label = label;
   }
 
-
-  public interface ForEdge<E extends OverflowDbEdge> {
-    String forLabel();
-
-    E createEdge(TinkerGraph graph, VertexRef outVertex, VertexRef inVertex);
+  @Override
+  public String label() {
+    return label;
   }
-
 }
