@@ -19,7 +19,7 @@ limitations under the License.
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.shiftleft/tinkergraph-gremlin/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.shiftleft/tinkergraph-gremlin)
 
 # Successor notice: OverflowDB
-What started as a tinkergraph fork has slowly but steadily evolved into a separate graph db and has now moded to a separate repository: https://github.com/ShiftLeftSecurity/overflowdb
+What started as a tinkergraph fork has slowly but steadily evolved into a separate graph db and has now moved to a separate repository: https://github.com/ShiftLeftSecurity/overflowdb
 Users of this Shiftleft-Tinkergraph can continue to use it, and we still accept PRs and can release new versions. But future development will happen on OverflowDB, and it's already 70% more memory efficient than Shiftleft-Tinkergraph, which itself is 70% more memory efficient than the original Tinkergraph.
 
 # ShiftLeft TinkerGraph
